@@ -10,8 +10,19 @@
     "mobile": "npm run start --workspace=@fit/mobile",
     "mobile:android": "npm run android --workspace=@fit/mobile",
     "mobile:web": "npm run web --workspace=@fit/mobile",
+    "api": "npm run dev --workspace=@fit/api",
     "typecheck": "npm run typecheck --if-present --workspaces",
-    "test": "npm run test --if-present --workspaces"
+    "test": "npm run test --if-present --workspaces",
+    "test:e2e": "playwright test --config apps/mobile/playwright.config.ts",
+    "theme": "node scripts/generate-theme.mjs",
+    "pretypecheck": "npm run theme"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.1"
+  },
+  "overrides": {
+    "sequelize": {
+      "uuid": "^11.1.1"
+    }
   }
 }
-

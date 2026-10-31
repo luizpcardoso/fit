@@ -57,6 +57,8 @@ Estética moderna, limpa, esportiva, acolhedora e associada à saúde; evitar ap
 
 Adotar tokens semânticos, suporte planejado a temas claro/escuro, contraste acessível, cards arredondados, ícones simples e gráficos legíveis. Inter ou Manrope são sugestões tipográficas, **não decisões finais**.
 
+Temas claro e escuro implementados com a paleta Ocean Fit. Em Perfil → Configurações → Aparência, o usuário escolhe Claro, Escuro ou Sistema (padrão). A preferência é local ao aparelho/navegador, persiste entre aberturas e não depende da conta ou da API. Telas de autenticação, navegação, treinos, saúde, formulários e modais usam o tema selecionado. Cores semânticas complementares de aviso, erro e sucesso variam por tema para manter legibilidade; a identidade original não deve ser substituída por outra paleta em reformulações de layout.
+
 ## 4. Home / Dashboard (confirmado conceitualmente)
 
 A tela inicial deve apresentar, de forma clara:
@@ -96,6 +98,8 @@ A tela inicial deve apresentar, de forma clara:
 **Detalhes a definir antes de codificar:** fuso horário do usuário, edição de metas durante a semana, o que conta como sessão válida, duplicidade de check-ins, treinos lançados retroativamente e exceções (pausa/lesão/férias).
 
 ## 6. Grupos de treinamento e isolamento de contexto (confirmado)
+
+**Estado atual:** grupos privados, convites no aplicativo, papéis de dono/administrador/moderador/membro, feed isolado, preferências de compartilhamento, posts com uma foto, reações, comentários, notificações e moderação estão implementados. Fórum, desafios e rankings continuam no backlog. As regras técnicas estão em `docs/groups.md`.
 
 Um mesmo usuário pode participar de **vários grupos simultaneamente**, como:
 - Grupo dos amigos;
@@ -142,6 +146,8 @@ Possíveis entidades conceituais: `body_measurements`, `body_composition`, `prog
 
 ### Medicamentos e suplementos
 
+- Implementado: cadastro privado, edição/pausa, frequência e horários, tomadas diárias, resumo real na Home e modal compartilhado acionado por `+`. Saúde possui alternância de categorias, lista compacta, busca e filtros. Persistência compartilhada com discriminador `kind`; ver `docs/supplements.md`. Lembretes push e consulta histórica permanecem futuros.
+
 - Cadastro de itens, posologia/planejamento, horários, lembretes, tomadas/doses concluídas e histórico.
 - Cards na Home refletem adesão **do dia**, não recomendam dosagem nem substituem prescrição médica.
 - Diferenciar medicamentos de suplementos no domínio, ainda que compartilhem componentes de UX.
@@ -171,8 +177,8 @@ Módulo **genérico**, não apenas consultas:
 ## 11. Stack e fluxo de desenvolvimento (planejados, sujeitos a validação)
 
 - **Mobile:** React Native + Expo + TypeScript; foco inicial Android.
-- **API:** NestJS + TypeScript.
-- **Persistência:** PostgreSQL + Prisma.
+- **API atual:** Fastify + TypeScript.
+- **Persistência atual:** MySQL + Sequelize, com migrations automáticas e caminho previsto para banco gerenciado em nuvem.
 - **Infra local:** Docker Compose; Redis apenas se houver necessidade real.
 - **Desenvolvimento:** Ubuntu, OpenAI Codex CLI, Git/GitHub.
 - **Operação remota desejada:** usar celular para acessar máquina Ubuntu por SSH/Tailscale, manter sessões tmux, dar instruções ao Codex e testar app com Expo Go.
@@ -198,7 +204,7 @@ Módulo **genérico**, não apenas consultas:
 - Política de alterações de metas durante semana em andamento.
 - Quais eventos sociais são compartilhados por padrão (recomendação: opt-in).
 - Critérios de ranking justos entre metas diferentes.
-- UX final da navegação e do seletor de grupos.
+- UX final do seletor de grupos; a navegação inferior inicial foi definida como Início, Treinos, Grupos, Saúde e Perfil.
 - Regras de notificações, lembretes e permissões de coach.
 - Inclusão de peso/medidas já no MVP.
 - Implantação e estratégia de autenticação.

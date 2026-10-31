@@ -1,0 +1,75 @@
+/* Gerado por npm run theme a partir de design/palette.json. Não editar manualmente. */
+:root {
+  color-scheme: light;
+  --fit-control-track-off: #647B7C;
+  --fit-control-thumb: #FFFFFF;
+  --fit-notification-background: #DEF2EE;
+  --fit-notification-text: #134649;
+  --fit-notification-border: #0D807E;
+  --fit-background: #F5F7F8;
+  --fit-surface: #FFFFFF;
+  --fit-surface-soft: #EDF4F3;
+  --fit-primary: #0D807E;
+  --fit-primary-strong: #134649;
+  --fit-primary-soft: #DEF2EE;
+  --fit-secondary: #8CE6D1;
+  --fit-accent: #087F7B;
+  --fit-text: #20343B;
+  --fit-text-muted: #526E6C;
+  --fit-border: #CFDFDE;
+  --fit-field-border: #768F8D;
+  --fit-success: #087F72;
+  --fit-warning: #906318;
+  --fit-warning-soft: #FFF5DF;
+  --fit-danger: #B42318;
+  --fit-danger-soft: #FEF3F2;
+  --fit-white: #FFFFFF;
+  --fit-link: #0B706E;
+  --fit-hero-muted: #BCE9DE;
+  --fit-hero-tint: #D5F4EB;
+  --fit-hero-warning: #FFE0A6;
+  --fit-on-hero: #FFFFFF;
+  --fit-on-primary: #FFFFFF;
+  --fit-on-primary-soft: #134649;
+  --brand-deep: #134649;
+  --brand-hover: #0B6B69;
+  --brand-mint: #8CE6D1;
+  --brand-on-mint: #134649;
+  --brand-hero-text: #FFFFFF;
+  --brand-hero-muted: #BCE9DE;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+  --fit-control-track-off: #819A9A;
+  --fit-control-thumb: #142326;
+  --fit-notification-background: #203F40;
+  --fit-notification-text: #BCE9DE;
+  --fit-notification-border: #68B9AD;
+  --fit-background: #111E22;
+  --fit-surface: #1B2C30;
+  --fit-surface-soft: #243A3D;
+  --fit-primary: #0D807E;
+  --fit-primary-strong: #134649;
+  --fit-primary-soft: #203F40;
+  --fit-secondary: #8CE6D1;
+  --fit-accent: #087F7B;
+  --fit-text: #EEF6F5;
+  --fit-text-muted: #B0C8C4;
+  --fit-border: #385356;
+  --fit-field-border: #6E8C8E;
+  --fit-success: #67D8BD;
+  --fit-warning: #F4D18B;
+  --fit-warning-soft: #3B3526;
+  --fit-danger: #FFAAA2;
+  --fit-danger-soft: #442D32;
+  --fit-white: #FFFFFF;
+  --fit-link: #8CE6D1;
+  --fit-hero-muted: #BCE9DE;
+  --fit-hero-tint: #D5F4EB;
+  --fit-hero-warning: #FFE0A6;
+  --fit-on-hero: #FFFFFF;
+  --fit-on-primary: #FFFFFF;
+  --fit-on-primary-soft: #8CE6D1;
+  }
+}

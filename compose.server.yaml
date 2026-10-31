@@ -1,0 +1,63 @@
+name: fit_server
+services:
+  db:
+    # Supported LTS, validated in a separate volume; the original volume is retained.
+    image: mysql:9.7.4@sha256:86b390ef642f89a0157d6215dee33ddc928b8b0ecab173117f56f6c40cb24eab
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: fit
+      MYSQL_USER: fit
+      MYSQL_PASSWORD: ${DB_PASS:?Configure deploy/runtime.env}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Configure deploy/runtime.env}
+    volumes:
+      - mysql_data_lts:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h127.0.0.1", "--silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+    mem_limit: 1536m
+  api:
+    build: .
+    image: fit-server-api:local
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: 3333
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_USER: fit
+      DB_NAME: fit
+      DB_PASS: ${DB_PASS:?Configure deploy/runtime.env}
+      DB_SSL: "false"
+      JWT_SECRET: ${JWT_SECRET:?Configure deploy/runtime.env}
+      MEDIA_DIR: /var/lib/fit/media
+      CORS_ORIGINS: ${CORS_ORIGINS:?Configure deploy/runtime.env}
+      TRUST_PROXY: "1"
+      UPDATES_DIR: /var/lib/fit/updates
+    ports:
+      - "127.0.0.1:3333:3333"
+    volumes:
+      - ./deploy/data/media:/var/lib/fit/media
+      - ./deploy/data/updates:/var/lib/fit/updates:ro
+    read_only: true
+    tmpfs:
+      - /tmp:size=128m,mode=1777
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 768m
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3333/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+volumes:
+  mysql_data:
+  mysql_data_lts:
+    external: true
+    name: fit_server_mysql_data_lts

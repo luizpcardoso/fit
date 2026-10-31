@@ -1,0 +1,3 @@
+import {DataTypes,type QueryInterface} from 'sequelize';
+export async function up({context}:{context:QueryInterface}){await context.createTable('user_feedback',{id:{type:DataTypes.STRING(36),primaryKey:true},user_id:{type:DataTypes.STRING(36),allowNull:false,references:{model:'users',key:'id'},onDelete:'CASCADE'},category:{type:DataTypes.ENUM('feedback','suggestion','bug'),allowNull:false},message:{type:DataTypes.STRING(3000),allowNull:false},created_at:{type:DataTypes.DATE,allowNull:false}});}
+export async function down({context}:{context:QueryInterface}){await context.dropTable('user_feedback');}

@@ -1,0 +1,124 @@
+import { test, expect } from '@playwright/test';
+import { resolve } from 'node:path';
+import { randomUUID } from 'node:crypto';
+import { config } from 'dotenv';
+import { createConnection } from 'mysql2/promise';
+
+const apiURL = process.env.FIT_E2E_API_URL ?? 'http://127.0.0.1:33318';
+const testDatabase = process.env.FIT_E2E_DB_NAME;
+test('dieta: Home registra prescrição e Minha dieta apresenta o dia em linhas compactas', async ({page,request}) => {
+  test.skip(!testDatabase?.includes('test'), 'Requer banco exclusivo de testes em FIT_E2E_DB_NAME.');
+  if (!['localhost','127.0.0.1'].includes(new URL(apiURL).hostname)) throw new Error('Use API local isolada');
+  page.setDefaultTimeout(15000);
+  config({path:resolve(__dirname,'../../api/.env'),quiet:true});
+  const db = await createConnection({host:process.env.DB_HOST,port:Number(process.env.DB_PORT),user:process.env.DB_USER,password:process.env.DB_PASS,database:testDatabase});
+  const users: string[] = [], assignments: string[] = [];
+  try {
+    const accounts = [];
+    for (const role of ['student','author']) {
+      const response = await request.post(apiURL+'/auth/register',{data:{email:`diet-e2e-${role}-${randomUUID()}@example.com`,password:'test-password-123',phone:'71999990000',firstName:'Teste',lastName:role}});
+      expect(response.status()).toBe(201);const account = await response.json();accounts.push(account);users.push(account.user.id);
+    }
+    const headers = {authorization:`Bearer ${accounts[0].accessToken}`};
+    await page.route(/^http:\/\/[^/]+:3333\//,async route => {const u = new URL(route.request().url());await route.fulfill({response:await route.fetch({url:apiURL+u.pathname+u.search})});});
+    await page.addInitScript(account => {localStorage.setItem('fit.auth.tokens',JSON.stringify(account));if (!localStorage.getItem('fit.appearance.theme')) localStorage.setItem('fit.appearance.theme','dark');},accounts[0]);
+    const errors: string[] = [];page.on('pageerror',e => errors.push(e.message));
+    await page.goto('/');
+    await page.getByRole('button',{name:'Adicionar refeição',exact:true}).click();
+    await expect(page.getByText('Buscando dieta vinculada…')).toHaveCount(0);
+    await expect(page.getByRole('radio',{name:'Refeição da dieta',exact:true})).toBeVisible();
+    await page.getByRole('radio',{name:'Refeição da dieta',exact:true}).click();
+    await expect(page.getByText(/Nenhuma dieta vinculada disponível/)).toBeVisible();
+    await page.getByRole('button',{name:'Fechar refeição da dieta'}).click();
+    await page.getByText('Fechar',{exact:true}).click();
+    const food = {name:'Arroz do plano',servingAmount:100,servingUnit:'g',calories:130,protein:3,carbs:28,fat:1,notes:'Preparado sem óleo'};
+    const names = ['Café da manhã','Lanche da manhã','Almoço','Lanche da tarde','Jantar','Ceia'];
+    const snapshot = {kind:'diet',scope:'private',name:'Plano alimentar E2E',data:{objective:'Objetivo do profissional',notes:'Orientações completas do plano',validityDays:30,meals:names.map((name,index) => ({name,time:`${String(7+index*2).padStart(2,'0')}:00`,items:[{food,quantity:100,substitutions:'Conforme orientação profissional'}],options:[{name:'Opção com batata',items:[{food:{...food,name:'Batata do plano',calories:80},quantity:200,substitutions:''}]}]}))}};
+    for (const status of ['active','superseded']) {
+      const id = randomUUID();assignments.push(id);
+      await db.execute("INSERT INTO professional_assignments (id,author_id,student_id,relationship_id,kind,status,source_id,source_revision,snapshot,request_id,created_at,updated_at) VALUES (?,?,?,?,'diet',?,?,1,?,?,UTC_TIMESTAMP(),UTC_TIMESTAMP())",[id,users[1],users[0],randomUUID(),status,randomUUID(),JSON.stringify({...snapshot,name:status === 'active' ? snapshot.name : 'Plano anterior E2E'}),randomUUID()]);
+    }
+    await page.route('**/nutrition/foods', route => route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({code:'INTERNAL_ERROR',message:'Catálogo temporariamente indisponível'})}));
+    await page.reload();
+    await page.getByRole('button',{name:'Adicionar refeição',exact:true}).click();
+    await page.getByRole('radio',{name:'Refeição da dieta',exact:true}).click();
+    await page.getByRole('button',{name:'Abrir Almoço às 11:00',exact:true}).click();
+    await page.getByRole('radio',{name:'Almoço B',exact:true}).click();
+    await page.getByLabel('Quantidade consumida de Batata do plano').fill('150');
+    await page.getByRole('button',{name:'Registrar consumo da dieta',exact:true}).click();
+    await expect(page.getByText('Refeição registrada.',{exact:true})).toBeVisible();
+    const date = new Date().toLocaleDateString('sv-SE',{timeZone:'America/Bahia'});
+    const summary = await (await request.get(apiURL+`/nutrition/summary?date=${date}`,{headers})).json();
+    expect(summary.consumed.calories).toBe(120);expect(summary.meals).toHaveLength(1);
+    expect(summary.meals[0].items[0].foodName).toBe('Batata do plano');
+    await page.goto('/diet');
+    await expect(page.getByRole('button',{name:'Abrir Ceia às 17:00',exact:true})).toBeInViewport();
+    await expect(page.getByText('Arroz do plano',{exact:true})).toHaveCount(0);
+    await page.screenshot({path:'artifacts/ux-review/diet-overview-dark-390.png',animations:'disabled'});
+    await page.evaluate(() => localStorage.setItem('fit.appearance.theme','light'));
+    await page.reload();
+    await expect(page.getByRole('button',{name:'Abrir Ceia às 17:00',exact:true})).toBeInViewport();
+    await page.screenshot({path:'artifacts/ux-review/diet-overview-light-390.png',animations:'disabled'});
+    await page.getByRole('button',{name:'Abrir Almoço às 11:00',exact:true}).click();
+    await expect(page.getByText('Arroz do plano',{exact:true})).toBeVisible();
+    await page.getByRole('radio',{name:'Almoço B',exact:true}).click();
+    await expect(page.getByText('Batata do plano',{exact:true})).toBeVisible();
+    await page.getByRole('button',{name:'Registrar esta opção no diário',exact:true}).click();
+    await expect(page.getByLabel('Quantidade consumida de Batata do plano')).toHaveValue('200');
+    await page.getByRole('button',{name:'Fechar refeição da dieta'}).click();
+    await page.getByRole('button',{name:'Orientações da dieta'}).click();
+    await expect(page.getByText('Orientações completas do plano',{exact:true})).toBeVisible();
+    await page.getByLabel('Fechar informações').click();
+    await page.getByText('Ver também dietas anteriores',{exact:true}).click();
+    await page.getByRole('radio',{name:'Plano anterior E2E, anterior',exact:true}).click();
+    await page.getByRole('button',{name:'Abrir Almoço às 11:00',exact:true}).click();
+    await expect(page.getByRole('button',{name:'Registrar esta opção no diário',exact:true})).toHaveCount(0);
+    await db.execute("INSERT INTO portal_accounts (user_id,role,suspended) VALUES (?,'admin',FALSE)",[users[1]]);
+    const authorHeaders = {authorization:`Bearer ${accounts[1].accessToken}`};
+    const libraryFood = await request.post(apiURL+'/portal/content',{headers:authorHeaders,data:{kind:'food',scope:'private',name:'Alimento E2E',data:food}});
+    expect(libraryFood.status()).toBe(201);
+    const foodId = (await libraryFood.json()).id;
+    const template = await request.post(apiURL+'/portal/content',{headers:authorHeaders,data:{...snapshot,name:'Modelo fixo E2E',data:{...snapshot.data,meals:[snapshot.data.meals[2]]}}});
+    expect(template.status()).toBe(201);
+    const templateId = (await template.json()).id;
+    const portal = await page.context().newPage();
+    portal.setDefaultTimeout(15000);
+    portal.on('pageerror',e => errors.push(e.message));
+    await portal.setViewportSize({width:1280,height:900});
+    await portal.goto(apiURL+'/portal/');
+    await portal.getByLabel('E-mail',{exact:true}).fill(accounts[1].user.email);
+    await portal.getByLabel('Senha',{exact:true}).fill('test-password-123');
+    await portal.getByRole('button',{name:/Entrar no portal/}).click();
+    await portal.getByRole('button',{name:/Dietas/}).click();
+    await portal.locator('article.content-card').filter({has:portal.getByRole('heading',{name:'Modelo fixo E2E',exact:true})}).getByRole('button',{name:'Editar',exact:true}).click();
+    await expect(portal.getByLabel('Nome da opção',{exact:true})).toHaveCount(0);
+    await expect(portal.getByText('Almoço A',{exact:true})).toBeVisible();
+    await expect(portal.getByText('Almoço B',{exact:true})).toBeVisible();
+    await portal.getByRole('button',{name:'Adicionar opção',exact:true}).click();
+    await expect(portal.getByText('Almoço C',{exact:true})).toBeVisible();
+    await expect(portal.getByRole('button',{name:'Limite de 3 opções atingido',exact:true})).toBeDisabled();
+    await portal.getByLabel('Refeição',{exact:true}).fill('Jantar');
+    await expect(portal.getByText('Jantar A',{exact:true})).toBeVisible();
+    await expect(portal.getByText('Jantar C',{exact:true})).toBeVisible();
+    await portal.locator('.meal-options > fieldset').first().getByRole('button',{name:'Remover opção',exact:true}).click();
+    await expect(portal.getByText('Jantar C',{exact:true})).toHaveCount(0);
+    await expect(portal.getByRole('button',{name:'Adicionar opção',exact:true})).toBeEnabled();
+    await portal.locator('.meal-options select[name="foodId"]').last().selectOption(foodId);
+    await portal.getByRole('button',{name:'Salvar',exact:true}).click();
+    await expect(portal.locator('#content-editor')).toHaveCount(0);
+    const stored = (await (await request.get(apiURL+'/portal/content?kind=diet',{headers:authorHeaders})).json()).find((item:{id:string})=>item.id===templateId);
+    expect(stored.data.meals[0].options).toHaveLength(1);
+    expect(stored.data.meals[0].options[0].name).toBe('Jantar B');
+    await portal.close();
+    expect(errors).toEqual([]);
+  } finally {
+    for (const id of assignments) await db.execute('DELETE FROM professional_assignments WHERE id=?',[id]);
+    for (const id of users) {
+      await db.execute('DELETE FROM portal_content_versions WHERE actor_id=?',[id]);
+      await db.execute('DELETE FROM portal_content WHERE owner_id=?',[id]);
+      await db.execute('DELETE FROM portal_audit WHERE actor_id=?',[id]);
+      await db.execute('DELETE FROM users WHERE id=?',[id]);
+    }
+    await db.end();
+  }
+});

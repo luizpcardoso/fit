@@ -13,9 +13,20 @@ Este repositório usa uma estrutura de monorepo. O desenvolvimento é orientado 
 
 ## Comandos
 
-Após a instalação do aplicativo:
+Instale as dependências e inicie a API:
+
+```bash
+npm install
+npm run api
+```
+
+Em outro terminal, inicie o aplicativo:
 
 ```bash
 npm run mobile
 ```
+
+Swagger: `http://localhost:3333/docs`. Consulte `docs/authentication.md` para configurar o IP usado por um celular físico.
+
+As migrations MySQL são executadas automaticamente ao iniciar a API. Para executá-las separadamente, use `npm run db:migrate --workspace=@fit/api`.
 

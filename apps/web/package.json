@@ -1,0 +1,13 @@
+{
+  "name": "@fit/web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "prebuild": "node ../../scripts/generate-theme.mjs"
+  },
+  "devDependencies": {
+    "typescript": "^7.0.2"
+  }
+}

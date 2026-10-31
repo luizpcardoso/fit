@@ -7,3 +7,18 @@ coverage/
 !.env.example
 *.log
 
+apps/mobile/.ux-web/
+test-results/
+playwright-report/
+artifacts/ux-review/
+
+# Private server configuration and persistent deployment data
+/deploy/runtime.env
+/deploy/data/
+/deploy/backups/
+*.keystore
+
+/artifacts/android/
+
+/artifacts/ota/
+/deploy/data/updates/

@@ -2,6 +2,7 @@ import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { DarkTheme, DefaultTheme, router, Stack, ThemeProvider } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
+import * as SystemUI from 'expo-system-ui';
 import { useEffect } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { AuthProvider, useAuth } from '@/auth/auth-context';
@@ -54,8 +55,10 @@ function Navigation() {
 function ThemedNavigation() {
   const { colors, scheme } = useAppTheme();
   const base = scheme === 'dark' ? DarkTheme : DefaultTheme;
+  // Fundo da janela nativa acompanha o tema: evita faixas/flashes brancos atrás das barras do sistema e nas transições.
+  useEffect(() => { void SystemUI.setBackgroundColorAsync(colors.background); }, [colors.background]);
   const theme = { ...base, colors: { ...base.colors, primary: colors.link, background: colors.background, card: colors.surface, text: colors.text, border: colors.border } };
   return <ThemeProvider value={theme}><StatusBar style={scheme === 'dark' ? 'light' : 'dark'} /><AuthProvider><DialogProvider><Navigation /></DialogProvider></AuthProvider></ThemeProvider>;
 }
-export default function RootLayout() { return <KeyboardProvider><AppThemeProvider><ThemedNavigation /></AppThemeProvider></KeyboardProvider>; }
+export default function RootLayout() { return <KeyboardProvider statusBarTranslucent navigationBarTranslucent><AppThemeProvider><ThemedNavigation /></AppThemeProvider></KeyboardProvider>; }
 const styles = StyleSheet.create({ navigation: { flex: 1 }, loading: { flex: 1, alignItems: 'center', justifyContent: 'center' } });

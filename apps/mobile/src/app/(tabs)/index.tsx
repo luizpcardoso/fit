@@ -1,6 +1,7 @@
 import { HomeNutrition } from '@/components/home-nutrition';
 import { useAppTheme } from "@/theme/theme-provider";
 import { Scrim, Type, type AppPalette } from "@/constants/theme";
+import { SceneBackdrop } from "@/components/scene";
 import MaterialCommunityIcons from '@/components/icon';
 import type {
   GroupDashboard,
@@ -372,6 +373,7 @@ export default function HomeScreen() {
           </View>
 
           <View style={s.hero}>
+            <SceneBackdrop scene="pulseTall" />
             <View style={s.heroTop}>
               <View style={s.heroIcon}>
                 <MaterialCommunityIcons
@@ -953,6 +955,7 @@ const createStyles = (c: AppPalette, scheme: "light" | "dark") =>
       borderWidth: scheme === "dark" ? 1 : 0,
       borderColor: c.notificationBorder,
       borderRadius: 24,
+      overflow: "hidden",
       padding: 16,
       gap: 12,
       ...CardShadow,

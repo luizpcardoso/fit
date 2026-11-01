@@ -56,7 +56,7 @@ export async function buildApp(options: { portalStore?: PortalStore; repository?
     if(request.user.sessionHash&&!(await repository.isSessionActive(request.user.sessionHash,request.user.sub)))return reply.code(401).send({code:'UNAUTHORIZED',message:'Sessão inválida ou expirada.'});
   });
   await app.register(rateLimit, { global: true, max: 120, timeWindow: '1 minute' });
-  await app.register(swagger, { openapi: { info: { title: 'Fit API', version: '0.1.0', description: 'API do aplicativo Fit' }, tags: [{ name: 'Autenticação' }], components: { securitySchemes: { bearerAuth: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' } } } } });
+  await app.register(swagger, { openapi: { info: { title: 'Orami API', version: '0.1.0', description: 'API do aplicativo Orami' }, tags: [{ name: 'Autenticação' }], components: { securitySchemes: { bearerAuth: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' } } } } });
   if (process.env.NODE_ENV !== 'production') await app.register(swaggerUi, { routePrefix: '/docs' });
 
   const issueTokens = async (user: PublicUser) => {

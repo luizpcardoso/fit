@@ -82,7 +82,7 @@ Essa imagem aparece no catálogo e é preservada como snapshot ao criar uma fich
 
 ## Home pública
 
-A raiz `/` apresenta o Fit, seus recursos e o botão para baixar o APK sem login no site. O acesso ao gestor está no cabeçalho e no rodapé, apontando para `/portal`.
+A raiz `/` apresenta a Orami, seus recursos e o botão para baixar o APK sem login no site. O acesso ao gestor está no cabeçalho e no rodapé, apontando para `/portal`.
 
 O endereço do APK será configurado na constante `APK_DOWNLOAD_URL` em `apps/web/src/home.ts`. Enquanto estiver `null`, o botão leva à seção de download e informa que o APK estará disponível em breve. Ao definir a URL pública e recompilar o web, os botões passam a apontar para o arquivo. Para arquivos hospedados em outro domínio, configure `Content-Disposition: attachment` na hospedagem para garantir o download.
 

@@ -31,7 +31,7 @@ const activityLabel = (value: CardioActivity | null) => activities.find(item=>it
 const intensityLabel = (value: CardioIntensity | null) => intensities.find(item=>item.value===value)?.label ?? '';
 
 const infoParagraphs = [
-  'Em “Calcular estimativa”, você informa atividade, intensidade, duração e peso, e o Fit calcula um gasto médio para a sessão, com base em tabelas de referência de atividades físicas.',
+  'Em “Calcular estimativa”, você informa atividade, intensidade, duração e peso, e a Orami calcula um gasto médio para a sessão, com base em tabelas de referência de atividades físicas.',
   'A estimativa não é uma medição individual. Inclinação, resistência, velocidade, condicionamento e diferenças do organismo podem aumentar ou reduzir o gasto real.',
   'Se você já tem o valor de um relógio, aplicativo ou equipamento, escolha “Informar calorias” e diga se ele é o total da sessão (inclui o gasto em repouso) ou só as calorias ativas. Não registre a mesma sessão duas vezes. Se você ajustar o gasto do dia em Nutrição, os cardios não são somados de novo.',
 ] as const;

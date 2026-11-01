@@ -5,6 +5,7 @@ import { ExpenditureForm } from '@/components/nutrition-forms';
 import { CardShadow, type AppPalette } from '@/constants/theme';
 import { useAppTheme } from '@/theme/theme-provider';
 import type { BodyMeasurement, DailyNutritionSummary } from '@fit/contracts';
+import { SceneBanner } from '@/components/scene';
 import MaterialCommunityIcons from '@/components/icon';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
@@ -54,6 +55,7 @@ export default function NutritionScreen(){
   return <SafeAreaView style={s.safe} edges={['top']}><ScrollView refreshControl={<RefreshControl refreshing={refreshing} onRefresh={()=>{setRefreshing(true);void load(true)}}/>} contentContainerStyle={s.content}>
     <View style={s.header}><View style={s.grow}><Text accessibilityRole="header" style={s.heading}>Nutrição</Text><Text style={s.subheading}>Seu balanço e suas estimativas do dia</Text></View><Pressable accessibilityRole="button" accessibilityLabel="Sobre a tela de nutrição" onPress={()=>setInfo('general')} style={s.infoButton}><MaterialCommunityIcons name="information-outline" size={20} color={c.link}/></Pressable><View style={s.private}><MaterialCommunityIcons name="lock-outline" size={14} color={c.link}/><Text style={s.privateText}>Só você</Text></View></View>
     <View style={s.dateNav}><Pressable accessibilityRole="button" accessibilityLabel="Dia anterior" onPress={()=>setDate(value=>shiftDate(value,-1))} style={s.dateButton}><MaterialCommunityIcons name="chevron-left" size={22} color={c.link}/></Pressable><Pressable accessibilityRole="button" accessibilityLabel={isToday?`Hoje, ${formatSpokenDate(date)}`:`${formatSpokenDate(date)}. Voltar para hoje`} onPress={()=>setDate(localDate())} style={s.dateCenter}><Text style={s.date}>{formatRelativeDay(date)}</Text><Text style={s.muted}>{isToday?formatShortDate(date):'Voltar para hoje'}</Text></Pressable><Pressable accessibilityRole="button" accessibilityLabel="Próximo dia" onPress={()=>setDate(value=>shiftDate(value,1))} style={s.dateButton}><MaterialCommunityIcons name="chevron-right" size={22} color={c.link}/></Pressable></View>
+    <SceneBanner scene="nutrition" eyebrow="Nutrição" title="Comer bem, sem pressa" text="Registre do seu jeito, sem cobranças."/>
     <View><Text style={s.categoryTitle}>Seções de nutrição</Text><Text style={s.categorySubtitle}>Registre o que comeu ou consulte sua dieta</Text></View>
     <FeatureCategoryGrid items={[
       {key:'food',title:'Alimentação',description:'Refeições, alimentos e favoritas',icon:'food-apple-outline',onPress:()=>router.push('/food-tracking')},

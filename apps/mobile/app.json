@@ -44,7 +44,7 @@
       "policy": "fingerprint"
     },
     "updates": {
-      "url": "https://rasheeda-disillusive-riotously.ngrok-free.dev/updates/manifest",
+      "url": "https://orami.com.br/updates/manifest",
       "checkAutomatically": "ON_LOAD",
       "fallbackToCacheTimeout": 5000,
       "codeSigningCertificate": "./certs/updates.pem",

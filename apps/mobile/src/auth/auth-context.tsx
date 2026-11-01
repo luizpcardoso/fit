@@ -25,7 +25,10 @@ const AuthContext = createContext<AuthValue | null>(null);
 export function AuthProvider({ children }: PropsWithChildren) {
   const [user, setUser] = useState<PublicUser | null>(null); const [loading, setLoading] = useState(true);
   const baseUrl = process.env.EXPO_PUBLIC_API_URL?.replace(/\/$/, '') ?? 'http://localhost:3333';
-  const client = useMemo(() => createApiClient({ baseUrl, getTokens: storage.get, saveTokens: storage.set }), [baseUrl]);
+  const client = useMemo(() => createApiClient({ baseUrl, getTokens: storage.get, saveTokens: async tokens => {
+    await storage.set(tokens);
+    if (!tokens) setUser(null);
+  } }), [baseUrl]);
   useEffect(() => { client.me().then(setUser).catch(() => storage.set(null)).finally(() => setLoading(false)); }, [client]);
   const login = useCallback(async (input: LoginInput) => { const response = await client.login(input); await storage.set(response); setUser(response.user); }, [client]);
   const register = useCallback(async (input: RegisterInput) => { const response = await client.register(input); await storage.set(response); setUser(response.user); }, [client]);

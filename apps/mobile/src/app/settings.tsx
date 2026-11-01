@@ -5,6 +5,7 @@ import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-nat
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScreenHeader } from '@/components/screen-header';
 import { ThemeSettings } from '@/components/theme-settings';
+import { DailySummarySettings } from '@/components/daily-summary-settings';
 import { Radius, Type, type AppPalette } from '@/constants/theme';
 import { useAppTheme } from '@/theme/theme-provider';
 import { setHomePreference, useHomePreferences } from '@/utils/home-preferences';
@@ -27,6 +28,7 @@ export default function Settings() {
         <Text style={s.subtitle}>Preferências deste aparelho</Text>
       </View>
       <ThemeSettings />
+      <DailySummarySettings />
       <View style={s.section}>
         <Text accessibilityRole="header" style={s.sectionTitle}>Tela inicial</Text>
         <View style={s.card}>

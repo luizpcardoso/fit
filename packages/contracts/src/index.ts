@@ -402,3 +402,4 @@ export * from './diet.js';
 export * from './pagination.js';
 
 export * from './nutrition-goal.js';
+export * from './daily-summary.js';

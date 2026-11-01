@@ -30,6 +30,7 @@ import { feedbackInputSchema } from '@fit/contracts';
 import {processAvatar} from './avatar.js';
 import {saveMedia,readMedia,removeMedia} from './media-storage.js';
 import { registerPortalRoutes, type PortalStore } from './portal.js';
+import { registerDailySummaryRoutes } from './daily-summary-routes.js';
 
 const ACCESS_SECONDS = 15 * 60;
 const REFRESH_MILLIS = 30 * 24 * 60 * 60 * 1000;
@@ -56,7 +57,7 @@ export async function buildApp(options: { portalStore?: PortalStore; repository?
     if(request.user.sessionHash&&!(await repository.isSessionActive(request.user.sessionHash,request.user.sub)))return reply.code(401).send({code:'UNAUTHORIZED',message:'Sessão inválida ou expirada.'});
   });
   await app.register(rateLimit, { global: true, max: 120, timeWindow: '1 minute' });
-  await app.register(swagger, { openapi: { info: { title: 'Fit API', version: '0.1.0', description: 'API do aplicativo Fit' }, tags: [{ name: 'Autenticação' }], components: { securitySchemes: { bearerAuth: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' } } } } });
+  await app.register(swagger, { openapi: { info: { title: 'Orami API', version: '0.1.0', description: 'API do aplicativo Orami' }, tags: [{ name: 'Autenticação' }], components: { securitySchemes: { bearerAuth: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' } } } } });
   if (process.env.NODE_ENV !== 'production') await app.register(swaggerUi, { routePrefix: '/docs' });
 
   const issueTokens = async (user: PublicUser) => {
@@ -116,6 +117,13 @@ export async function buildApp(options: { portalStore?: PortalStore; repository?
   });
   app.get('/media/avatars/:key',async(request,reply)=>{const {key}=z.strictObject({key:z.string().regex(/^[a-f0-9-]{36}\.webp$/)}).parse(request.params);try{return reply.header('content-type','image/webp').header('cache-control','public, max-age=86400, immutable').send(await readMedia(key));}catch{return reply.code(404).send({code:'NOT_FOUND',message:'Foto não encontrada.'});}});
   app.get('/health', { schema: { hide: true } }, async () => ({ status: 'ok' }));
+  if (options.medicationRepository && options.supplementRepository && options.injectableRepository && options.mentalWellbeingRepository && options.workoutRepository && options.nutritionRepository) {
+    registerDailySummaryRoutes(app, {
+      medications: options.medicationRepository, supplements: options.supplementRepository,
+      injectables: options.injectableRepository, mental: options.mentalWellbeingRepository,
+      workouts: options.workoutRepository, nutrition: options.nutritionRepository,
+    }, secure);
+  }
   if (options.portalStore) await registerPortalRoutes(app, options.portalStore, secure);
   if(options.feedbackRepository) app.post('/me/feedback',{preHandler:secure,config:{rateLimit:{max:5,timeWindow:'1 minute'}}},async(request,reply)=>reply.code(201).send({id:await options.feedbackRepository!.create(request.user.sub,feedbackInputSchema.parse(request.body))}));
   if (options.workoutRepository) await registerWorkoutRoutes(app, options.workoutRepository, secure,options.groupRepository);

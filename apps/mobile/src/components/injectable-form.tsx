@@ -138,7 +138,7 @@ export function InjectableForm({
               color={c.warning}
             />
             <Text style={s.warningText}>
-              O Fit registra sua rotina, mas não define dose, frequência nem
+              A Orami registra sua rotina, mas não define dose, frequência nem
               substitui orientação profissional.
             </Text>
           </View>
@@ -218,7 +218,7 @@ export function InjectableForm({
                 color={c.link}
               />
               <Text style={s.hintText}>
-                Cliques variam conforme o dispositivo. O Fit registra o número
+                Cliques variam conforme o dispositivo. A Orami registra o número
                 informado e não converte para mg ou mL.
               </Text>
             </View>
@@ -366,7 +366,7 @@ export function InjectableForm({
           <InformationModal
             title="Cadastro de injetáveis"
             paragraphs={[
-              "Cadastre exatamente a dose, unidade, frequência e meia-vida orientadas pelo profissional ou informadas na bula do seu produto. O Fit não prescreve nem valida tratamentos.",
+              "Cadastre exatamente a dose, unidade, frequência e meia-vida orientadas pelo profissional ou informadas na bula do seu produto. A Orami não prescreve nem valida tratamentos.",
               "mg, mL, UI e cliques representam medidas diferentes. O aplicativo não converte entre elas. Cliques podem variar entre dispositivos e devem ser conferidos nas instruções do fabricante.",
               "A estimativa de meia-vida usa um decaimento matemático simples. Absorção, metabolismo, formulação, horário e características individuais podem fazer o comportamento real ser diferente.",
             ]}

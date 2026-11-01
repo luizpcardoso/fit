@@ -1,5 +1,6 @@
 import { FormScrollView as ScrollView } from '@/components/form-scroll-view';
 import { FormInput as TextInput } from '@/components/form-input';
+import { SceneBanner } from '@/components/scene';
 import MaterialCommunityIcons from '@/components/icon';
 import { ContextHelp } from "@/components/context-help";
 import type { GroupInvite, GroupSummary } from "@fit/contracts";
@@ -159,6 +160,7 @@ export default function Groups() {
             </Pressable>
           </View>
         ) : null}
+        <SceneBanner scene="groups" eyebrow="Comunidade" title="Juntos, cada passo rende mais" height={112} />
         {invites.length ? (
           <View style={s.section}>
             <View style={s.sectionTitle}>

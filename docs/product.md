@@ -2,7 +2,7 @@
 
 ## Visão
 
-Fit ajuda pessoas a organizar treinos, descobrir exercícios, definir metas, acompanhar evolução e compartilhar conquistas.
+Orami ajuda pessoas a organizar treinos, alimentação, saúde e bem-estar, acompanhar sua evolução e compartilhar conquistas no próprio ritmo.
 
 ## Método de entrega
 

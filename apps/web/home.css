@@ -2,7 +2,7 @@
 .wrap{width:min(1180px,calc(100% - 80px));margin-inline:auto}
 .site-header{display:flex;align-items:center;justify-content:space-between;padding-block:28px;border-bottom:1px solid var(--fit-border)}
 .brand{display:flex;align-items:center;gap:9px;font-size:27px;font-weight:800;letter-spacing:-1px}
-.brand-mark{display:grid;place-items:center;width:37px;height:37px;background:var(--green);color:var(--lime);border-radius:12px;font-size:22px}
+.brand-mark{display:inline-block;width:37px;height:37px;background:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><defs><linearGradient id='g' x1='60' y1='40' x2='460' y2='480' gradientUnits='userSpaceOnUse'><stop offset='0' stop-color='%230891B2'/><stop offset='.62' stop-color='%2314B8A6'/><stop offset='1' stop-color='%232DD4BF'/></linearGradient><radialGradient id='h' cx='150' cy='110' r='340' gradientUnits='userSpaceOnUse'><stop offset='0' stop-color='%2367E8F9' stop-opacity='.55'/><stop offset='1' stop-color='%2367E8F9' stop-opacity='0'/></radialGradient></defs><circle cx='256' cy='256' r='224' fill='url(%23g)'/><circle cx='256' cy='256' r='224' fill='url(%23h)'/><path d='M104 264H166L198 172L240 344L272 222L294 264C314 292 336 292 354 264S394 236 410 264' fill='none' stroke='%23fff' stroke-width='30' stroke-linecap='round' stroke-linejoin='round'/></svg>") center/contain no-repeat}
 .brand-caption{font-size:9px;letter-spacing:1.3px;font-weight:600;margin-left:13px;max-width:110px;line-height:1.5}nav{display:flex;align-items:center;gap:32px;font-size:13px;font-weight:600}
 .manager-link{padding:12px 18px;border:1px solid var(--fit-border);border-radius:8px}
 .manager-link span{margin-left:16px}

@@ -1,8 +1,8 @@
 # Servidor caseiro
 
-Endereço público do site e da API: https://rasheeda-disillusive-riotously.ngrok-free.dev
+Endereço público principal do site e da API: https://orami.com.br
 
-O APK usa esse mesmo endereço HTTPS. O celular não precisa de Tailscale. O servidor precisa permanecer ligado, conectado à internet e ao ngrok. O navegador pode mostrar a confirmação inicial do plano gratuito do ngrok.
+O domínio é publicado por um Cloudflare Tunnel; não há portas de entrada abertas no roteador. O servidor precisa permanecer ligado e conectado à internet. Durante a transição, o endereço `https://rasheeda-disillusive-riotously.ngrok-free.dev` permanece ativo como fallback para APKs existentes.
 
 ## Operação
 
@@ -12,12 +12,13 @@ Na pasta do projeto no servidor:
 
 ```sh
 docker compose --env-file deploy/runtime.env -f compose.server.yaml up -d
-docker compose --env-file ~/.config/fit/ngrok-web.env -f deploy/compose.public.yaml up -d
+docker compose --env-file ~/.config/fit/ngrok-web.env -f deploy/compose.public.yaml up -d web
+docker compose --env-file ~/.config/fit/cloudflare.env -f deploy/compose.cloudflare.yaml up -d
 ```
 
-Os contêineres reiniciam automaticamente com o Docker. O proxy encaminha o site e a API ao serviço `api`; o banco não tem porta pública. A identidade histórica do projeto do proxy é `fit_web_preview`. Não usar mais `compose.web-preview.yaml`: ele serve somente a prévia estática sem API.
+Os contêineres reiniciam automaticamente com o Docker. O proxy encaminha o site e a API ao serviço `api`; o banco não tem porta pública. O Cloudflare Tunnel acessa o proxy pela rede Docker `fit_web_preview_default`. A identidade histórica do projeto do proxy é `fit_web_preview`. Não usar mais `compose.web-preview.yaml`: ele serve somente a prévia estática sem API.
 
-Credenciais privadas: `deploy/runtime.env` e `~/.config/fit/ngrok-web.env` no servidor. Não versionar nem compartilhar esses arquivos. O domínio do ngrok está no compose público e na configuração de CORS.
+Credenciais privadas: `deploy/runtime.env`, `~/.config/fit/cloudflare.env` e, enquanto o fallback existir, `~/.config/fit/ngrok-web.env` no servidor. Não versionar nem compartilhar esses arquivos. O token do túnel deve permanecer com permissão `600`.
 
 ## Dados
 
@@ -30,7 +31,7 @@ Para uma nova cópia do banco em uso no servidor, executar um dump consistente c
 Na raiz do repositório de desenvolvimento, com Java e Android SDK instalados:
 
 ```sh
-FIT_API_URL=https://rasheeda-disillusive-riotously.ngrok-free.dev node scripts/build-android-release.mjs
+FIT_API_URL=https://orami.com.br node scripts/build-android-release.mjs
 ```
 
 Saída: `artifacts/android/fit-0.1.0.apk`. A chave de assinatura e suas credenciais ficam em `~/.local/share/fit/android-signing` no computador de desenvolvimento. Preservar uma cópia privada: atualizações precisam da mesma chave. Incrementar `android.versionCode` para futuras versões.
@@ -44,7 +45,7 @@ docker compose --env-file deploy/runtime.env -f compose.server.yaml build api
 docker compose --env-file deploy/runtime.env -f compose.server.yaml up -d api
 ```
 
-Verificar `/health`, login e download após cada publicação. O limite de transferência e a disponibilidade do plano contratado do ngrok também se aplicam aos downloads do APK.
+Verificar `/health`, login e download após cada publicação.
 
 ## Atualizações automáticas do Android (versão 0.2.0 em diante)
 
@@ -55,7 +56,7 @@ O aplicativo espera até cinco segundos por uma atualização na inicialização
 Para publicar uma mudança de telas, lógica ou assets compatível com o APK instalado:
 
 ```sh
-FIT_API_URL=https://rasheeda-disillusive-riotously.ngrok-free.dev \
+FIT_API_URL=https://orami.com.br \
 FIT_DEPLOY_HOST=luizserver@100.86.240.40 \
 node scripts/publish-android-update.mjs
 ```

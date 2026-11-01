@@ -533,7 +533,7 @@ export default function InjectablesScreen() {
           title="Acompanhamento de injetáveis"
           paragraphs={[
             "Este recurso organiza os dias prescritos e permite registrar quando uma aplicação foi realizada. Ele não recomenda medicamentos, doses ou frequências.",
-            "Cadastre a unidade exatamente como consta na sua prescrição ou produto. mg, mL, UI e cliques não são equivalentes e o Fit não faz conversões.",
+            "Cadastre a unidade exatamente como consta na sua prescrição ou produto. mg, mL, UI e cliques não são equivalentes e a Orami não faz conversões.",
             "Para tirzepatida, a referência aprovada descreve aplicação uma vez por semana e meia-vida aproximada de cinco dias. Qualquer mudança deve ser discutida com o profissional responsável.",
           ]}
           onClose={() => setInfo(null)}

@@ -35,7 +35,7 @@ export async function enableMentalReminder(current: MentalReminder, time: string
   if(!/^([01]\d|2[0-3]):[0-5]\d$/.test(time))throw new Error('Informe um horário válido no formato HH:MM.');
   const permission=await Notifications.getPermissionsAsync();
   const finalPermission=permission.granted?permission:await Notifications.requestPermissionsAsync();
-  if(!finalPermission.granted)throw new Error('Ative as notificações do Fit nas configurações do aparelho para usar o lembrete.');
+  if(!finalPermission.granted)throw new Error('Ative as notificações da Orami nas configurações do aparelho para usar o lembrete.');
   if(Platform.OS==='android')await Notifications.setNotificationChannelAsync(CHANNEL_ID,{name:'Bem-estar',importance:AndroidImportance.DEFAULT,vibrationPattern:[0,200],lightColor:LightPalette.primary});
   if(current.notificationId){try{await Notifications.cancelScheduledNotificationAsync(current.notificationId)}catch{/* substitui o agendamento mesmo se o anterior não existir */}}
   const[hour,minute]=time.split(':').map(Number);

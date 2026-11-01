@@ -1,6 +1,7 @@
 import { HomeNutrition } from '@/components/home-nutrition';
 import { useAppTheme } from "@/theme/theme-provider";
 import { Scrim, Type, type AppPalette } from "@/constants/theme";
+import { SceneBackdrop } from "@/components/scene";
 import MaterialCommunityIcons from '@/components/icon';
 import type {
   GroupDashboard,
@@ -10,7 +11,7 @@ import type {
   WorkoutGoalSummary,
   WorkoutPlan,
 } from "@fit/contracts";
-import { router, useFocusEffect } from "expo-router";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -61,6 +62,7 @@ const weekdays = [
 ];
 
 export default function HomeScreen() {
+  const { showChecks } = useLocalSearchParams<{ showChecks?: string }>();
   const { colors: c, scheme } = useAppTheme();
   const s = createStyles(c, scheme);
   const { showEnergyBalance } = useHomePreferences();
@@ -84,7 +86,11 @@ export default function HomeScreen() {
   const [groupPickerOpen, setGroupPickerOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [quickRegisterOpen, setQuickRegisterOpen] = useState(false);
-  const [activitiesOpen, setActivitiesOpen] = useState(false);
+  const [activitiesOpen, setActivitiesOpenState] = useState(false);
+  const setActivitiesOpen = (open: boolean) => {
+    setActivitiesOpenState(open);
+    if (!open && showChecks === '1') router.setParams({ showChecks: undefined });
+  };
   const actionLock = useRef(false);
   const [activityBusy, setActivityBusy] = useState('');
   const [activityError, setActivityError] = useState('');
@@ -372,6 +378,7 @@ export default function HomeScreen() {
           </View>
 
           <View style={s.hero}>
+            <SceneBackdrop scene="pulseTall" />
             <View style={s.heroTop}>
               <View style={s.heroIcon}>
                 <MaterialCommunityIcons
@@ -675,7 +682,7 @@ export default function HomeScreen() {
         </ScrollView>
         <Modal
           transparent
-          visible={activitiesOpen}
+          visible={activitiesOpen || showChecks === '1'}
           animationType="slide"
           onRequestClose={() => setActivitiesOpen(false)}
         >
@@ -953,6 +960,7 @@ const createStyles = (c: AppPalette, scheme: "light" | "dark") =>
       borderWidth: scheme === "dark" ? 1 : 0,
       borderColor: c.notificationBorder,
       borderRadius: 24,
+      overflow: "hidden",
       padding: 16,
       gap: 12,
       ...CardShadow,

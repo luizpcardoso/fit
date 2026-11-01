@@ -106,15 +106,12 @@ aside {
   font-size: 1.35rem;
   font-weight: 800;
 }
+/* Símbolo Orami (design/orami-mark.svg, gerado de design/brand/mark.mjs). */
 .brand-mark {
-  display: inline-grid;
+  display: inline-block;
   width: 34px;
   height: 34px;
-  place-items: center;
-  border-radius: 10px;
-  background: var(--accent);
-  color: var(--brand-on-mint);
-  font-size: 1rem;
+  background: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><defs><linearGradient id='g' x1='60' y1='40' x2='460' y2='480' gradientUnits='userSpaceOnUse'><stop offset='0' stop-color='%230891B2'/><stop offset='.62' stop-color='%2314B8A6'/><stop offset='1' stop-color='%232DD4BF'/></linearGradient><radialGradient id='h' cx='150' cy='110' r='340' gradientUnits='userSpaceOnUse'><stop offset='0' stop-color='%2367E8F9' stop-opacity='.55'/><stop offset='1' stop-color='%2367E8F9' stop-opacity='0'/></radialGradient></defs><circle cx='256' cy='256' r='224' fill='url(%23g)'/><circle cx='256' cy='256' r='224' fill='url(%23h)'/><path d='M104 264H166L198 172L240 344L272 222L294 264C314 292 336 292 354 264S394 236 410 264' fill='none' stroke='%23fff' stroke-width='30' stroke-linecap='round' stroke-linejoin='round'/></svg>") center/contain no-repeat;
 }
 .badge {
   margin-left: 2px;

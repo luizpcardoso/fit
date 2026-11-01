@@ -107,7 +107,7 @@ export class ProfessionalManagement {
   }
   async create(actor: string, input: z.infer<typeof createProfessionalSchema>) {
     const id = randomUUID(),
-      temporaryPassword = `Fit!${randomBytes(18).toString("base64url")}`;
+      temporaryPassword = `Orami!${randomBytes(18).toString("base64url")}`;
     const hash = await bcrypt.hash(temporaryPassword, 12);
     await this.db.transaction(async (transaction) => {
       await this.require(actor, true, transaction);
@@ -498,7 +498,7 @@ export async function registerProfessionalManagement(
     { preHandler: secure },
     run(async (req, reply) => {
       const target = id(req),
-        temporaryPassword = `Fit!${randomBytes(18).toString("base64url")}`,
+        temporaryPassword = `Orami!${randomBytes(18).toString("base64url")}`,
         hash = await bcrypt.hash(temporaryPassword, 12);
       await service.db.transaction(async (transaction) => {
         await service.require(req.user.sub, true, transaction);

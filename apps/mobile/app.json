@@ -1,18 +1,16 @@
 {
   "expo": {
-    "name": "Fit",
+    "name": "Orami",
     "slug": "fit",
-    "version": "0.2.0",
+    "version": "0.3.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "fit",
     "userInterfaceStyle": "automatic",
-    "ios": {
-      "icon": "./assets/expo.icon"
-    },
+    "ios": {},
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#134649",
+        "backgroundColor": "#0891B2",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
@@ -20,7 +18,7 @@
       "predictiveBackGestureEnabled": false,
       "softwareKeyboardLayoutMode": "resize",
       "package": "com.luiz.fit",
-      "versionCode": 2
+      "versionCode": 3
     },
     "web": {
       "output": "server",
@@ -32,7 +30,7 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#134649",
+          "backgroundColor": "#F2FAFC",
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
         }
@@ -46,7 +44,7 @@
       "policy": "fingerprint"
     },
     "updates": {
-      "url": "https://rasheeda-disillusive-riotously.ngrok-free.dev/updates/manifest",
+      "url": "https://orami.com.br/updates/manifest",
       "checkAutomatically": "ON_LOAD",
       "fallbackToCacheTimeout": 5000,
       "codeSigningCertificate": "./certs/updates.pem",

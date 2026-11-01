@@ -76,7 +76,7 @@ Ambiente: copie `apps/api/.env.example` → `apps/api/.env` (DB_*, JWT_SECRET, M
 Tokens em `constants/theme.ts`: `Type` (escala tipográfica, mínimo 12), `Radius` (4/8/12/16/20/24/28/pill) e `Scrim` (fundo de modal). Cores sempre de `useAppTheme().colors`: `onPrimary` para conteúdo sobre a cor primária, `fieldBorder` para contorno de campos (3:1), `controlTrackOff`/`controlThumb` para interruptores. Alvos de toque com no mínimo 44×44.
 
 
-Edite `design/palette.json` e rode `npm run theme`: atualiza `apps/mobile/src/constants/palette.generated.ts`, `apps/web/theme.css` e cores nativas em `apps/mobile/app.json`. Versione os gerados junto. Os scripts `start/web/android/ios` do mobile já regeneram. A doc antiga chama a paleta de "Ocean Fit"; a atual em `design/palette.json` é a "Petróleo".
+Edite `design/palette.json` e rode `npm run theme`: atualiza `apps/mobile/src/constants/palette.generated.ts`, `apps/web/theme.css` e cores nativas em `apps/mobile/app.json`. Versione os gerados junto. Os scripts `start/web/android/ios` do mobile já regeneram. A paleta atual em `design/palette.json` é a "Orami Pulse" (cores Ocean Fit); identidade, símbolo e ilustrações em `docs/brand.md`.
 
 ## Fluxo para uma nova funcionalidade
 

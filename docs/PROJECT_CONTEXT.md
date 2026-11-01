@@ -1,8 +1,8 @@
 # PROJECT_CONTEXT — Super App de Saúde e Fitness
 
 > Documento vivo de contexto de produto para planejamento, implementação e uso pelo Codex.
-> Atualizado em 2026-10-25. Nome definitivo do produto **não definido**.
-> **Ocean Fit é o nome da paleta visual, não o nome do aplicativo.**
+> Atualizado em 2026-10-31. Nome definitivo do produto: **Orami**.
+> Assinatura: **Seu cuidado, no seu ritmo.**
 
 ## 1. Visão do produto
 
@@ -41,23 +41,24 @@ Construir inicialmente um aplicativo mobile **fitness social** para amigos e gru
 - Relação profissional–aluno/paciente: prescrição/atribuição de planos dentro das competências legais, acompanhamento de treinos, adesão, dietas e evolução, com permissões explícitas.
 - Personalização dos cards da Home; possíveis integrações externas.
 
-## 3. Identidade visual — Ocean Fit (confirmada)
+## 3. Identidade visual — Orami (confirmada)
 
-Estética moderna, limpa, esportiva, acolhedora e associada à saúde; evitar aparência hospitalar ou academia agressiva.
+Estética moderna, limpa, ativa e acolhedora, associada ao cuidado cotidiano; evitar aparência hospitalar ou academia agressiva. O símbolo ("Onda") é um disco em degradê com um batimento que termina numa onda calma; a paleta é a Ocean Fit. Diretrizes completas em `docs/brand.md`.
 
 | Token | Valor |
 | --- | --- |
-| primary | `#0891B2` |
+| brand.primary | `#0891B2` |
+| primary (ação) | `#0B7E9C` |
+| primaryStrong / text.light | `#16404B` |
 | secondary | `#67E8F9` |
 | accent | `#14B8A6` |
 | background.light | `#F2FAFC` |
 | background.dark | `#101D27` |
 | surface.light | `#FFFFFF` |
-| text.light | `#16404B` |
 
-Adotar tokens semânticos, suporte planejado a temas claro/escuro, contraste acessível, cards arredondados, ícones simples e gráficos legíveis. Inter ou Manrope são sugestões tipográficas, **não decisões finais**.
+Adotar tokens semânticos, contraste acessível, cards arredondados, ícones simples e gráficos legíveis. A interface usa a tipografia nativa do sistema no app e Inter/Manrope na web.
 
-Temas claro e escuro implementados com a paleta Ocean Fit. Em Perfil → Configurações → Aparência, o usuário escolhe Claro, Escuro ou Sistema (padrão). A preferência é local ao aparelho/navegador, persiste entre aberturas e não depende da conta ou da API. Telas de autenticação, navegação, treinos, saúde, formulários e modais usam o tema selecionado. Cores semânticas complementares de aviso, erro e sucesso variam por tema para manter legibilidade; a identidade original não deve ser substituída por outra paleta em reformulações de layout.
+Temas claro e escuro implementados com a paleta Orami. Em Perfil → Configurações → Aparência, o usuário escolhe Claro, Escuro ou Sistema (padrão). A preferência é local ao aparelho/navegador, persiste entre aberturas e não depende da conta ou da API. Telas de autenticação, navegação, treinos, saúde, formulários e modais usam o tema selecionado. Cores semânticas complementares de aviso, erro e sucesso variam por tema para manter legibilidade; a identidade original não deve ser substituída por outra paleta em reformulações de layout.
 
 ## 4. Home / Dashboard (confirmado conceitualmente)
 

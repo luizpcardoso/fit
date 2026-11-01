@@ -23,7 +23,7 @@ export default function LoginScreen() {
     catch (cause) { setError(cause instanceof ApiClientError ? cause.message : 'Não foi possível conectar. Verifique sua internet e tente novamente.'); }
     finally { setBusy(false); }
   };
-  return <AuthShell title="Boas-vindas" subtitle="Entre para acompanhar seus treinos e seu progresso.">
+  return <AuthShell title="Boas-vindas" subtitle="Entre para cuidar da sua rotina, no seu ritmo.">
     {error ? <View accessibilityRole="alert" style={styles.alert}><Text style={styles.alertText}>{error}</Text></View> : null}
     <View style={styles.field}><Text style={styles.label}>E-mail</Text>
       <TextInput accessibilityLabel="E-mail" autoCapitalize="none" autoComplete="email" keyboardType="email-address" textContentType="emailAddress" value={email} onChangeText={value => { setEmail(value); setErrors(current => ({ ...current, email: undefined })); }} style={[styles.input, errors.email && styles.inputError]} placeholder="voce@exemplo.com" returnKeyType="next" />

@@ -9,6 +9,7 @@ import type { Injectable, InjectableEstimate, InjectableInput, InjectableToday, 
 import type { CreateGroupInput,CreateGroupPostInput,GroupComment,GroupDashboard,GroupDetails,GroupEventSettings,GroupInvite,GroupMember,GroupNotification,GroupPost,GroupReaction,GroupReport,GroupReportReason,GroupSharePreferences,GroupSummary,GroupUser,UpdateGroupInput,UpdateGroupPostInput,UpdateSocialProfileInput } from '@fit/contracts';
 import type { ProfessionalRelationship, PortalAssignment } from '@fit/contracts';
 import type {DietView,DietMealInput} from '@fit/contracts';
+import { dailySummarySchema } from '@fit/contracts';
 
 export class ApiClientError extends Error {
   constructor(public readonly status: number, public readonly details: ApiError) { super(details.message); }
@@ -22,6 +23,7 @@ type ClientOptions = {
 };
 
 export function createApiClient(options: ClientOptions) {
+  const changeListeners = new Set<() => void>();
   const transportHeaders: Record<string,string> = /\.(?:ngrok-free\.(?:app|dev)|ngrok\.app)$/.test(new URL(options.baseUrl).hostname) ? {'ngrok-skip-browser-warning':'1'} : {};
   const normalizeMedia=(value:any):any=>{if(Array.isArray(value))return value.map(normalizeMedia);if(value&&typeof value==='object'){for(const key of Object.keys(value)){if((key==='avatarUrl'||key==='imageUrl')&&typeof value[key]==='string'&&value[key].startsWith('/media/'))value[key]=`${options.baseUrl}${value[key]}`;else if(typeof value[key]==='object')normalizeMedia(value[key]);}}return value;};
   let refreshInFlight: Promise<void> | null = null;
@@ -63,9 +65,11 @@ export function createApiClient(options: ClientOptions) {
     if(reusable&&pending.has(path))return pending.get(path) as Promise<T>;
     const work=networkRequest<T>(path,init,retry,binary);
     if(reusable){pending.set(path,work);void work.then(value=>{if(pending.get(path)===work){recent.set(path,{until:Date.now()+15_000,value});if(recent.size>50)recent.delete(recent.keys().next().value!);}}).catch(()=>{}).finally(()=>{if(pending.get(path)===work)pending.delete(path)});}
-    const value=await work;if(!read)recent.clear();return value;
+    const value=await work;if(!read){recent.clear();for(const listener of changeListeners)listener();}return value;
   };
   return {
+    subscribeToChanges: (listener: () => void) => { changeListeners.add(listener); return () => { changeListeners.delete(listener); }; },
+    getDailySummary: async (date: string) => dailySummarySchema.parse(await request(`/me/daily-summary?date=${encodeURIComponent(date)}`)),
     listDiets:()=>request<DietView[]>('/nutrition/diets'),
     recordDietMeal:(input:DietMealInput)=>request<{id:string}>('/nutrition/diet-meals',{method:'POST',body:JSON.stringify(input)}),
     listProfessionals:()=>request<ProfessionalRelationship[]>('/me/professionals'),

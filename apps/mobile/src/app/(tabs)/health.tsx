@@ -5,6 +5,7 @@ import { useInjectablesToday } from '@/hooks/use-injectables-today';
 import { useAppTheme } from '@/theme/theme-provider';
 import { localDate } from '@/utils/dates';
 import MaterialCommunityIcons from '@/components/icon';
+import { SceneBanner } from '@/components/scene';
 import { router, type Href } from 'expo-router';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -24,6 +25,8 @@ export default function HealthScreen() {
       </View>
 
       <TodaySummary />
+
+      <SceneBanner scene="health" eyebrow="Saúde" title="Cuidar de você é um hábito" text="Pequenos registros, uma rotina mais leve." />
 
       <View>
         <Text style={s.areaTitle}>Áreas de saúde</Text>

@@ -36,3 +36,7 @@ Esses valores representam atividades ou ritmos próximos descritos no compêndio
 - [Running](https://pacompendium.com/running/)
 - [Bicycling e spinning](https://pacompendium.com/bicycling/)
 - [Artigo metodológico do Compêndio de 2024](https://pmc.ncbi.nlm.nih.gov/articles/PMC10818145/)
+
+## Histórico
+
+Em Fitness → Cardio, abaixo do resumo de hoje, o histórico lista as sessões anteriores agrupadas por dia (minutos e kcal do dia), 20 por vez com “Carregar mais”, via `GET /cardio-sessions/page?page&pageSize` (somente do usuário autenticado, mais recente primeiro, desempate por id). Excluir pelo histórico pede a mesma confirmação. O peso inicial do formulário vem de `/body-measurements/page` (só o mais recente), sem carregar todo o histórico corporal.

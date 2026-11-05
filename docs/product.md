@@ -1,14 +1,7 @@
 # Produto
 
-## Visão
+Orami organiza treinos, alimentação, saúde e bem-estar, evolução pessoal e compartilhamento consentido.
 
-Orami ajuda pessoas a organizar treinos, alimentação, saúde e bem-estar, acompanhar sua evolução e compartilhar conquistas no próprio ritmo.
-
-## Método de entrega
-
-Cada funcionalidade nasce de uma necessidade visível no aplicativo. A interface determina os dados e as operações necessários; somente então o contrato e a API são implementados.
-
-## Primeira etapa
-
-A primeira jornada do aplicativo será definida antes da criação da API.
-
+Visão, decisões e backlog: `docs/PROJECT_CONTEXT.md`. Método de entrega e critérios:
+`AGENTS.md`. Consulte o doc de cada módulo para o estado implementado; o produto já
+possui app, API e portal, e novas funcionalidades seguem a necessidade da tela.

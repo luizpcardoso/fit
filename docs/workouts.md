@@ -29,7 +29,7 @@ A ficha guarda um snapshot da imagem do exercício no momento em que é criada. 
 
 ## Navegação
 
-O menu inferior possui Fitness, Grupos, Início, Nutrição e Saúde. Fitness reúne Fichas, Histórico (treinos realizados) e Cardio. O topo de Fitness mostra o estado real antes da grade de áreas: com ficha ativa, um card com nome, próximo treino (o seguinte ao último realizado, A → B → C → A) e o botão “Treinar”, que abre a execução direto nesse treino; sem ficha ativa, um aviso para escolher uma; sem fichas, o estado vazio com “Criar ficha”. Em Fichas, “Nova ficha” no cabeçalho só aparece quando o estado vazio (que já tem “Criar ficha”) não está visível, e “Fichas arquivadas” só aparece quando há fichas arquivadas.
+O menu inferior possui Fitness, Social (grupos), Início, Nutrição e Saúde. Fitness reúne Fichas, Histórico (treinos realizados) e Cardio. O topo de Fitness mostra o estado real antes da grade de áreas: com ficha ativa, um card com nome, próximo treino (o seguinte ao último realizado, A → B → C → A) e o botão “Treinar”, que abre a confirmação do treino, priorizando o planejado para hoje; sem ficha ativa, um aviso para escolher uma; sem fichas, o estado vazio com “Criar ficha”. Em Fichas, “Nova ficha” no cabeçalho só aparece quando o estado vazio (que já tem “Criar ficha”) não está visível, e “Fichas arquivadas” só aparece quando há fichas arquivadas.
 
 As cinco abas principais ficam no grupo `(tabs)`. Criação de ficha, detalhes e edição de sessão são telas do Stack raiz, protegidas pela sessão; não são abas ocultas. Isso permite abrir esses fluxos e voltar à tela anterior.
 
@@ -37,9 +37,62 @@ As telas de pilha usam o `ScreenHeader` padrão (voltar nomeado pelo destino e a
 
 Nos detalhes, a ficha é apresentada como um único objeto: identidade, estado, validade e totais aparecem no cabeçalho. Editar, revalidar, ativar ou desativar, arquivar ou restaurar e excluir ficam agrupados em “Ações desta ficha”, antes do conteúdo dos treinos. Os treinos A–E usam abas horizontais; somente a divisão selecionada exibe seus exercícios e a ação para iniciar, evitando uma pilha vertical de cards que pareçam assuntos diferentes.
 
-## Execução guiada
+Os treinos possuem contagem independente dos checks/check-in da rotina. A conclusão completa ou parcial atualiza a meta semanal de treinos, sem incrementar nem criar pendência nos checks diários. A Home mantém a lista de checks separada do treino; notificações exibem os treinos realizados hoje em linha própria.
 
-Na Home, “Abrir treinos” lista as divisões das fichas disponíveis, com destaque para a ativa. “Começar treino” nos detalhes abre a mesma jornada. A tela de execução mostra séries, repetições, carga, descanso e observações, permite marcar/desmarcar cada exercício (caixas de seleção acessíveis) e exibe o progresso. Há uma única ação principal, “Finalizar treino”, que salva a sessão pelo endpoint existente com os IDs dos exercícios marcados. Com exercícios pendentes, a confirmação explica que só os marcados serão registrados; sem nenhum marcado, a confirmação oferece “Registrar treino completo” (todos os exercícios do treino). Cancelar mantém as marcações. As marcações são locais até finalizar e não são recuperadas após fechar o aplicativo; enquanto houver marcações não salvas, sair pelo cabeçalho pede confirmação. Sem ficha ativa, a tela mostra um estado vazio (não um erro) com “Criar ficha” e, se houver fichas inativas, “Ver minhas fichas”; somente falha de rede mostra erro com “Tentar novamente”. O sucesso oferece acesso ao histórico. O restante dos indicadores demonstrativos da Home continua sendo uma prévia.
+## Execução guiada e sessão persistente
+
+Antes de criar uma sessão, o app apresenta “Qual treino vamos fazer?” com o treino planejado para a data local. Sem planejamento, usa o próximo treino da ficha ativa; abrir um treino específico nos detalhes o pré-seleciona. “Escolher outro treino” lista todos os treinos com exercícios de fichas disponíveis, inclusive inativas. A escolha vale apenas para a sessão: não altera a agenda nem ativa outra ficha. Fichas arquivadas ficam fora da lista. O rodapé mantém “Iniciar treino A/B/C…” visível; o aviso explica que o cronômetro começará e que cada série será salva. Consultas da sugestão têm limite de espera para permitir usar as fichas em cache offline.
+
+Somente confirmar “Iniciar treino” cria uma sessão com UUID, snapshot da ficha e exercícios, posição atual, séries realizadas e estado (`running`, `paused`, `completed`, `discarded`), e inicia o cronômetro. Abrir a confirmação ou trocar a seleção não cria sessão. Uma conta mantém no máximo uma sessão aberta. A Home mantém um card fixo acima da rolagem com treino em andamento/pausado, exercício atual, progresso, séries, tempo e “Continuar”; ele permanece visível ao rolar, inclusive sem conexão, e abre a sessão preservando seu estado. Fitness também oferece a retomada; sair da tela não descarta marcações. Treinos esquecidos não são finalizados automaticamente.
+
+A execução apresenta um exercício por vez, imagem ampliável ou ilustração genérica local, prescrição e orientações. “Concluir exercício”, no rodapé fixo, registra todas as séries restantes do exercício atual em um toque, remove o estado pulado e encerra o descanso, preservando o cronômetro e os demais exercícios. A ação seguinte passa a “Próximo exercício” ou “Finalizar treino”; não há avanço ou finalização automática.
+
+O botão “+ Série” junto ao contador mantém o registro uma série por vez, limitado ao total prescrito. “Desfazer” corrige a última série. Imediatamente após concluir o exercício inteiro, “Desfazer conclusão do exercício” restaura as séries parciais anteriores, sem apagar as que já estavam realizadas. Essa restauração em lote vale na tela atual até outra ação de progresso/navegação; após reabrir, continuam disponíveis as correções por série. Séries antigas marcadas fora de ordem continuam válidas: o contador preenche a primeira série ainda não realizada. Não há grade de checkboxes.
+
+Setas anterior/próximo e “Trocar exercício” permitem navegar livremente, inclusive em pausa. Navegar não conclui exercícios nem reinicia o relógio. A lista geral, imagem ampliada, orientações, preferências e detalhes de sincronização abrem em painéis. “Concluir exercício” e pausa permanecem fora da rolagem e dentro da área segura, acima dos botões de navegação do Android. A estrutura reserva espaço para nome, prescrição, contador, ajuda e estado de salvamento; registrar/desfazer uma série ou iniciar descanso não altera a altura do card nem desloca os controles.
+
+“Tempo total” (HH:MM:SS) e “Descanso” são mostrados simultaneamente em painéis separados. O tempo total também acompanha a pausa no rodapé. Pausar bloqueia o registro de séries e congela treino e descanso; retomar desconta o intervalo. O descanso começa automaticamente ao registrar uma série individual quando há duração prescrita; a última série e a conclusão do exercício inteiro encerram o descanso. Há início manual (60 s se não houver prescrição), reinício, acréscimo de 30 s e cancelamento. Ambos os cronômetros são derivados de horários, sem depender de um intervalo JS em segundo plano. Ao finalizar, o tempo registrado fica congelado.
+
+Cada interação é persistida antes de atualizar a tela: SecureStore com fragmentos criptografados e troca atômica da geração no aplicativo nativo; localStorage na web, isolado por conta. O cache de fichas é separado do progresso. As fichas já carregadas permitem início offline, e o treino aberto continua disponível após reabrir. A autenticação recupera o perfil junto das credenciais em falhas de rede; revogação/autorização continuam na API. Ao sair com dados pendentes, um único diálogo oferece continuar no app para sincronizar ou sair e apagar os dados locais. Logout confirmado limpa o progresso local, as fichas em cache e a notificação; dados já sincronizados podem ser recuperados pela mesma conta no próximo login. A preferência booleana do card é guardada separadamente por conta/aparelho e permanece para o próximo login, sem guardar conteúdo do treino.
+
+Sincronização usa versão e UUID de mutação. A requisição pendente é persistida para repetir exatamente o mesmo envio após queda de conexão/resposta perdida. Séries, navegação, pausa e descanso gravam apenas no aparelho. O primeiro bloco é enviado ao iniciar; as alterações seguintes são agrupadas em uma janela de cinco minutos, sem adiar o envio a cada toque. Há checkpoint ao reabrir, sair ou voltar ao app, envio imediato ao finalizar/descartar e botão manual. Sem alterações não há timer de consulta. Falhas usam espera progressiva de 1, 2, 4 e até 5 minutos; alternar o foco respeita essa espera. Controles da notificação também ficam locais e entram no próximo bloco. Alteração de outro aparelho ou outra sessão aberta produz conflito explícito: o progresso local é preservado até confirmar “Usar sessão da conta”. Não há sincronização contínua com o processo encerrado.
+
+Finalização mostra exercícios completos, exercícios com séries parciais e mantém somente atividade efetivamente registrada. Sem séries realizadas, finalizar fica indisponível; é possível descartar mediante confirmação. A conclusão parcial conta uma sessão para a meta, como antes. Offline, o resultado fica pendente: API grava sessão e histórico na mesma transação, de forma idempotente; somente após sincronizar atualiza metas/histórico e permite compartilhar. Descarte não conta. A data do registro é a data local de início; continua corrigível no histórico. Não existe publicação automática nesta jornada.
+
+O histórico distingue completo/parcial e séries realizadas. A tela de correção lê o snapshot original via `execution.runId` para mostrar os detalhes mesmo após editar/excluir a ficha. Correções de data, exercícios e status continuam no registro do histórico; o detalhamento de séries mostra explicitamente a execução original, sem reescrever auditoria.
+
+### Notificação Android
+
+O card é **opcional e desligado inicialmente**. “Controlar pela notificação” aparece na confirmação inicial, nas opções da sessão e em Configurações → Treino em andamento. A ativação solicita permissão do Android e explica que nomes dos exercícios podem aparecer com o aparelho desbloqueado. Negar permissão mantém o controle desligado. Desligar recupera as ações nativas pendentes e remove card/alarme, sem pausar, descartar ou apagar o progresso. O treino continua controlável pelo app e os cronômetros permanecem disponíveis.
+
+O módulo local `FitWorkout`, no pacote `modules/fit-daily-summary`, usa `DecoratedCustomViewStyle`: recolhido, mostra treino/exercício, posição, séries e cronômetro; expandido, mostra também descanso e “Concluir série”, com ações do sistema Anterior, Pausar/Retomar e Próximo. Tempo total e descanso têm cronômetros nativos independentes. Completar séries respeita o limite da prescrição e fica indisponível em pausa; navegar não marca séries. Finalização e descarte permanecem no app com confirmação. Tocar no card abre a sessão. O layout compacto respeita os 48 dp disponíveis e o expandido usa a decoração e os estilos de texto do sistema, conforme a [documentação oficial de notificações personalizadas](https://developer.android.com/develop/ui/views/notifications/custom-notification).
+
+As ações persistem o estado antes de atualizar o card, sem precisar de JavaScript. O snapshot nativo contém somente IDs, nomes dos exercícios, quantidade de séries, descanso e progresso, criptografado com Android Keystore; não contém carga, orientações, imagens ou tokens. Intents são privados/imutáveis e identificados por sessão, impedindo controles antigos de afetarem uma nova. Com o app aberto, um evento interno recupera as ações imediatamente; ao reabrir, o estado é recuperado e confirmado antes de sincronizar. O card usa visibilidade privada na tela bloqueada e respeita a permissão/canal do sistema. Dispensá-lo não descarta o treino; não há tentativa de impedir a dispensa pelo usuário.
+
+O descanso usa um alarme nativo inexato, sem permissões de alarme exato ou sensores e sem serviço continuamente ativo. Economia de bateria/forçar parada podem atrasar ou impedir o aviso; ao reabrir, o tempo é recalculado e o progresso é recuperado. Após reinício do aparelho, a sessão é recuperada ao abrir o app; não há receiver de boot. Finalizar, descartar ou sair da conta remove card e alarme.
+
+Os novos controles e layouts exigem **novo APK**. JavaScript detecta `showControls` de forma opcional: APKs anteriores mantêm o card básico Pausar/Retomar/Abrir e exibem a orientação de atualizar para navegar/registrar séries na notificação. Expo Go não possui os controles nativos. Web/iOS possuem execução persistente e controles no app, sem notificação contínua equivalente nesta entrega. A reformulação não adiciona endpoints nem migrações à sessão persistente já existente.
+
+### Imagens: somente admin
+
+Somente administradores podem cadastrar, substituir ou remover imagens de exercícios, com autorização novamente aplicada em `PortalContentService.setExerciseImage`. O portal oculta o editor de imagens para profissionais. Usuários/profissionais consomem as imagens cadastradas, sem campo de upload no treino. Mantêm-se validação JPEG/PNG/WebP de até 8 MB, otimização WebP, cache e snapshots existentes. Sem imagem, falha no carregamento ou indisponibilidade offline exibem a ilustração genérica com identificação de conteúdo ilustrativo. Não há preenchimento automático de fotos específicas do catálogo.
+
+### Ilustrações pré-definidas dos treinos A/B/C
+
+Cada treino da ficha pode ter uma ilustração opcional de grupo muscular. O seletor de criação/edição oferece 13 opções locais: peito, costas, pernas, ombros, braços, abdômen, glúteos, corpo inteiro e combinações costas + ombros, peito + ombros, peito + tríceps, costas + bíceps e pernas + glúteos. “Sem ilustração” remove a escolha. A imagem identifica o treino e não modifica nome, exercícios ou prescrições. Somente “Salvar ficha/alterações” persiste a seleção; ela participa da proteção de alterações pendentes.
+
+A escolha é exibida nos detalhes e antes de iniciar. Os arquivos WebP têm 512 × 384 px, proporção 4:3, sem textos e sem recorte dos corpos. O catálogo é empacotado no cliente, sem download de serviço externo no app nativo. O desenho usa um fundo branco consistente, inclusive no tema escuro, e IDs desconhecidos/falhas têm alternativa local. A prévia da escolha reserva sua altura para não redimensionar o formulário ao trocar ou remover a imagem. Galeria e prompts: `design/workout-illustrations/README.md`.
+
+Não existe upload neste fluxo. Escolher uma ilustração pronta para um treino próprio é diferente de cadastrar imagens instrucionais de exercícios: estas continuam exclusivas do admin. Fichas recebidas do profissional permanecem sem edição pelo aluno.
+
+`illustrationId` é opcional/nullable e validado por enum em criação/edição de ficha. A migração `042-workout-division-illustration` adiciona a coluna nullable. Clientes anteriores que mantêm o ID do treino e omitem o campo conservam a ilustração existente ao editar; `null` limpa explicitamente. Reutilizam-se as rotas autenticadas atuais, sem novo endpoint ou URL arbitrária. Sessões/histórico não são reescritos ao trocar uma ilustração.
+
+Distribuído no APK 1.05, com a migração aplicada pelo fluxo normal da API no servidor. Testes específicos: `apps/api/test/workout-illustrations.test.ts` (contrato e MySQL isolado) e `apps/mobile/e2e/workout-illustrations.spec.ts` (API real, claro/escuro, proporção/seleção e persistência em A/B, criação/edição, detalhes e confirmação de início).
+
+### Persistência e implantação
+
+A migração `041-create-workout-runs` cria `workout_runs`, privada por proprietário, com snapshot, progresso, versão, última mutação e vínculo ao histórico. Aplicar antes da nova API; o servidor usa o migrador existente. Rotas antigas de registro/correção continuam compatíveis. A ficha original não precisa existir para finalizar uma sessão previamente sincronizada. Um início inteiramente offline cuja ficha seja alterada/excluída antes do primeiro envio pode ser recusado pela API; o cliente mantém os dados locais e mostra o erro, sem associar silenciosamente exercícios diferentes.
+
 
 ## Endpoints
 
@@ -53,6 +106,9 @@ Na Home, “Abrir treinos” lista as divisões das fichas disponíveis, com des
 | `POST` | `/workout-plans/:id/activate` | Ativa ficha e inativa a anterior |
 | `PATCH` | `/workout-plans/:id/archive` | Arquiva ou restaura ficha |
 | `POST` | `/workout-plans/:id/renew` | Revalida a ficha por 1 a 365 dias a partir de agora |
+| `GET` | `/workout-runs/active` | Recupera a sessão aberta da conta (ou `null`), sem cache HTTP |
+| `GET` | `/workout-runs/:id` | Recupera execução e séries próprias, inclusive encerradas |
+| `PUT` | `/workout-runs/:id` | Cria/sincroniza por versão e mutação; encerra e registra histórico atomicamente |
 | `GET` | `/workout-sessions` | Lista sessões realizadas/canceladas |
 | `POST` | `/workout-sessions` | Registra sessão realizada |
 | `PATCH` | `/workout-sessions/:id` | Corrige data, exercícios ou status |
@@ -107,3 +163,41 @@ Preservação do histórico (tudo em uma transação, com `SELECT … FOR UPDATE
 - As letras A–E são recalculadas pela posição. Metas planejadas que apontavam para um treino removido passam a exibir “qualquer treino”.
 
 Testes: `apps/api/test/workout-edit.test.ts` (401, 404 de outro usuário, 400 para payload inválido, 403 para ficha de profissional, sucesso) e `apps/api/test/workout-edit.integration.test.ts` (MySQL: histórico preservado, validade mantida/removida, isolamento e bloqueio de ficha de profissional; roda com `RUN_DB_TESTS=1`).
+
+## Verificação da sessão persistente
+
+- `npm run typecheck`, `npm run lint --workspace=@fit/mobile`, `npm test`.
+- `RUN_DB_TESTS=1 node --import tsx apps/api/test/workout-runs.integration.test.ts`: cria/migra/remove um banco exclusivo `fit_workout_runs_test_*`; usa as credenciais locais sem modificar o banco configurado.
+- Playwright: `FIT_WORKOUT_RUN_E2E=1 FIT_E2E_WEB_URL=http://127.0.0.1:8099 FIT_E2E_API_URL=http://127.0.0.1:33329 npx playwright test --config apps/mobile/playwright.config.ts workout-run.spec.ts`. Requer API local com banco exclusivo de testes e Expo configurado para essa API. Cobre temas claro/escuro, larguras de 320 e 390 px, sugestão C e troca para A antes de criar sessão, contador e conclusão do exercício inteiro com desfazer sem alterar a altura do card, banner da Home fixo durante a rolagem, cronômetro, recarregamento, persistência offline, pausa, sincronização, conclusão parcial/completa pela ação principal, início de uma nova sessão, meta separada dos checks e detalhamento no histórico.
+- Android: compilar `:fit-daily-summary:compileDebugKotlin` e executar `:fit-daily-summary:testDebugUnitTest` (relógio de pausa/descanso, controles de exercício/séries, layout real de RemoteViews e regressão do resumo diário). Homologar em aparelho a permissão negada, controles com JS encerrado, pausa/retomada, bloqueio de tela, reinício, economia de bateria e cancelamento de alarmes no logout. Compilação não comprova esses comportamentos físicos.
+
+Na reformulação da execução, feedback de salvamento e contador usam regiões de status acessíveis sem mover o foco, conforme [WCAG — mensagens de status](https://www.w3.org/WAI/WCAG22/Understanding/status-messages.html). Prévia opcional do conteúdo expandido (Robolectric, sem a moldura/ações do sistema): definir `FIT_WORKOUT_PREVIEW_PATH` ao executar os testes nativos. Essa prévia não substitui a homologação em aparelho.
+
+O card fixo na Home e a ação de concluir o exercício inteiro são distribuídos no APK 1.05. Reutilizam a sessão persistente e a sincronização existentes, sem novo endpoint, migração ou alteração nativa. A conclusão atualiza o progresso da notificação existente; seu botão nativo de série permanece disponível conforme o APK instalado.
+
+
+A sincronização adiada é compartilhada com a fila de refeições (`utils/deferred-sync.ts`), sem polling quando limpa. `deferred-sync.test.ts` verifica agrupamento, espera progressiva e recuperação; `deferred-sync.spec.ts` conta envios reais e verifica que marcar/desfazer várias séries não dispara uma requisição por interação. O cabeçalho opcional `x-orami-owner` é conferido com a identidade do token para impedir que uma tarefa pendente atravesse uma troca de conta; ele não concede acesso nem define o proprietário.
+
+## Capa da ficha personalizada
+
+O usuário pode escolher uma das oito capas locais ao criar ou editar sua própria ficha. O seletor usa miniaturas com proporção 16:9 e não faz upload de fotos. `coverId` opcional/nullable usa enum restrito no contrato de criação/edição; omitir na edição preserva a capa existente. A escolha explícita prevalece sobre a capa da sugestão, cuja existência continua sendo validada. Sem escolha no cliente legado, a API mantém a seleção automática existente. Fichas de profissionais continuam protegidas contra edição pelo aluno.
+
+O card inicial de Fitness usa a capa da ficha sobre fundo sólido, sem figura decorativa adicional. Fundos da Home e banners de treino usam composições vetoriais próprias, exportadas em alta resolução por `node scripts/generate-scenes.mjs --fitness-only`. Os controles de séries têm uma linha própria para evitar quebra de Desfazer em telas estreitas. Cronômetros reservam espaço para as legendas de pausa/descanso.
+
+## Execução com carga e repetições (novembro de 2026)
+
+A tela de execução foi reorganizada para o ritmo série → descanso → série:
+
+- Cabeçalho fixo com voltar, “Finalizar” e opções; abaixo, uma faixa fixa com treino, tempo total (selo “Pausado” quando for o caso) e progresso por séries (“5 de 27 séries”). Não há mais painel separado de tempo nem texto permanente de sincronização: o estado de salvamento aparece em Opções e só vira aviso na tela quando há erro.
+- Cada série é uma linha com “Anterior”, kg, reps e check. Os campos vêm preenchidos com a última execução do mesmo exercício nesta divisão (`GET /workout-runs/previous?divisionId=`) e, sem histórico ou offline, com a prescrição (reps só quando é um número). Marcar a linha grava os valores dela; editar uma série já marcada corrige os valores sem mexer no descanso.
+- A ação principal do rodapé é “Concluir série X de N”; depois da última, “Próximo exercício” e, no fim, “Finalizar treino”. “Concluir todas as séries”, “Desfazer conclusão do exercício”, “Iniciar descanso”, “Pular por enquanto” e orientações ficam no menu do exercício. Pausado, o rodapé mostra só “Retomar treino”.
+- O descanso fica numa barra fixa acima da ação principal, com contagem, −15 s, +15 s e Pular; ao zerar com o app aberto vibra uma vez e mostra “Pode continuar”. A linha “A seguir” mostra o próximo exercício e sua prescrição.
+- Painéis (lista de exercícios, menu do exercício, opções) são bottom sheets com alça e botão fechar no topo; “Descartar treino” aparece em vermelho.
+- O resumo final mostra duração, séries, exercícios completos e, quando informado, volume (kg × reps); lista completos, parciais e não feitos; e, depois de sincronizar, a meta da semana. “Concluir” volta ao Início; “Iniciar outro treino” volta à escolha.
+- Com uma sessão aberta, Início, atalhos, Fitness e detalhes da ficha mostram “Continuar treino X” no lugar de iniciar.
+
+Contrato: cada item de `progress.exercises` aceita `performed: { set, reps, loadKg }[]` opcional (reps 0–999, carga 0–2000, uma entrada por série dentro da prescrição; a API rejeita o resto). Progresso antigo sem `performed` continua válido. As regras puras (`toggleWorkoutRunSet`, `updateWorkoutRunSetValues`, `workoutRunVolume`, `completeWorkoutRunExercise` com valores) ficam em `packages/contracts/src/workout-run.ts`. Carga e reps não vão para o armazenamento da notificação: o app retira `performed` antes de entregar o progresso ao módulo nativo e os recoloca ao ler as ações feitas pela notificação.
+
+Notificação Android (novo APK): recolhida, a segunda linha mostra o descanso (“Descanso até 10:42 · próxima série 3/4”) ou a contagem de séries. As ações do sistema seguem o momento: “Concluir série X/N”, Anterior e Próximo; durante o descanso, “Concluir série”, “+30 s” e “Pular descanso”; pausado, Retomar e Abrir treino. O descanso aparece como horário de término, não como contagem regressiva, porque o alarme continua inexato (decisão de produto: sem permissão de alarme exato) e uma contagem poderia passar de zero antes da atualização; ao disparar, o card passa a “Descanso concluído”. O card continua opcional e é oferecido uma vez, ao iniciar o primeiro treino no Android (“Ativar controle” / “Agora não”), além de Opções e Configurações.
+
+Histórico: Fitness → Histórico usa `GET /workout-sessions/page` (20 por vez, “Carregar mais”), agrupa por semana (seg–dom) com “X de N” da meta quando a semana está completa na tela e mostra “Esta semana” no grupo atual. Detalhes da ficha mostram os treinos primeiro, a gestão (editar, revalidar, ativar, arquivar, excluir) no menu “⋯” e “Iniciar treino X” fixo no rodapé.

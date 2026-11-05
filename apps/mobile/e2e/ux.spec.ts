@@ -46,21 +46,26 @@ test('compartilhamento conclui, permite escolher grupo, fecha sem crash e preser
   expect((await(await request.get(apiURL+'/workout-sessions',{headers})).json()).length).toBe(1);
   expect(errors).toEqual([]);
 });
-test('medicamentos: cinco por página, busca, exclusão cancelada e confirmada',async({page,request})=>{
+test('medicamentos: lista contínua com carregar mais, busca, exclusão pela edição cancelada e confirmada',async({page,request})=>{
   const errors=await login(page,request);
-  for(let i=0;i<12;i++)await post(request,'/medications',{name:`Medicamento ${String(i).padStart(2,'0')}`,dailyFrequency:1,times:['08:00']});
+  for(let i=0;i<22;i++)await post(request,'/medications',{name:`Medicamento ${String(i).padStart(2,'0')}`,dailyFrequency:1,times:['08:00']});
   await page.goto('/health-routine?kind=medication');
-  await expect(page.getByText('Página 1 de 3')).toBeVisible();
+  // The footer lives at the end of the virtualized list: scroll like a person would.
+  const scrollToText = async (text: string) => { await page.mouse.move(195, 600); for (let i = 0; i < 12 && !(await page.getByText(text).isVisible()); i++) { await page.mouse.wheel(0, 1500); await page.waitForTimeout(250); } await expect(page.getByText(text)).toBeVisible(); };
+  await scrollToText('Mostrando 20 de 22 cadastros');
+  await page.mouse.wheel(0, -20000);
   await page.getByRole('button',{name:'Editar Medicamento 00',exact:true}).first().click();
   await expect(page.getByRole('switch',{name:'Cadastro ativo'})).toBeVisible();
   await page.getByRole('switch',{name:'Cadastro ativo'}).scrollIntoViewIfNeeded();
   await page.screenshot({path:'artifacts/ux-review/health-switch-dark-390.png',fullPage:true,animations:'disabled'});
   await page.getByText('Fechar',{exact:true}).click();
-  await expect(page.getByRole('button',{name:/^Excluir Medicamento/})).toHaveCount(5);
-  await page.getByRole('button',{name:'Próxima página'}).click();await expect(page.getByText('Página 2 de 3')).toBeVisible();
-  await page.getByLabel('Buscar medicamentos').fill('Medicamento 11');await expect(page.getByText('Página 1 de 1')).toBeVisible();
+  await expect(page.getByRole('button',{name:/^Excluir Medicamento/})).toHaveCount(0);
+  await scrollToText('Mostrando 20 de 22 cadastros');await page.getByRole('button',{name:'Carregar mais',exact:true}).click();await scrollToText('Todos os 22 cadastros exibidos');await page.mouse.wheel(0, -20000);
+  await page.getByLabel('Buscar medicamentos').fill('Medicamento 11');await expect(page.getByText('1 cadastro',{exact:true})).toBeVisible();
+  await page.getByRole('button',{name:'Editar Medicamento 11',exact:true}).first().click();
   await page.getByRole('button',{name:'Excluir Medicamento 11',exact:true}).click();await page.getByRole('button',{name:'Cancelar',exact:true}).click();
-  await expect(page.getByRole('button',{name:'Excluir Medicamento 11',exact:true})).toBeVisible();
+  await expect(page.getByRole('button',{name:'Editar Medicamento 11',exact:true}).first()).toBeVisible();
+  await page.getByRole('button',{name:'Editar Medicamento 11',exact:true}).first().click();
   await page.getByRole('button',{name:'Excluir Medicamento 11',exact:true}).click();await page.getByRole('button',{name:'Excluir medicamento',exact:true}).click();
   await expect(page.getByText('Medicamento 11 excluído.')).toBeVisible();expect(errors).toEqual([]);
 });
@@ -76,16 +81,18 @@ test('Home: conclusão direta e refeição atualizam dados persistidos',async({p
   await page.getByRole('checkbox',{name:'Registrar tomada de Suplemento E2E'}).click();
   await expect(page.getByRole('checkbox',{name:'Desfazer tomada de Suplemento E2E'})).toBeChecked();
   await page.getByLabel('Fechar atividades de hoje').click();await page.getByRole('button',{name:'Adicionar refeição',exact:true}).click();
-  await expect(page.getByRole('radio',{name:'Rápida',exact:true})).toBeChecked();
+  await expect(page.getByRole('radio',{name:'Informar calorias',exact:true})).toBeChecked();
   await expect(page.getByLabel('Proteínas (g)',{exact:true})).toHaveCount(0);
   await page.getByRole('checkbox',{name:/Informar proteínas, carboidratos e gorduras/}).click();
   await expect(page.getByLabel('Proteínas (g)',{exact:true})).toBeVisible();
   await page.getByLabel('Proteínas (g)',{exact:true}).fill('35');
   await page.getByRole('checkbox',{name:/Informar proteínas, carboidratos e gorduras/}).click();
-  await page.getByLabel('Nome',{exact:true}).fill('Almoço E2E');
+  await page.getByLabel('Nome da refeição',{exact:true}).fill('Almoço E2E');
   await page.getByLabel('Calorias (kcal)',{exact:true}).fill('500');
   await page.getByRole('button',{name:'Salvar',exact:true}).click();
-  await expect(page.getByText('Refeição registrada.',{exact:true})).toBeVisible();
+  await expect(page.getByText('Refeição salva neste aparelho.',{exact:true})).toBeVisible();
+  await page.getByRole('button',{name:'Sincronizar refeições agora',exact:true}).click();
+  await expect(page.getByTestId('meal-sync-status')).toHaveCount(0);
   const summary=await(await request.get(apiURL+`/nutrition/summary?date=${date()}`,{headers})).json();expect(summary.consumed.calories).toBe(500);expect(summary.consumed.protein).toBe(0);expect(summary.consumptionGoal.remainingCalories).toBe(1500);expect(errors).toEqual([]);
 });
 test('injetáveis: gráfico abre, alterna e fecha',async({page,request})=>{
@@ -112,12 +119,12 @@ test('layouts nos dois temas: 320, 360, 390, 430 e desktop',async({page,request}
   expect(errors).toEqual([]);
 });
 
-test('medidas: paginação e guia do campo selecionado',async({page,request})=>{
+test('medidas: gráfico, carregar mais e guia do campo selecionado',async({page,request})=>{
  const errors=await login(page,request);
  for(let i=0;i<12;i++)await post(request,'/body-measurements',{date:date(),weightKg:70+i});
- await page.goto('/body-measurements');await expect(page.getByText('Página 1 de 3')).toBeVisible();
- await page.getByRole('button',{name:'Próxima página'}).click();await expect(page.getByText('Página 2 de 3')).toBeVisible();
- await page.getByText('+ Registrar',{exact:true}).click();await page.getByText('Peso e medidas',{exact:true}).click();
+ await page.goto('/body-measurements');await expect(page.getByText('Evolução do peso',{exact:true})).toBeVisible();await expect(page.getByText('Mostrando 10 de 12 registros')).toBeVisible();
+ await page.getByRole('button',{name:'Carregar mais',exact:true}).click();await expect(page.getByText('Todos os 12 registros exibidos')).toBeVisible();
+ await page.getByRole('button',{name:'Registrar medidas',exact:true}).click();
  await page.getByRole('radio',{name:'Braço esquerdo',exact:true}).click();
  await expect(page.getByRole('img',{name:/Corpo de frente. Região destacada: Braço esquerdo/})).toBeVisible();
  await page.screenshot({path:'artifacts/ux-review/body-guide-dark-390.png',fullPage:true,animations:'disabled'});expect(errors).toEqual([]);
@@ -148,7 +155,7 @@ test('Home: balanço estimado explica cálculo e registra somente calorias', asy
   await expect(page.getByText(/45 minutos a 3,5 MET/)).toBeVisible();
   await page.getByLabel('Fechar informações').click();
   await page.getByRole('button',{name:'Adicionar refeição',exact:true}).click();
-  await page.getByLabel('Nome',{exact:true}).fill('Refeição rápida');
+  await page.getByLabel('Nome da refeição',{exact:true}).fill('Refeição rápida');
   await page.getByLabel('Calorias (kcal)',{exact:true}).fill('500');
   await expect(page.getByLabel('Proteínas (g)',{exact:true})).toHaveCount(0);
   await page.getByRole('button',{name:'Salvar',exact:true}).click();

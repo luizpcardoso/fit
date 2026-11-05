@@ -1,3 +1,6 @@
+import { MealCategoryPicker, MealWhenFields } from '@/components/meal-details-fields';
+import { formatNumber } from '@/utils/numbers';
+import { useMealWhen } from '@/hooks/use-meal-when';
 import { FormStickyFooter } from '@/components/form-sticky-footer';
 import { FormScrollView as ScrollView } from '@/components/form-scroll-view';
 import { FormInput as TextInput } from '@/components/form-input';
@@ -14,21 +17,18 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import * as Crypto from "expo-crypto";
 import {
   dietMacros,
+  mealCategories,
+  mealCategoryTime,
+  type MealCategory,
   dietMealInputSchema,
   type DietMealInput,
   type DietView,
 } from "@fit/contracts";
-import { useAuth } from "@/auth/auth-context";
+import { useMealSync } from './meal-sync-provider';
 import { useAppTheme } from "@/theme/theme-provider";
-import {
-  dateInputToIso,
-  formatDateInput,
-  isoDateToInput,
-} from "@/utils/date-input";
 import {
   formatDecimalInput,
   formatDecimalValue,
-  formatTimeInput,
 } from "@/utils/input-format";
 export type DietSelection = {
   assignmentId: string;
@@ -46,7 +46,7 @@ export function DietMealForm({
   onClose(): void;
   onSave(input: DietMealInput): Promise<void>;
 }) {
-  const { api } = useAuth(),
+  const { api } = useMealSync(),
     { colors: c } = useAppTheme();
   const [diets, setDiets] = useState<DietView[]>([]),
     [loading, setLoading] = useState(true),
@@ -55,19 +55,29 @@ export function DietMealForm({
   const [footerHeight, setFooterHeight] = useState(0);
   const [planId, setPlanId] = useState<string | null>(selection?.assignmentId ?? null);
   const [chosen, setChosen] = useState<DietSelection | null>(selection || null),
-    [quantities, setQuantities] = useState<string[]>([]),
-    [recordDate, setRecordDate] = useState(isoDateToInput(date)),
-    [time, setTime] = useState("12:00");
+    [quantities, setQuantities] = useState<string[]>([]);
+  const [name, setName] = useState('');
+  const [category, setCategory] = useState<MealCategory | null>(null);
+  const when = useMealWhen(date);
+  const lastMeal = useRef('');
   const lock = useRef(false),
     requestId = useRef(Crypto.randomUUID());
   const requestSignature=useRef('');
+  const resetTime = when.resetTime;
   const choose=useCallback((rows:DietView[],choice:DietSelection|null)=>{
     setChosen(choice);
     const meal=choice?rows.find(row=>row.id===choice.assignmentId)?.meals[choice.mealIndex]:undefined;
     const option=choice?meal?.options[choice.optionIndex]:undefined;
     setQuantities(option?.items.map(item=>formatDecimalValue(item.quantity))||[]);
-    setTime(meal?.time||'12:00');
-  },[]);
+    const key = choice && meal ? `${choice.assignmentId}:${choice.mealIndex}` : '';
+    if (lastMeal.current === key) return;
+    lastMeal.current = key;
+    if (!meal) return;
+    const matching = mealCategories.find(item => item.label.toLocaleLowerCase('pt-BR') === meal.name.trim().toLocaleLowerCase('pt-BR'))?.id ?? null;
+    setCategory(matching);
+    setName('');
+    resetTime(meal.time || mealCategoryTime(matching));
+  },[resetTime]);
   const load = async () => {
     setLoading(true);
     setError("");
@@ -113,9 +123,13 @@ export function DietMealForm({
   );
   const save = async () => {
     if (lock.current) return;
+    if (name.trim().length < 2) { setError('Informe o nome da refeição.'); return; }
+    const { date: recordDate, time } = when.resolve();
     const parsed = dietMealInputSchema.safeParse({
       ...chosen,
-      date: dateInputToIso(recordDate),
+      name,
+      category,
+      date: recordDate,
       time,
       quantities: quantities.map((value) => Number(value.replace(",", "."))),
       requestId: requestId.current,
@@ -123,7 +137,7 @@ export function DietMealForm({
     if (!parsed.success || !option) {
       setError(
         !option ? "Escolha a refeição que você consumiu."
-          : !dateInputToIso(recordDate) ? "Informe uma data válida no formato DD/MM/AAAA."
+          : !recordDate ? "Informe uma data válida no formato DD/MM/AAAA."
           : !/^([01]\d|2[0-3]):[0-5]\d$/.test(time) ? "Informe um horário válido no formato HH:MM."
           : "Revise as quantidades: use números maiores que zero.",
       );
@@ -170,6 +184,10 @@ export function DietMealForm({
             {plan ? <><View style={{gap:5}}><Text style={{color:c.text,fontSize:18,fontWeight:'800'}}>{plan.name}</Text><Text style={{color:c.textMuted,fontSize:12}}>Por {plan.authorName}</Text><DietExpiry diet={plan}/></View><DietMealRows diet={plan} onSelect={mealIndex => choose(diets,{assignmentId:plan.id,mealIndex,optionIndex:0})}/></> : null}
           </> : diet && meal && chosen ? <>
             <View style={{gap:6}}><Text style={{color:c.text,fontSize:21,fontWeight: '800'}}>{meal.name}</Text><Text style={{color:c.textMuted,fontSize:12}}>{diet.name} · {meal.time || 'Sem horário definido'}</Text><Pressable accessibilityRole="button" disabled={busy} onPress={() => {setPlanId(diet.id);choose(diets,null);}} style={{minHeight:44,justifyContent:'center'}}><Text style={{color:c.link}}>Alterar refeição</Text></Pressable><DietExpiry diet={diet}/></View>
+            <MealCategoryPicker value={category} disabled={busy} onChange={value => { setCategory(value); const reference = mealCategoryTime(value); if (reference) when.suggest(reference); }}/>
+            <Text style={{color:c.text,fontSize:14,fontWeight:'700'}}>Nome da refeição</Text>
+            <TextInput accessibilityLabel="Nome da refeição" editable={!busy} value={name} onChangeText={setName} placeholder="Ex.: Marmita congelada" placeholderTextColor={c.textMuted} maxLength={120} style={{...field,minHeight:48,fontSize:14}}/>
+            <MealWhenFields value={when} category={category} disabled={busy}/>
             <DietOptionTabs meal={meal} selected={chosen.optionIndex} disabled={busy} onSelect={optionIndex => choose(diets,{...chosen,optionIndex})}/>
             <Text style={{color:c.textMuted,lineHeight:20}}>Ajuste ao que você consumiu. O planejamento original será preservado.</Text>
               {option.items.map((item, index) => (
@@ -200,29 +218,9 @@ export function DietMealForm({
               <Text style={{ color: c.textMuted }}>
                 Estimativa:{" "}
                 {totals && Object.values(totals).every(Number.isFinite)
-                  ? `${Math.round(totals.calories)} kcal · Proteínas ${totals.protein.toFixed(1)} g · Carboidratos ${totals.carbs.toFixed(1)} g · Gorduras ${totals.fat.toFixed(1)} g`
+                  ? `${Math.round(totals.calories)} kcal · Proteínas ${formatNumber(totals.protein)} g · Carboidratos ${formatNumber(totals.carbs)} g · Gorduras ${formatNumber(totals.fat)} g`
                   : "revise as quantidades"}
               </Text>
-              <Text style={{ color: c.text }}>Data (DD/MM/AAAA)</Text>
-              <TextInput
-                accessibilityLabel="Data da refeição da dieta"
-                editable={!busy}
-                value={recordDate}
-                onChangeText={(v) => setRecordDate(formatDateInput(v))}
-                keyboardType="number-pad"
-                maxLength={10}
-                style={field}
-              />
-              <Text style={{ color: c.text }}>Horário (HH:MM)</Text>
-              <TextInput
-                accessibilityLabel="Horário da refeição da dieta"
-                editable={!busy}
-                value={time}
-                onChangeText={(v) => setTime(formatTimeInput(v))}
-                keyboardType="number-pad"
-                maxLength={5}
-                style={field}
-              />
 
           </> : null}
         </ScrollView>

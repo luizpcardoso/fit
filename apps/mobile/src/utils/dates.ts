@@ -36,3 +36,7 @@ export function formatRelativeDay(value: string, reference = new Date()) {
 export function formatSpokenDate(value: string) {
   return parseLocalDate(value).toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 }
+/** Closes a sentence that ends in a date without doubling the abbreviation dot ("3 de nov."). */
+export function withPeriod(text: string) {
+  return text.endsWith('.') ? text : `${text}.`;
+}

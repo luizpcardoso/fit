@@ -1,72 +1,39 @@
 # Arquitetura
 
-## Organização inicial
+Monorepo npm; aplicativo e API implantáveis separadamente. Mapa/comandos na raiz
+`AGENTS.md`, padrões técnicos nos `AGENTS.md` de cada área. Versões efetivas em
+`package.json`/lockfile; não duplicá-las em contextos.
 
-O projeto é um monorepo com aplicativo e API implantáveis separadamente.
+## Fronteiras
 
-## Fluxo de uma funcionalidade
+`Tela/estados → contrato público → cliente tipado → API → persistência`.
+App Expo/React Native consome `packages/api-client` e schemas Zod de
+`packages/contracts`; não importa modelos do banco. API Fastify/Sequelize/MySQL
+valida entrada, autentica, autoriza por recurso e executa negócio/persistência.
+Migrations Umzug versionadas são aplicadas ao iniciar; não editar migrations aplicadas.
+Entrega e segurança seguem `AGENTS.md` e `docs/security.md`.
 
-```text
-necessidade do usuário
-  -> fluxo e tela do app
-  -> estados da interface
-  -> contrato de dados
-  -> endpoint da API
-  -> integração e testes
-```
+## Sessões, dados e portal
 
-O aplicativo não importa modelos do banco. Contratos compartilhados representam apenas a fronteira pública da API.
+Contas/sessões no MySQL; access JWT curto vinculado à sessão persistida e refresh
+opaco rotativo. Logout/suspensão/ativação podem revogar acesso imediatamente.
+Detalhes em `docs/authentication.md`.
 
-## Autenticação
+Dados pessoais filtrados pelo proprietário; grupos exigem associação, consentimento
+por grupo e fronteira temporal (`docs/groups.md`). Nutrição/corpo preservam snapshots
+históricos (`docs/nutrition.md`).
 
-O app consome contratos públicos de `packages/contracts` por meio do cliente tipado em `packages/api-client`. A API Fastify persiste contas e sessões no MySQL por meio do Sequelize, aplica migrations versionadas na inicialização e usa access tokens curtos e refresh tokens opacos rotativos. Consulte `docs/authentication.md` para o fluxo e os endpoints.
+`apps/web` (TypeScript compilado) é servido pela API em `/portal`, compartilhando
+contas/banco. Tokens web somente em memória. Acesso profissional depende da interseção
+de tipo, capacidade individual, vínculo ativo e consentimento. Prescrições preservam
+snapshot/autoria; modelos atualizados não alteram material entregue. Leia
+`docs/portal-workspace-context.md` e `docs/portal.md` para trabalhar nesse domínio.
 
-O mesmo limite de confiança é aplicado a fichas e sessões de treino. Consulte `docs/workouts.md` para as regras confirmadas e o contrato HTTP.
+## Identidade e operação
 
-Suplementos e seus consumos diários também pertencem exclusivamente ao usuário autenticado. Consulte `docs/supplements.md`.
-
-O acompanhamento nutricional, gasto calórico e medidas corporais usa snapshots históricos e propriedade por usuário. Consulte `docs/nutrition.md`.
-
-Grupos e feed social usam autorização por associação, consentimento individual por grupo e uma fronteira temporal de acesso. Consulte `docs/groups.md`.
-
-Uma funcionalidade de produto só termina após a integração real entre tela e endpoint. Dados simulados podem apoiar a construção inicial da interface, mas não constituem a entrega final.
-
-Alterações puramente visuais não geram endpoints sem propósito. Toda operação real de leitura ou mutação introduzida por uma funcionalidade deve possuir contrato e endpoint correspondentes.
-
-## Limite de confiança
-
-```text
-aplicativo não confiável
-  -> validação do contrato
-  -> autenticação
-  -> autorização do recurso
-  -> regra de negócio na API
-  -> persistência
-```
-
-A API nunca assume que ocultar um botão no aplicativo impede uma ação. Identidade, permissão, propriedade e regras de negócio são verificadas no servidor.
-
-## Portal profissional
-
-`apps/web` é compilado com TypeScript e servido pela mesma API em `/portal`. Compartilha contas e MySQL com o app. Os contratos profissionais ficam em `packages/contracts`; o cliente do app expõe consentimentos e planos recebidos. Papéis da plataforma não concedem acesso automático à saúde dos alunos: operações profissionais exigem a interseção de tipo, restrição individual, vínculo ativo e consentimento. Prescrições mantêm snapshots e autoria; alterações não reescrevem material entregue. Consulte `docs/portal.md` para fluxos, limites e validação.
-
-Os novos access tokens incluem uma referência à sessão persistida. A API verifica sua validade mesmo antes do vencimento do JWT, permitindo revogação imediata em logout, suspensão e ativação de credencial definitiva. Sessões web mantêm tokens apenas em memória.
-
-## Identidade visual compartilhada
-
-A paleta Petróleo do app, home pública e gestor tem uma única fonte em
-`design/palette.json`. Os grupos `light` e `dark` definem cores por função;
-`brand` define superfícies de marca que mantêm contraste nas duas aparências.
-
-Para mudar a identidade, edite esse arquivo e execute `npm run theme` na raiz.
-O comando atualiza `apps/mobile/src/constants/palette.generated.ts`,
-`apps/web/theme.css` e as cores nativas do splash/ícone em `apps/mobile/app.json`.
-Versione os arquivos gerados junto com a fonte. O build web também gera o tema.
-Depois recompile o web (`npm run build --workspace=@fit/web`) e recarregue o app;
-alterações no splash/ícone nativo exigem uma nova build Android/iOS.
-
-Componentes mobile usam `useAppTheme()` / `AppPalette`; estilos web usam os tokens
-`--fit-*` e `--brand-*`, disponibilizados em `/theme.css`. Evite cores de marca
-fixas nas telas. `primary` e `accent` aceitam texto branco; `secondary` é o destaque
-menta e deve ser combinado com `primaryStrong` (texto escuro). A preferência
-clara/escura do app permanece disponível; home e gestor seguem a do sistema.
+Paleta Ocean Fit em `design/palette.json`; `npm run theme` gera cores mobile,
+`apps/web/theme.css` e cores nativas em `apps/mobile/app.json`. Versione gerados com
+fonte. Mobile usa `useAppTheme()`; web usa `--fit-*`/`--brand-*`. Não fixe cores de marca.
+Tema do app é preferência local; home/portal seguem sistema. Marca: `docs/brand.md`.
+Mudança nativa exige novo APK; JS compatível pode ser OTA. Operação:
+`deploy/README.md` e `docs/versioning.md`.

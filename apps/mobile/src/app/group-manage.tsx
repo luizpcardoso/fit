@@ -12,6 +12,7 @@ import type {
 } from "@fit/contracts";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useState, type ReactNode } from "react";
+import * as ImagePicker from 'expo-image-picker';
 import {
   ActivityIndicator,
   Modal,
@@ -29,6 +30,8 @@ import { confirmAction, showDialog, showToast } from "@/components/app-dialog";
 import { ScreenHeader } from "@/components/screen-header";
 import { formatRelativeDay, localDate } from "@/utils/dates";
 import { groupErrorMessage, groupRoleDescriptions, groupRoleLabels, reportReasonLabel } from "@/utils/groups";
+import { prepareGroupPhoto } from '@/utils/mobile-photo';
+import { GroupMediaImage } from '@/components/group-media-image';
 
 const assignableRoles: Exclude<GroupRole, "owner">[] = ["member", "moderator", "admin"];
 const reportDate = (value: string) => { const date = new Date(value); return Number.isNaN(date.getTime()) ? "" : formatRelativeDay(localDate(date)); };
@@ -85,6 +88,7 @@ export default function GroupManage() {
   const [roleSaving, setRoleSaving] = useState(false);
   const [roleError, setRoleError] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
+  const [mediaBusy,setMediaBusy]=useState<'avatar'|'cover'|null>(null);
   const load = useCallback(async () => {
     if (!id) return;
     setLoadError("");
@@ -280,6 +284,31 @@ export default function GroupManage() {
   };
   const admin = group?.role === "owner" || group?.role === "admin";
   const moderation = admin || group?.role === "moderator";
+  const chooseMedia=async(kind:'avatar'|'cover')=>{
+    if(!id||mediaBusy)return;
+    setMessage('');
+    try{
+      const permission=await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if(!permission.granted){setMessage('Permita o acesso à galeria nas configurações do aparelho para escolher uma imagem.');return;}
+      const result=await ImagePicker.launchImageLibraryAsync({mediaTypes:['images'],allowsEditing:true,aspect:kind==='avatar'?[1,1]:[8,3],quality:.9,base64:false});
+      if(result.canceled||!result.assets[0])return;
+      setMediaBusy(kind);
+      const prepared=await prepareGroupPhoto(result.assets[0],kind);
+      await api.setGroupMedia(id,kind,prepared.dataUrl);
+      await load();
+      showToast(kind==='avatar'?'Imagem do grupo atualizada.':'Foto de capa atualizada.');
+    }catch(failure){setMessage(groupErrorMessage(failure,{forbidden:'Somente proprietário e administração podem alterar as imagens.',invalid:'Selecione uma imagem JPEG, PNG ou WebP válida de até 10 MB.',server:'Não foi possível salvar a imagem. Tente novamente.'}));}
+    finally{setMediaBusy(null);}
+  };
+  const removeMedia=async(kind:'avatar'|'cover')=>{
+    if(!id||mediaBusy)return;
+    const confirmed=await confirmAction({title:kind==='avatar'?'Remover imagem do grupo?':'Remover foto de capa?',message:'A imagem deixará de aparecer para todos os membros.',confirmLabel:'Remover imagem',destructive:true});
+    if(!confirmed)return;
+    setMediaBusy(kind);setMessage('');
+    try{await api.setGroupMedia(id,kind,null);await load();showToast('Imagem removida.');}
+    catch(failure){setMessage(groupErrorMessage(failure,{forbidden:'Você não tem permissão para alterar esta imagem.'}));}
+    finally{setMediaBusy(null);}
+  };
   return (
     <SafeAreaView style={s.safe} edges={["top"]}>
       <ScrollView
@@ -321,6 +350,21 @@ export default function GroupManage() {
         {group ? (
           <>
             {section === "feed" && group.description ? <Text style={{ color: c.textMuted, lineHeight: 20 }}>{group.description}</Text> : null}
+            <Section title="Identidade do grupo" subtitle={admin?'Escolha uma imagem quadrada e uma capa horizontal':'Imagem e capa definidas pela administração'} colors={c}>
+              <View style={s.coverPreview}>
+                <GroupMediaImage url={group.coverUrl} kind="cover" style={s.coverImage} fallback={<View style={s.mediaFallback}><MaterialCommunityIcons name="image-outline" size={28} color={c.textMuted}/><Text style={s.helper}>Sem foto de capa</Text></View>}/>
+              </View>
+              <View style={s.identityRow}>
+                <GroupMediaImage url={group.avatarUrl} kind="avatar" style={s.groupAvatar} fallback={<Text style={s.groupAvatarText}>{group.name.slice(0,2).toUpperCase()}</Text>}/>
+                <View style={s.flex}><Text style={s.settingTitle}>{group.name}</Text><Text style={s.settingDescription}>A imagem aparece nos cards e no cabeçalho do feed.</Text></View>
+              </View>
+              {admin?<View style={s.mediaActions}>
+                <Pressable accessibilityRole="button" aria-busy={mediaBusy==='avatar'} disabled={mediaBusy!==null} onPress={()=>void chooseMedia('avatar')} style={s.secondary}>{mediaBusy==='avatar'?<ActivityIndicator color={c.link}/>:<Text style={s.secondaryText}>{group.avatarUrl?'Trocar imagem':'Adicionar imagem'}</Text>}</Pressable>
+                {group.avatarUrl?<Pressable accessibilityRole="button" disabled={mediaBusy!==null} onPress={()=>void removeMedia('avatar')} style={s.secondary}><Text style={s.dangerText}>Remover imagem</Text></Pressable>:null}
+                <Pressable accessibilityRole="button" aria-busy={mediaBusy==='cover'} disabled={mediaBusy!==null} onPress={()=>void chooseMedia('cover')} style={s.secondary}>{mediaBusy==='cover'?<ActivityIndicator color={c.link}/>:<Text style={s.secondaryText}>{group.coverUrl?'Trocar capa':'Adicionar capa'}</Text>}</Pressable>
+                {group.coverUrl?<Pressable accessibilityRole="button" disabled={mediaBusy!==null} onPress={()=>void removeMedia('cover')} style={s.secondary}><Text style={s.dangerText}>Remover capa</Text></Pressable>:null}
+              </View>:null}
+            </Section>
             <Section
               title="Suas preferências"
               subtitle="Você decide o que compartilhar neste grupo"
@@ -689,6 +733,13 @@ const styles = (c: AppPalette) =>
     retry: { minHeight: 44, justifyContent: "center", alignSelf: "flex-start" },
     retryText: { ...Type.body, color: c.link, fontWeight: "800" },
     helper: { ...Type.caption, color: c.textMuted },
+    coverPreview:{height:150,borderRadius:18,overflow:'hidden',backgroundColor:c.surfaceSoft},
+    coverImage:{width:'100%',height:'100%',backgroundColor:c.surfaceSoft},
+    mediaFallback:{flex:1,alignItems:'center',justifyContent:'center',gap:6,backgroundColor:c.surfaceSoft},
+    identityRow:{flexDirection:'row',alignItems:'center',gap:12},
+    groupAvatar:{width:64,height:64,borderRadius:22,backgroundColor:c.primarySoft,alignItems:'center',justifyContent:'center'},
+    groupAvatarText:{color:c.onPrimarySoft,fontWeight:'800',fontSize:18},
+    mediaActions:{flexDirection:'row',flexWrap:'wrap',gap:8},
     overlay: { flex: 1, backgroundColor: Scrim, justifyContent: "flex-end" },
     sheet: { width: "100%", maxWidth: 720, alignSelf: "center", backgroundColor: c.surface, borderTopLeftRadius: Radius.xxl, borderTopRightRadius: Radius.xxl, padding: 20, gap: 12 },
     sheetHeader: { flexDirection: "row", alignItems: "flex-start", gap: 12 },

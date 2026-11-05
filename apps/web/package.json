@@ -5,9 +5,11 @@
   "scripts": {
     "build": "tsc",
     "typecheck": "tsc --noEmit",
+    "test:e2e": "playwright test --config playwright.config.ts",
     "prebuild": "node ../../scripts/generate-theme.mjs"
   },
   "devDependencies": {
+    "esbuild": "0.28.2",
     "typescript": "^7.0.2"
   }
 }

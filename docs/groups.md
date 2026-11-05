@@ -2,13 +2,15 @@
 
 ## Fotos temporárias e publicação conjunta
 
-Na aba Grupos, “Publicar em grupos” permite selecionar destinos e enviar o mesmo texto/foto em uma operação. Todos os destinos devem permitir a publicação; as inserções são transacionais. Posts com imagem expiram após 48 horas da criação, incluindo texto e comentários. A API exclui o registro e o arquivo da imagem (quando nenhum outro post ainda o utiliza), com limpeza a cada minuto, na inicialização e ao consultar feed/mídia. Texto sem imagem não expira. Consulte `docs/mobile-performance.md` para armazenamento local, cache e migração das mídias antigas.
+Em Social → Meus grupos, “Publicar em grupos” permite selecionar destinos e enviar o mesmo texto/foto em uma operação. Todos os destinos devem permitir a publicação; as inserções são transacionais. Posts com imagem expiram após 48 horas da criação, incluindo texto e comentários. A API exclui o registro e o arquivo da imagem (quando nenhum outro post ainda o utiliza), com limpeza a cada minuto, na inicialização e ao consultar feed/mídia. Texto sem imagem não expira. Consulte `docs/mobile-performance.md` para armazenamento local, cache e migração das mídias antigas.
 
-O avatar em Perfil pode ser alterado ou removido, não expira e é convertido para WebP de até 512 × 512 px. Fotos do feed usam até 1920 px, preservam proporção e são regravadas sem metadados. O username é único no banco; conflitos concorrentes retornam mensagem de identificador já utilizado.
+O avatar em Perfil pode ser alterado ou removido, não expira e é convertido para WebP de até 512 × 512 px. Cada grupo também pode ter uma imagem quadrada e uma capa 8:3; proprietário e administração editam esses arquivos, mas somente membros autenticados conseguem baixá-los. Os arquivos são regravados como WebP sem metadados e o anterior é removido apó uma troca bem-sucedida.
+
+Fotos do feed usam até 1920 px e preservam a proporção apó a correção de orientação. O servidor grava largura e altura da versão WebP; o editor e o post usam a mesma moldura proporcional com ajuste `contain`, inclusive na publicação para vários grupos. Assim a imagem completa aparece antes e depois da publicação, sem recorte inesperado. O username é único no banco; conflitos concorrentes retornam mensagem de identificador já utilizado.
 
 ## Escopo entregue
 
-O módulo implementa grupos privados por convite, feed independente por grupo, publicações manuais com texto e uma foto, eventos de atividade, cinco reações, comentários, notificações internas e moderação. Discussões em formato de fórum permanecem fora deste escopo; por enquanto, a conversa acontece nos comentários das publicações.
+O módulo implementa grupos privados por convite, feed único privado com identificação do grupo em cada publicação, publicações manuais com texto e uma foto, eventos de atividade, cinco reações, comentários, notificações internas e moderação. Discussões em formato de fórum permanecem fora deste escopo; por enquanto, a conversa acontece nos comentários das publicações.
 
 ## Regra central de consentimento
 
@@ -105,13 +107,29 @@ A escrita abre um editor separado, com estado de envio e erro recuperável. Fech
 ## Confirmações, denúncias e papéis no aplicativo
 
 - Ações destrutivas ou sociais pedem confirmação com rótulo verbo + objeto (ex.: "Remover publicação", "Excluir comentário", "Remover membro", "Transferir propriedade", "Sair do grupo", "Arquivar denúncia", "Remover conteúdo", "Recusar convite") pelo diálogo próprio do app (`showDialog`/`confirmAction`), que também funciona na web. Falhas viram aviso específico por tipo (sem conexão, sem permissão, já resolvido/não encontrado, limite de requisições) e nunca expõem detalhes internos.
-- Ocultar um usuário pede confirmação, explica que a pessoa não é avisada e oferece "Desfazer" logo após a ação. Ainda não existe lista persistente de usuários ocultados para desfazer depois.
+- Ocultar um usuário pede confirmação, explica que a pessoa não é avisada e oferece "Desfazer" logo após a ação. A lista em Configurações do Social → Pessoas ocultadas permite desfazer posteriormente.
 - Denunciar publicação ou comentário abre a folha "Denunciar" com os motivos aceitos pelo contrato (`groupReportReasonSchema`): assédio ou intimidação, conteúdo ofensivo, spam ou propaganda, conteúdo sexual, exposição de privacidade, conteúdo perigoso e outro motivo. O detalhe é opcional e limitado a 500 caracteres. A fila de moderação mostra o motivo traduzido e a data.
 - Papéis aparecem como Proprietário, Administração, Moderação e Membro. A troca de função usa um seletor explícito com a descrição de cada papel e a função atual marcada; promover a Administração pede confirmação.
 - Convite por @usuário explica o mínimo de 3 caracteres e diferencia usuário não encontrado (404), já membro/convite pendente (409), falta de permissão (403) e falta de conexão.
-- Na aba Grupos, convites recebidos têm "Aceitar" e "Recusar" (com confirmação), ambos com indicador de envio e bloqueio de toque duplo; grupos inativos exibem o selo "Inativo"; erros ao criar grupo aparecem dentro do modal.
+- Em Social → Meus grupos, convites recebidos têm "Aceitar" e "Recusar" (com confirmação), ambos com indicador de envio e bloqueio de toque duplo; grupos inativos exibem o selo "Inativo"; erros ao criar grupo aparecem dentro do modal.
 - Datas de publicações, comentários, notificações e denúncias usam `utils/dates` ("Hoje", "Ontem" ou dia abreviado + hora).
 
 ## Pessoas ocultadas
 
 "Ocultar este usuário" grava em `user_blocks` e esconde publicações e comentários dessa pessoa nos feeds de quem ocultou; ela não é avisada. Em Configurações → Privacidade → Pessoas ocultadas (`app/blocked-users.tsx`), a pessoa revisa a lista e pode mostrar alguém novamente, com confirmação. `GET /users/blocked` é autenticado e devolve apenas as pessoas ocultadas pelo próprio usuário (identidade, nome público e avatar, nunca dados privados); `PUT /users/:userId/block` com `{ "blocked": false }` desfaz. A notificação de troca de função usa rótulos legíveis (Proprietário, Administração, Moderação, Membro), nunca o valor interno do papel.
+
+## Social — feed único
+
+A aba **Social**, ícone `account-group`/`account-group-outline`, abre diretamente o feed cronológico dos grupos ativos do usuário. A rota `/groups` é mantida para compatibilidade. Cada card destaca o nome do grupo em uma faixa clicável, que abre seu feed filtrado. O grupo de origem continua sendo o destino das fotos, reações, comentários, denúncias e moderação; agregar a leitura não torna o conteúdo público nem altera consentimentos.
+
+Cabeçalho com Notificações e Configurações do Social, navegação para Meus grupos e editor de publicação no início da lista. `social-groups.tsx` preserva criação, convites e gestão existentes; `social-settings.tsx` reúne pessoas ocultadas e acesso às preferências de cada grupo, sem um consentimento global. Publicar abre `group-post.tsx`, com escolha explícita de destinos; envio conjunto mantém uma publicação por grupo. Fotos continuam temporárias por 48 horas.
+
+`GET /social/feed?before=…` é autenticado, valida `socialFeedQuerySchema` e retorna `SocialFeedPage`: `items` com `SocialPost` (post existente + `group: {id,name,role,active}`) e `nextCursor`. Consulta única no servidor, 30 posts/página, ordenada por timestamp com microssegundos + ID como desempate; não busca todos os grupos no cliente. Reutiliza isolamento por associação ativa, entrada mais recente, bloqueios, exclusão e expiração de mídia. Sem migration nova.
+
+`social-feed-screen.tsx` compartilha a implementação dos feeds agregado/filtrado e suas interações. Reagir atualiza o card sem voltar ao topo ou descartar páginas. A leitura no Social marca somente grupos com posts visíveis por pelo menos 800 ms (60% do card); `POST /groups/:id/seen` aceita `postId` opcional e avança o marco de leitura até esse post autorizado, sem retroceder nem marcar publicações mais novas. Consumidores antigos sem corpo mantêm o comportamento existente.
+
+Validação: `npm run typecheck`, lint mobile, suíte padrão; `RUN_DB_TESTS=1 node --import tsx --test apps/api/test/social-feed.integration.test.ts` cria/remove banco temporário e verifica paginação com empates, entrada, terceiros, bloqueio e revogação. E2E `social-feed.spec.ts` exige `FIT_SOCIAL_ISOLATED=1` e API em banco efêmero (`FIT_E2E_API_URL`); verifica origem, reações, comentários, gestão, publicação e larguras 320/390. Não executar contra banco compartilhado. Desenvolvimento via Expo, sem APK/OTA ou implantação no servidor.
+
+## Estabilidade dos cards do feed
+
+O resumo de curtidas/comentários reserva a mesma altura mesmo antes da primeira interação. Contagens zeradas não exibem emojis de reação. Fotos usam o mesmo enquadramento nos estados de carregamento, erro e sucesso; o rodapé da lista também reserva espaço durante a paginação. A altura do conteúdo pode variar entre publicações, mas adicionar uma curtida/comentário não desloca as seguintes. O teste `social-feed.spec.ts` compara a altura antes/depois dessas interações. `layout-stability.spec.ts`, com API real e banco isolado, compara também erro, nova tentativa e carregamento da foto em 320 px nos dois temas.

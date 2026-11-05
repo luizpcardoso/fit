@@ -1,5 +1,5 @@
 import MaterialCommunityIcons from '@/components/icon';
-import type { GroupNotification } from "@fit/contracts";
+import type { GroupNotification, ProfessionalNotification } from "@fit/contracts";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 import {
@@ -14,6 +14,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "@/auth/auth-context";
 import { Radius, Type, type AppPalette } from "@/constants/theme";
 import { useAppTheme } from "@/theme/theme-provider";
+import { useShowMore, ShowMore } from '@/components/load-more';
 import { ScreenHeader } from "@/components/screen-header";
 import { formatRelativeDay, localDate } from "@/utils/dates";
 
@@ -23,10 +24,12 @@ const formatWhen = (value: string) => {
   return `${formatRelativeDay(localDate(date))}, ${date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`;
 };
 
+type Notification = GroupNotification | (ProfessionalNotification & { type: 'professional_invite' });
 const icons: Record<
-  GroupNotification["type"],
+  Notification["type"],
   keyof typeof MaterialCommunityIcons.glyphMap
 > = {
+  professional_invite: "account-tie-outline",
   invite: "account-plus-outline",
   comment: "comment-outline",
   role_changed: "shield-account-outline",
@@ -37,13 +40,15 @@ export default function GroupNotifications() {
   const { colors: c } = useAppTheme();
   const s = styles(c);
   const { api } = useAuth();
-  const [items, setItems] = useState<GroupNotification[]>([]);
+  const [items, setItems] = useState<Notification[]>([]);
+  const shown = useShowMore(items, 30);
   const [loading, setLoading] = useState(true);
   const [error,setError]=useState('');
   const load = useCallback(async () => {
     setError('');
     try {
-      setItems(await api.listGroupNotifications());
+      const [groups, professionals] = await Promise.all([api.listGroupNotifications(), api.listProfessionalNotifications()]);
+      setItems([...groups,...professionals.items.map(item => ({...item,type:'professional_invite' as const}))].sort((a,b) => Date.parse(b.createdAt)-Date.parse(a.createdAt)));
     } catch {
       setError('Não foi possível carregar as notificações. Confira sua conexão.');
     } finally {
@@ -55,15 +60,18 @@ export default function GroupNotifications() {
       void load();
     }, [load]),
   );
-  const open = async (item: GroupNotification) => {
-    if (!item.readAt) void api.readGroupNotification(item.id).catch(()=>setError('Não foi possível marcar a notificação como lida.'));
-    if (item.type === "invite" || item.type === 'removed') router.dismissTo("/groups");
-    else if (item.groupId)
-      router.replace({
-        pathname: "/group-detail",
-        params: { id: item.groupId },
-      });
-    else await load();
+  const open = async (item: Notification) => {
+    try {
+      if (item.type === 'professional_invite') {
+        if (!item.readAt) await api.readProfessionalNotification(item.id);
+        router.push('/my-professionals');
+        return;
+      }
+      if (!item.readAt) await api.readGroupNotification(item.id);
+      if (item.type === 'invite' || item.type === 'removed') router.dismissTo('/groups');
+      else if (item.groupId) router.replace({pathname:'/group-detail',params:{id:item.groupId}});
+      else await load();
+    } catch { setError('Não foi possível abrir a notificação. Tente novamente.'); }
   };
   return (
     <SafeAreaView style={s.safe} edges={["top"]}>
@@ -71,7 +79,7 @@ export default function GroupNotifications() {
         <ScreenHeader />
         <View>
           <Text accessibilityRole="header" style={s.title}>Notificações</Text>
-          <Text style={s.subtitle}>Convites, comentários e moderação</Text>
+          <Text style={s.subtitle}>Convites de profissionais, grupos e interações</Text>
         </View>
       </View>
       <ScrollView contentContainerStyle={s.content}>
@@ -90,7 +98,7 @@ export default function GroupNotifications() {
             </Text>
           </View>
         ) : (
-          items.map((item) => (
+          <>{shown.visible.map((item) => (
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={`${item.readAt ? 'Lida' : 'Nova'}: ${item.title}. ${item.message}`}
@@ -114,7 +122,7 @@ export default function GroupNotifications() {
               </View>
               {!item.readAt ? <View style={s.dot} /> : null}
             </Pressable>
-          ))
+          ))}<ShowMore shown={shown.visible.length} total={shown.total} onPress={shown.more} noun="notificações"/></>
         )}
       </ScrollView>
     </SafeAreaView>

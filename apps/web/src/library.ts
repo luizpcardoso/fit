@@ -1,4 +1,5 @@
 import { api } from "./main.js";
+import { students, allRelationships, avatar, badge, empty, normalize, statusLabels } from "./students.js";
 import {
   button,
   checks,
@@ -194,6 +195,15 @@ function summary(parent: Element, item: any) {
     if (item.data.notes) node("p", item.data.notes, parent);
   }
 }
+const personalTitles: Record<string, string> = { workout: "Minhas fichas", diet: "Minhas dietas", goal: "Minhas metas", guidance: "Minhas orientações" };
+async function listContent(kind: string, privateOnly = false) {
+  const rows: any[] = [];
+  for (let offset = 0; ; offset += 200) {
+    const batch = await api(`/portal/content?${new URLSearchParams({ kind, offset: String(offset), ...(privateOnly ? { scope: "private" } : {}) })}`);
+    rows.push(...batch);
+    if (batch.length < 200) return rows;
+  }
+}
 export async function library(
   kind: string,
   access: { role: string; capabilities: string[] },
@@ -201,17 +211,32 @@ export async function library(
   content(
     '<section class="library-page"><div class="card library-hero"><div><p class="section-kicker">Biblioteca</p><h2 id="library-title"></h2><p class="muted" id="library-description"></p></div><button id="create-content" type="button"><span aria-hidden="true">+</span> Novo cadastro</button></div><div class="summary-grid library-metrics"><article class="metric-card"><span class="metric-icon fitness">▦</span><div><small>Total</small><strong id="metric-total">—</strong></div></article><article class="metric-card"><span class="metric-icon nutrition">◉</span><div><small>Ativos</small><strong id="metric-active">—</strong></div></article><article class="metric-card"><span class="metric-icon health">∿</span><div><small>Catálogo global</small><strong id="metric-global">—</strong></div></article></div><section class="card"><div class="filter-bar"><label class="search-field"><span aria-hidden="true">⌕</span><input id="library-search" type="search" placeholder="Buscar por nome ou detalhe…" aria-label="Buscar na biblioteca"></label><label class="filter-field"><span>Visibilidade</span><select id="library-scope"><option value="all">Todas</option><option value="global">Catálogo global</option><option value="private">Minha biblioteca</option></select></label><label class="filter-field"><span>Status</span><select id="library-status"><option value="active">Ativos</option><option value="all">Todos</option><option value="archived">Arquivados</option></select></label><label class="filter-field" id="category-filter-wrap" hidden><span>Categoria</span><select id="library-category"></select></label></div><div class="result-heading"><p id="library-result-count" class="muted">Carregando…</p><p class="library-hint">Conteúdos globais são compartilhados; versões anteriores são preservadas.</p></div><div id="library-items" class="content-grid" aria-live="polite"></div><div id="library-pagination" class="pagination" aria-label="Paginação"></div></section></section>',
   );
-  document.querySelector("#library-title")!.textContent = titles[kind];
+  const title = access.role === "admin" ? titles[kind] : personalTitles[kind] || titles[kind];
+  document.querySelector("#library-title")!.textContent = title;
   document.querySelector("#library-description")!.textContent =
     descriptions[kind] || "Gerencie o conteúdo da sua biblioteca.";
-  document.querySelector("header h1")!.textContent = titles[kind];
+  document.querySelector("header h1")!.textContent = title;
+  document.querySelector("header .muted")!.textContent = descriptions[kind];
+  const createLabels: Record<string, string> = { workout: "+ Criar ficha", diet: "+ Criar dieta", goal: "+ Criar meta", guidance: "+ Criar orientação" };
+  document.querySelector("#create-content")!.textContent = createLabels[kind] || "+ Novo cadastro";
   document.querySelector<HTMLButtonElement>("#create-content")!.onclick =
     () => {
-      void editor(kind, access).catch((e) => notice(e.message));
+      void editor(kind, access).catch((e) => notice(e.message, "error"));
     };
-  const rows: any[] = await api(
-    `/portal/content?kind=${encodeURIComponent(kind)}`,
-  );
+  if (access.role !== "admin") {
+    document.querySelector("#library-scope")!.closest("label")!.setAttribute("hidden", "");
+    document.querySelector("#metric-global")!.closest("article")!.setAttribute("hidden", "");
+    document.querySelector(".library-hint")!.textContent = "Crie um modelo e atribua a um aluno quando estiver pronto.";
+    document.querySelector(".library-metrics")!.classList.add("two-columns");
+  }
+  let rows: any[];
+  try { rows = await listContent(kind, access.role !== "admin"); }
+  catch (error) {
+    document.querySelector("#library-result-count")!.textContent = "Falha ao carregar a biblioteca.";
+    button("Tentar novamente", document.querySelector("#library-items")!, () => library(kind, access));
+    notice((error as Error).message, "error"); return;
+  }
+  if (!document.querySelector("#library-items")) return;
   document.querySelector("#metric-total")!.textContent = String(rows.length);
   document.querySelector("#metric-active")!.textContent = String(
     rows.filter((row) => !row.archived).length,
@@ -219,6 +244,7 @@ export async function library(
   document.querySelector("#metric-global")!.textContent = String(
     rows.filter((row) => row.scope === "global").length,
   );
+  if (!document.querySelector("#library-search")) return;
   const search = document.querySelector<HTMLInputElement>("#library-search")!;
   const scope = document.querySelector<HTMLSelectElement>("#library-scope")!;
   const status = document.querySelector<HTMLSelectElement>("#library-status")!;
@@ -281,6 +307,9 @@ export async function library(
       const item = document.createElement("article");
       item.className = "content-card";
       target.append(item);
+      if (row.kind === 'workout') {
+        const image = document.createElement('img'); image.className = 'plan-cover-thumb'; image.src = `/assets/plan-covers/${encodeURIComponent(row.data?.coverId || 'wellness')}.webp`; image.alt = ''; image.loading = 'lazy'; item.append(image);
+      }
       if (row.kind === "exercise" && row.data?.imageUrl) {
         const image = document.createElement("img");
         image.className = "content-card-image";
@@ -331,6 +360,8 @@ export async function library(
       const actions = document.createElement("div");
       actions.className = "card-actions";
       item.append(actions);
+      if (!row.archived && ["workout", "diet", "goal", "guidance"].includes(kind) && access.role !== "admin")
+        button("Atribuir a aluno", actions, () => chooseStudent(row, access)).classList.add("primary-action");
       if (row.scope === "private" || access.role === "admin") {
         button("Editar", actions, () => editor(kind, access, row)).classList.add(
           "primary-action",
@@ -405,12 +436,13 @@ async function editor(
   access: { role: string; capabilities: string[] },
   existing?: any,
   onSave?: (result: any) => Promise<void>,
+  onCancel?: () => Promise<void>,
 ) {
   const referenceItems =
     kind === "workout"
-      ? await api("/portal/content?kind=exercise")
+      ? await listContent("exercise")
       : kind === "diet"
-        ? await api("/portal/content?kind=food")
+        ? await listContent("food")
         : [];
   const data = existing?.data || {};
   content(
@@ -475,6 +507,7 @@ async function editor(
         "text",
         false,
       );
+      if (access.role === "admin") {
       const imageEditor = document.createElement("section");
       imageEditor.className = "exercise-image-editor";
       fields.append(imageEditor);
@@ -542,6 +575,7 @@ async function editor(
         reader.onerror = () => notice("Não foi possível ler a imagem escolhida.");
         reader.readAsDataURL(selected);
       };
+      }
     }
     text(fields, "Observações", "notes", data.notes || "");
     extract = () =>
@@ -612,6 +646,26 @@ async function editor(
     });
   }
   if (kind === "workout") {
+    let coverId = data.coverId || 'wellness';
+    const coverSection = document.createElement('fieldset');
+    coverSection.className = 'plan-cover-editor';
+    fields.append(coverSection);
+    node('legend', 'Capa ilustrativa da ficha', coverSection);
+    if (access.role === 'admin') {
+      node('p', 'Escolha uma imagem para identificar o objetivo da ficha. A capa não altera os exercícios.', coverSection).className = 'muted';
+      const catalog = await api('/workout-plan-covers');
+      const grid = document.createElement('div'); grid.className = 'plan-cover-grid'; grid.setAttribute('role','radiogroup'); grid.setAttribute('aria-label','Capa da ficha'); coverSection.append(grid);
+      for (const item of catalog) {
+        const option = document.createElement('button'); option.type = 'button'; option.className = 'plan-cover-choice'; option.setAttribute('role','radio'); option.setAttribute('aria-label',item.name); option.setAttribute('aria-checked',String(item.id === coverId));
+        const image = document.createElement('img'); image.src = item.url; image.alt = ''; image.loading = 'lazy'; image.width = 640; image.height = 360; option.append(image);
+        node('strong',item.name,option); node('span',item.description,option);
+        option.onclick = () => { coverId = item.id; for (const other of grid.children) other.setAttribute('aria-checked',String(other === option)); };
+        grid.append(option);
+      }
+    } else {
+      const preview = document.createElement('img'); preview.className = 'plan-cover-preview'; preview.src = `/assets/plan-covers/${encodeURIComponent(coverId)}.webp`; preview.alt = 'Capa ilustrativa da ficha'; coverSection.append(preview);
+      node('p','A capa é definida pelo admin. Você pode editar o conteúdo da ficha.',coverSection).className = 'muted';
+    }
     const validity = input(
       fields,
       "Validade em dias (vazio = sem prazo)",
@@ -692,6 +746,7 @@ async function editor(
     button("Adicionar divisão", fields, () => addDivision());
     for (const division of data.divisions || [{}]) addDivision(division);
     extract = () => ({
+      ...(access.role === 'admin' ? {coverId} : {}),
       validityDays: validity.value ? Number(validity.value) : null,
       divisions: [...divisions.children].map((section) => ({
         name: read(section, "divisionName"),
@@ -854,7 +909,7 @@ async function editor(
     });
   }
   document.querySelector<HTMLButtonElement>("#cancel-editor")!.onclick = () => {
-    void library(kind, access);
+    void (onCancel ? onCancel() : library(kind, access));
   };
   let persisted = existing;
   submit("#content-editor", async (form) => {
@@ -884,15 +939,10 @@ async function editor(
     notice("Conteúdo salvo. Planos anteriores foram preservados.");
   });
 }
-export async function student(relationship: any) {
-  content(
-    '<section class="card"><h2 id="student-name"></h2><p class="muted">O acesso considera as permissões atuais do perfil e o consentimento deste aluno.</p><div id="student-actions" class="toolbar"></div><div id="student-panel"></div></section>',
-  );
-  document.querySelector("#student-name")!.textContent =
-    relationship.studentName;
-  const actions = document.querySelector("#student-actions")!,
-    panel = document.querySelector("#student-panel")!;
-  button("Atribuir plano", actions, async () => {
+async function assignPlan(relationship: any, onBack: () => Promise<void>, initialKind?: string, initialModel?: string) {
+  content('<section class="card narrow-card"><p class="section-kicker">Prescrição</p><h2>Atribuir plano</h2><p id="assign-student" class="muted"></p><div id="assignment-form"></div></section>');
+  document.querySelector("#assign-student")!.textContent = `Para ${relationship.studentName}`;
+  const panel = document.querySelector("#assignment-form")!;
     panel.replaceChildren();
     const form = document.createElement("form");
     form.id = "assign";
@@ -913,12 +963,24 @@ export async function student(relationship: any) {
       "kind",
       allowedKinds.map(([key, label]) => [key, label]),
     );
+    if (initialKind && allowedKinds.some(([key]) => key === initialKind)) kind.value = initialKind;
     const model = select(form, "Modelo", "model", []);
     const mode = select(form, "Operação", "mode", []);
     const replace = select(form, "Substituir plano anterior", "replace", [
       ["", "Novo plano"],
     ]);
+    let refreshVersion = 0;
     const refresh = async () => {
+      const version = ++refreshVersion;
+      save.disabled = true;
+      const currentKind = kind.value;
+      model.replaceChildren(); mode.replaceChildren();
+      hint.textContent = "Carregando modelos…";
+      const [models, assignments] = await Promise.all([
+        listContent(currentKind, true),
+        api(`/portal/relationships/${relationship.id}/assignments`),
+      ]);
+      if (version !== refreshVersion) return;
       const area =
         kind.value === "diet"
           ? "nutrition"
@@ -937,9 +999,7 @@ export async function student(relationship: any) {
           mode.append(opt);
         }
       model.replaceChildren();
-      for (const row of (
-        await api(`/portal/content?kind=${kind.value}`)
-      ).filter((r: any) => !r.archived)) {
+      for (const row of models.filter((r: any) => !r.archived)) {
         const opt = document.createElement("option");
         opt.value = row.id;
         opt.textContent = `${row.name} • v${row.revision}`;
@@ -950,26 +1010,46 @@ export async function student(relationship: any) {
       opt.value = "";
       opt.textContent = "Novo plano";
       replace.append(opt);
-      for (const row of await api(
-        `/portal/relationships/${relationship.id}/assignments`,
-      ))
+      if (initialModel && [...model.options].some(option => option.value === initialModel)) model.value = initialModel;
+      for (const row of assignments)
         if (row.kind === kind.value && row.status === "active") {
           const option = document.createElement("option");
           option.value = row.id;
           option.textContent = row.snapshot.name;
           replace.append(option);
         }
+      save.disabled = !model.options.length;
+      createModel.hidden = Boolean(model.options.length);
+      retry.hidden = true;
+      model.required = true;
+      const previewModel = () => {
+        preview.replaceChildren();
+        const chosen = models.find((row: any) => row.id === model.value);
+        if (chosen) summary(preview, chosen);
+      };
+      model.onchange = previewModel;
+      previewModel();
+      hint.textContent = model.options.length ? "A atribuição usa uma cópia deste modelo. Alterações futuras na biblioteca não modificam o plano do aluno." : "Você ainda não tem modelos ativos deste tipo. Crie um modelo na sua biblioteca para continuar.";
     };
     kind.onchange = () => {
-      void refresh().catch((e) => notice(e.message));
+      void refresh().catch((e) => { hint.textContent = "Não foi possível carregar os modelos. Tente novamente."; retry.hidden = false; notice(e.message, "error"); });
     };
     const save = document.createElement("button");
     save.type = "submit";
     save.textContent = "Enviar plano";
     form.append(save);
-    await refresh();
+    const hint = node("p", "Carregando modelos…", form); hint.className = "muted";
+    const previewDetails = node("details", "", form);
+    node("summary", "Conferir conteúdo antes de atribuir", previewDetails);
+    const preview = node("div", "", previewDetails); preview.className = "detail-body";
+    button("Voltar ao painel", form, () => student(relationship, onBack));
+    const createModel = button("Criar modelo", form, () => editor(kind.value, { role: "professional", capabilities: relationship.capabilities }, undefined, async result => { await assignPlan(relationship, onBack, kind.value, result.id); }, () => assignPlan(relationship, onBack, kind.value)));
+    createModel.hidden = true;
+    const retry = button("Recarregar modelos", form, async () => { await refresh(); });
+    retry.hidden = true;
     const requestId = crypto.randomUUID();
     submit("#assign", async () => {
+      if (!model.value || !mode.value) throw new Error("Escolha um modelo ativo para continuar.");
       await api("/portal/assignments", "POST", {
         contentId: model.value,
         relationshipId: relationship.id,
@@ -977,15 +1057,92 @@ export async function student(relationship: any) {
         ...(replace.value ? { replaceId: replace.value } : {}),
         requestId,
       });
-      notice("Plano enviado.");
-      panel.replaceChildren();
+      await student(relationship, onBack);
+      notice("Plano enviado. Acompanhe o status no painel do aluno.");
     });
-  });
+    try { await refresh(); } catch (error) {
+      hint.textContent = "Não foi possível carregar os modelos. Recarregue para tentar novamente.";
+      retry.hidden = false; retry.focus(); notice((error as Error).message, "error");
+    }
+
+}
+async function chooseStudent(model: any, access: { role: string; capabilities: string[] }) {
+  content('<section class="card"><div class="page-heading"><div><p class="section-kicker">Da biblioteca para o aluno</p><h2>Atribuir a aluno</h2><p id="chosen-model" class="muted"></p></div><button id="back-library" class="quiet" type="button">← Voltar à biblioteca</button></div><label>Buscar aluno<input id="choose-search" type="search" placeholder="Nome do aluno"></label><div id="choose-list">Carregando alunos…</div></section>');
+  document.querySelector("#chosen-model")!.textContent = model.name;
+  document.querySelector<HTMLButtonElement>("#back-library")!.onclick = () => { void library(model.kind, access); };
+  const area = model.kind === "diet" ? "nutrition" : model.kind === "guidance" ? "mental" : "fitness";
+  const rows = (await allRelationships()).filter(row => row.status === "active" && ["manage", "suggest"].some(action => row.capabilities.includes(`${area}.${action}`)));
+  const search = document.querySelector<HTMLInputElement>("#choose-search")!;
+  const render = () => {
+    const list = document.querySelector("#choose-list")!; list.replaceChildren();
+    const filtered = rows.filter(row => normalize(row.studentName || "").includes(normalize(search.value.trim())));
+    if (!filtered.length) empty(list, "Nenhum aluno disponível", "A atribuição exige vínculo ativo e permissão de gerenciar ou sugerir nesta área.");
+    for (const row of filtered) {
+      const item = node("article", "", list); item.className = "directory-row";
+      avatar(item, row.studentName); node("h3", row.studentName, item).className = "row-main";
+      button("Selecionar →", item, () => assignPlan(row, () => students(access.capabilities), model.kind, model.id));
+    }
+  }; search.oninput = render; render();
+}
+export async function student(relationship: any, onBack: () => Promise<void> = () => students(relationship.capabilities)) {
+  content('<section class="student-dashboard"><button id="back-directory" type="button" class="quiet">← Meus alunos</button><div class="card student-hero"><div id="student-identity" class="student-identity"><div><p class="section-kicker">Painel do aluno</p><h2 id="student-name"></h2><p class="muted">Acompanhamento individual</p></div></div><div id="student-quick-actions" class="toolbar"></div></div><div id="student-actions" class="student-tabs" aria-label="Seções do aluno"></div><section id="student-panel" class="card" aria-live="polite"></section></section>');
+  document.querySelector<HTMLButtonElement>("#back-directory")!.onclick = () => { void onBack(); };
+  document.querySelector("#student-name")!.textContent = relationship.studentName;
+  document.querySelector("header h1")!.textContent = relationship.studentName;
+  document.querySelector("header .muted")!.textContent = "Planos e evolução, com o acesso autorizado por este aluno.";
+  const identity = document.querySelector("#student-identity")!;
+  avatar(identity, relationship.studentName || "Aluno"); badge(identity, "active");
+  const actions = document.querySelector("#student-actions")!, panel = document.querySelector("#student-panel")!;
+  const canAssign = (area: string) => ["manage", "suggest"].some(action => relationship.capabilities.includes(`${area}.${action}`));
+  const quick = document.querySelector("#student-quick-actions")!;
+  for (const [kind, label, area] of [["workout", "Atribuir ficha", "fitness"], ["diet", "Atribuir dieta", "nutrition"]])
+    if (canAssign(area)) button(label, quick, () => assignPlan(relationship, onBack, kind));
+  let panelVersion = 0;
+  const overview = async () => {
+    const version = ++panelVersion;
+    panel.textContent = "Carregando planos do aluno…";
+    try {
+      const rows = await api(`/portal/relationships/${relationship.id}/assignments`);
+      if (version !== panelVersion || !panel.isConnected) return;
+      panel.replaceChildren();
+      node("h3", "Visão geral do acompanhamento", panel);
+      node("p", "Planos atribuídos por você neste vínculo. Os registros de evolução ficam nas seções de acompanhamento.", panel).className = "muted";
+      const grid = node("div", "", panel); grid.className = "dashboard-grid";
+      for (const [kind, title, area] of [["workout", "Fichas de treino", "fitness"], ["diet", "Alimentação", "nutrition"], ["goal", "Metas", "fitness"], ["guidance", "Bem-estar", "mental"]]) {
+        if (!relationship.capabilities.some((cap: string) => cap.startsWith(area + "."))) continue;
+        const card = node("article", "", grid); card.className = "plan-overview";
+        node("h3", title, card);
+        const assigned = rows.filter((row: any) => row.kind === kind && ["active", "pending"].includes(row.status));
+        if (!assigned.length) node("p", "Nenhum plano ativo ou pendente neste vínculo.", card).className = "muted";
+        for (const row of assigned) {
+          const line = node("div", "", card); line.className = "plan-line";
+          node("strong", row.snapshot.name, line); badge(line, row.status);
+        }
+        if (canAssign(area)) {
+          const toolbar = node("div", "", card); toolbar.className = "toolbar";
+          button("Usar modelo", toolbar, () => assignPlan(relationship, onBack, kind));
+          button("Criar novo", toolbar, () => editor(kind, { role: "professional", capabilities: relationship.capabilities }, undefined, async result => { await assignPlan(relationship, onBack, kind, result.id); }, () => student(relationship, onBack)));
+        }
+      }
+      const permissions = node("details", "", panel); permissions.className = "permission-details";
+      node("summary", "Permissões deste acompanhamento", permissions);
+      node("p", "O acesso depende do seu perfil e do consentimento atual do aluno.", permissions).className = "muted";
+      for (const cap of relationship.capabilities) node("span", names[cap] || cap, permissions).className = "chip neutral";
+    } catch (error) { if (version !== panelVersion || !panel.isConnected) return; panel.replaceChildren(); empty(panel, "Não foi possível carregar o painel", "Tente novamente para consultar os planos."); button("Tentar novamente", panel, overview); notice((error as Error).message, "error"); }
+  };
+  const overviewButton = button("Visão geral", actions, overview); overviewButton.classList.add("active");
   button("Planos e histórico", actions, async () => {
+    const version = ++panelVersion;
+    panel.textContent = "Carregando histórico…";
+    let rows: any[];
+    try { rows = await api(`/portal/relationships/${relationship.id}/assignments`); }
+    catch (error) {
+      if (version !== panelVersion || !panel.isConnected) return;
+      panel.textContent = "Não foi possível carregar o histórico. Abra esta seção novamente para tentar.";
+      throw error;
+    }
+    if (version !== panelVersion || !panel.isConnected) return;
     panel.replaceChildren();
-    const rows = await api(
-      `/portal/relationships/${relationship.id}/assignments`,
-    );
     if (!rows.length)
       node("p", "Nenhum plano disponível para este vínculo.", panel);
     for (const row of rows) {
@@ -995,10 +1152,12 @@ export async function student(relationship: any) {
       node("h3", row.snapshot.name, section);
       node(
         "p",
-        `${row.status} • versão de origem ${row.sourceRevision} • ${new Date(row.createdAt).toLocaleDateString("pt-BR")}`,
+        `${statusLabels[row.status] || row.status} • versão de origem ${row.sourceRevision} • ${new Date(row.createdAt).toLocaleDateString("pt-BR")}`,
         section,
       );
-      summary(section, row.snapshot);
+      const details = node("details", "", section);
+      node("summary", "Ver conteúdo do plano", details);
+      summary(details, row.snapshot);
       const area =
         row.kind === "diet"
           ? "nutrition"
@@ -1026,11 +1185,12 @@ export async function student(relationship: any) {
                 replaceId: row.id,
                 requestId: crypto.randomUUID(),
               });
-              await student(relationship);
+              await student(relationship, onBack);
               notice(
                 "Ajuste enviado. O plano anterior foi preservado no histórico.",
               );
             },
+            () => student(relationship, onBack),
           ),
         );
     }
@@ -1048,13 +1208,16 @@ export async function student(relationship: any) {
         )[area],
         actions,
         async () => {
+          panelVersion++;
           panel.replaceChildren();
           const form = document.createElement("form");
           form.id = "progress";
           panel.append(form);
           const today = new Date().toLocaleDateString("en-CA");
-          input(form, "De", "from", today, "date");
-          input(form, "Até", "to", today, "date");
+          const fromDate = new Date(); fromDate.setDate(fromDate.getDate() - 29);
+          const from = input(form, "De", "from", area === "nutrition" ? today : fromDate.toLocaleDateString("en-CA"), "date");
+          if (area === "nutrition") { from.parentElement!.hidden = true; node("p", "O diário mostra os registros de uma data. Selecione o dia que deseja acompanhar.", panel).className = "muted"; }
+          const to = input(form, area === "nutrition" ? "Data dos registros" : "Até", "to", today, "date");
           const save = document.createElement("button");
           save.type = "submit";
           save.textContent = "Consultar progresso";
@@ -1062,9 +1225,12 @@ export async function student(relationship: any) {
           const output = document.createElement("div");
           panel.append(output);
           submit("#progress", async () => {
-            const result = await api(
+            if (area === "nutrition") from.value = to.value;
+            output.textContent = "Carregando acompanhamento…";
+            let result: any;
+            try { result = await api(
               `/portal/relationships/${relationship.id}/progress?${new URLSearchParams({ area, from: read(form, "from"), to: read(form, "to") })}`,
-            );
+            ); } catch (error) { output.textContent = "Não foi possível carregar os registros. Consulte novamente para tentar."; throw error; }
             output.replaceChildren();
             if (area === "fitness") {
               node(
@@ -1117,11 +1283,12 @@ export async function student(relationship: any) {
                           replaceWorkoutPlanId: plan.id,
                           requestId: crypto.randomUUID(),
                         });
-                        await student(relationship);
+                        await student(relationship, onBack);
                         notice(
                           "Ficha ajustada. A versão anterior foi arquivada e o histórico preservado.",
                         );
                       },
+                      () => student(relationship, onBack),
                     ),
                   );
                 for (const division of plan.divisions)
@@ -1153,6 +1320,7 @@ export async function student(relationship: any) {
                 `Registros de ${result.date}. Ausência de registro não indica descumprimento da dieta.`,
                 output,
               );
+              if (!result.meals.length) node("p", "Nenhuma refeição registrada nesta data.", output);
               for (const row of result.meals)
                 node(
                   "p",
@@ -1161,112 +1329,16 @@ export async function student(relationship: any) {
                 );
             }
           });
+          form.requestSubmit();
         },
       );
-}
-export async function groups() {
-  content(
-    '<div class="grid"><section class="card"><h2>Novo grupo</h2><form id="group-form"><label>Nome<input name="name" minlength="2" maxlength="80" required></label><label>Descrição<textarea name="description" maxlength="500"></textarea></label><button type="submit">Criar grupo</button></form></section><section class="card"><h2>Grupos</h2><p class="muted">A gestão administrativa não concede acesso ao feed privado dos membros.</p><div id="groups">Carregando…</div></section></div>',
-  );
-  submit("#group-form", async (form) => {
-    await api("/portal/groups", "POST", {
-      name: value(form, "name"),
-      description: value(form, "description"),
-    });
-    await groups();
-    notice("Grupo criado.");
+  actions.addEventListener("click", event => {
+    const target = (event.target as Element).closest("button");
+    if (!target) return;
+    actions.querySelectorAll("button").forEach(item => { item.classList.toggle("active", item === target); item.setAttribute("aria-pressed", String(item === target)); });
   });
-  const rows = await api("/portal/groups");
-  const target = document.querySelector("#groups")!;
-  target.replaceChildren();
-  if (!rows.length) target.textContent = "Nenhum grupo.";
-  for (const row of rows) {
-    const section = document.createElement("article");
-    section.className = "item";
-    target.append(section);
-    button("Membros e convites", section, () => groupMembers(row));
-    const name = input(section, "Nome", "name", row.name);
-    const description = text(
-      section,
-      "Descrição",
-      "description",
-      row.description || "",
-    );
-    const active = Boolean(row.active ?? true);
-    node(
-      "p",
-      `${active ? "Ativo" : "Desativado"} • ${row.members ?? row.memberCount ?? "—"} membros`,
-      section,
-    );
-    button("Salvar", section, async () => {
-      await api(`/portal/groups/${row.id}`, "PATCH", {
-        name: name.value,
-        description: description.value,
-        active,
-      });
-      notice("Grupo atualizado.");
-    });
-    button(active ? "Desativar" : "Reativar", section, async () => {
-      if (!confirm("Confirmar alteração do grupo?")) return;
-      await api(`/portal/groups/${row.id}`, "PATCH", {
-        name: name.value,
-        description: description.value,
-        active: !active,
-      });
-      await groups();
-    });
-  }
+  overviewButton.setAttribute("aria-pressed", "true");
+  await overview();
+
 }
-async function groupMembers(group: any) {
-  content(
-    '<section class="card"><h2 id="group-members-title"></h2><form id="group-invite"><label>Nome de usuário (sem @)<input name="username" minlength="3" maxlength="30" required></label><button type="submit">Convidar para o grupo</button></form><div id="group-members">Carregando…</div></section>',
-  );
-  document.querySelector("#group-members-title")!.textContent =
-    `Membros • ${group.name}`;
-  submit("#group-invite", async (form) => {
-    await api(`/portal/groups/${group.id}/invites`, "POST", {
-      username: value(form, "username").replace(/^@/, ""),
-    });
-    form.reset();
-    notice("Convite enviado. O usuário precisa aceitar no aplicativo.");
-  });
-  const rows = await api(`/portal/groups/${group.id}/members`),
-    target = document.querySelector("#group-members")!;
-  target.replaceChildren();
-  for (const row of rows) {
-    const section = document.createElement("article");
-    section.className = "item";
-    target.append(section);
-    node("h3", row.displayName, section);
-    node("p", `@${row.username || "—"} • ${row.role}`, section);
-    if (row.role !== "owner") {
-      const role = select(
-        section,
-        "Papel no grupo",
-        "role",
-        [
-          ["member", "Membro"],
-          ["moderator", "Moderador"],
-          ["admin", "Administrador do grupo"],
-        ],
-        row.role,
-      );
-      button("Salvar papel", section, async () => {
-        await api(`/portal/groups/${group.id}/members`, "PATCH", {
-          userId: row.id,
-          action: "role",
-          role: role.value,
-        });
-        notice("Papel atualizado.");
-      });
-      button("Remover membro", section, async () => {
-        if (!confirm("Remover este membro do grupo?")) return;
-        await api(`/portal/groups/${group.id}/members`, "PATCH", {
-          userId: row.id,
-          action: "remove",
-        });
-        await groupMembers(group);
-      });
-    }
-  }
-}
+export { groups } from "./groups.js";

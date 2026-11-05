@@ -60,7 +60,9 @@ function DailySummarySession({ children }: PropsWithChildren) {
     const setEnabled = async (value: boolean) => {
       if (!key || !active) return;
       update({ busy: true, error: '' });
+      const previousEnabled = enabled;
       try {
+        if (!value) { enabled = false; ++version; await clearDailySummaryNotification(); }
         if (value) await requestDailySummaryPermission();
         if (!active) return;
         await SecureStore.setItemAsync(key, value ? 'true' : 'false');
@@ -69,14 +71,15 @@ function DailySummarySession({ children }: PropsWithChildren) {
         ++version;
         update({ enabled: value, ...(!value ? { summary: null } : {}) });
         if (value) await refresh();
-        else await clearDailySummaryNotification();
       } catch (error) {
+        enabled = previousEnabled;
         update({ error: error instanceof Error ? error.message : 'Não foi possível alterar o resumo.' });
       } finally { update({ busy: false }); }
     };
     actions.current = { setEnabled, refresh };
     const unsubscribe = api.subscribeToChanges(scheduleRefresh);
     const subscription = AppState.addEventListener('change', value => { if (value === 'active') scheduleRefresh(); });
+    const overdueCheck = setInterval(() => { if (enabled && AppState.currentState === 'active') scheduleRefresh(); }, 60_000);
     const midnightCheck = setInterval(() => { if (enabled && lastDate !== localDay()) scheduleRefresh(); }, 30_000);
     void (async () => {
       try {
@@ -89,7 +92,7 @@ function DailySummarySession({ children }: PropsWithChildren) {
       } catch { update({ ready: true, error: 'Não foi possível carregar a preferência do resumo.' }); }
     })();
     return () => {
-      active = false; ++version; clearTimeout(timer); clearInterval(midnightCheck);
+      active = false; ++version; clearTimeout(timer); clearInterval(midnightCheck); clearInterval(overdueCheck);
       unsubscribe(); subscription.remove();
       void clearDailySummaryNotification().catch(() => {});
     };

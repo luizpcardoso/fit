@@ -1,3 +1,6 @@
+import { registerObservability } from './observability-routes.js';
+import type { ObservabilityStore, RetentionPolicy } from './observability-model.js';
+import {registerReminderAgendaRoutes} from './reminder-agenda-routes.js';
 import { createHash, randomBytes } from 'node:crypto';
 import Fastify, { type FastifyReply, type FastifyRequest } from 'fastify';
 import cors from '@fastify/cors';
@@ -42,7 +45,7 @@ const bodySchemas = {
   refresh: { type: 'object', required: ['refreshToken'], additionalProperties: false, properties: { refreshToken: { type: 'string', minLength: 32, maxLength: 512 } } },
 } as const;
 
-export async function buildApp(options: { portalStore?: PortalStore; repository?: AuthRepository; workoutRepository?: WorkoutRepository; supplementRepository?: SupplementRepository; medicationRepository?: SupplementRepository; nutritionRepository?: NutritionRepository; cardioRepository?: CardioRepository; shortcutRepository?: ShortcutRepository; mentalWellbeingRepository?: MentalWellbeingStore; injectableRepository?: InjectableStore; groupRepository?:GroupRepository; feedbackRepository?: import("./feedback.js").FeedbackStore; jwtSecret: string }) {
+export async function buildApp(options: { observabilityStore?: ObservabilityStore; observabilityEnabled?: boolean; observabilityRetention?: RetentionPolicy; portalStore?: PortalStore; repository?: AuthRepository; workoutRepository?: WorkoutRepository; supplementRepository?: SupplementRepository; medicationRepository?: SupplementRepository; nutritionRepository?: NutritionRepository; cardioRepository?: CardioRepository; shortcutRepository?: ShortcutRepository; mentalWellbeingRepository?: MentalWellbeingStore; injectableRepository?: InjectableStore; groupRepository?:GroupRepository; feedbackRepository?: import("./feedback.js").FeedbackStore; jwtSecret: string }) {
   const app = Fastify({ logger: false, bodyLimit: 1_048_576, trustProxy: process.env.TRUST_PROXY === '1' ? ['loopback', '172.16.0.0/12'] : false });
   app.addHook('onSend', async (_request, reply, payload) => {
     reply.header('x-content-type-options', 'nosniff').header('x-frame-options', 'DENY').header('referrer-policy', 'no-referrer');
@@ -56,7 +59,9 @@ export async function buildApp(options: { portalStore?: PortalStore; repository?
     try{await request.jwtVerify();}catch{return;}
     if(request.user.sessionHash&&!(await repository.isSessionActive(request.user.sessionHash,request.user.sub)))return reply.code(401).send({code:'UNAUTHORIZED',message:'Sessão inválida ou expirada.'});
   });
-  await app.register(rateLimit, { global: true, max: 120, timeWindow: '1 minute' });
+  // Signed-in requests are counted per account (the token was verified in the hook above), so people
+  // sharing one IP — gym Wi-Fi, carrier NAT — do not exhaust each other's budget. Anonymous requests stay per IP.
+  await app.register(rateLimit, { global: true, max: 120, timeWindow: '1 minute', keyGenerator: request => { const sub = (request.user as { sub?: string } | null | undefined)?.sub; return sub ? `user:${sub}` : `ip:${request.ip}`; } });
   await app.register(swagger, { openapi: { info: { title: 'Orami API', version: '0.1.0', description: 'API do aplicativo Orami' }, tags: [{ name: 'Autenticação' }], components: { securitySchemes: { bearerAuth: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' } } } } });
   if (process.env.NODE_ENV !== 'production') await app.register(swaggerUi, { routePrefix: '/docs' });
 
@@ -67,13 +72,17 @@ export async function buildApp(options: { portalStore?: PortalStore; repository?
   };
   const secure = async (request: FastifyRequest, reply: FastifyReply) => {
     try { await request.jwtVerify(); } catch { return reply.code(401).send({ code: 'UNAUTHORIZED', message: 'Sessão inválida ou expirada.' }); }
+    const owner = request.headers['x-orami-owner'];
+    if (owner !== undefined && owner !== request.user.sub) return reply.code(403).send({ code: 'ACCOUNT_CHANGED', message: 'A conta mudou. Abra os registros da conta atual para continuar.' });
   };
+
+  if (options.observabilityStore) await registerObservability(app, options.observabilityStore, secure, options.observabilityRetention, options.observabilityEnabled);
 
   app.post('/auth/register', { config: { rateLimit: { max: 5, timeWindow: '1 minute' } }, schema: { tags: ['Autenticação'], summary: 'Cria uma conta', body: bodySchemas.register, response: { 201: authJsonSchema, 400: errorJsonSchema, 409: errorJsonSchema, 429: errorJsonSchema } } }, async (request, reply) => {
     const input = registerInputSchema.parse(request.body);
     if (await repository.findUserByEmail(input.email)) return reply.code(409).send({ code: 'EMAIL_ALREADY_EXISTS', message: 'Este e-mail já está cadastrado.', fieldErrors: { email: ['Este e-mail já está cadastrado.'] } });
     const baseUsername=input.email.split('@')[0].toLowerCase().replace(/[^a-z0-9._]/g,'').slice(0,20)||'usuario';
-    const user = await repository.createUser({ ...input,username:`${baseUsername}.${randomBytes(3).toString('hex')}`,displayName:`${input.firstName} ${input.lastName}`,avatarUrl:null,birthDate: null, gender: null, estimationSex: null, heightCm: null, activityLevel: null, primaryGoal: null, passwordHash: await bcrypt.hash(input.password, 12) });
+    const user = await repository.createUser({ ...input,username:`${baseUsername}.${randomBytes(3).toString('hex')}`,displayName:`${input.firstName} ${input.lastName}`,avatarUrl:null,countMentalCheckIn:true,birthDate: null, gender: null, estimationSex: null, heightCm: null, activityLevel: null, primaryGoal: null, passwordHash: await bcrypt.hash(input.password, 12) });
     return reply.code(201).send(await issueTokens(publicUser(user)));
   });
   app.post('/auth/login', { config: { rateLimit: { max: 8, timeWindow: '1 minute' } }, schema: { tags: ['Autenticação'], summary: 'Autentica com e-mail e senha', body: bodySchemas.login, response: { 200: authJsonSchema, 400: errorJsonSchema, 401: errorJsonSchema, 429: errorJsonSchema } } }, async (request, reply) => {
@@ -118,11 +127,12 @@ export async function buildApp(options: { portalStore?: PortalStore; repository?
   app.get('/media/avatars/:key',async(request,reply)=>{const {key}=z.strictObject({key:z.string().regex(/^[a-f0-9-]{36}\.webp$/)}).parse(request.params);try{return reply.header('content-type','image/webp').header('cache-control','public, max-age=86400, immutable').send(await readMedia(key));}catch{return reply.code(404).send({code:'NOT_FOUND',message:'Foto não encontrada.'});}});
   app.get('/health', { schema: { hide: true } }, async () => ({ status: 'ok' }));
   if (options.medicationRepository && options.supplementRepository && options.injectableRepository && options.mentalWellbeingRepository && options.workoutRepository && options.nutritionRepository) {
+    registerReminderAgendaRoutes(app, {medications:options.medicationRepository,supplements:options.supplementRepository,injectables:options.injectableRepository,workouts:options.workoutRepository}, secure);
     registerDailySummaryRoutes(app, {
       medications: options.medicationRepository, supplements: options.supplementRepository,
       injectables: options.injectableRepository, mental: options.mentalWellbeingRepository,
       workouts: options.workoutRepository, nutrition: options.nutritionRepository,
-    }, secure);
+    }, secure, repository);
   }
   if (options.portalStore) await registerPortalRoutes(app, options.portalStore, secure);
   if(options.feedbackRepository) app.post('/me/feedback',{preHandler:secure,config:{rateLimit:{max:5,timeWindow:'1 minute'}}},async(request,reply)=>reply.code(201).send({id:await options.feedbackRepository!.create(request.user.sub,feedbackInputSchema.parse(request.body))}));
@@ -135,13 +145,18 @@ export async function buildApp(options: { portalStore?: PortalStore; repository?
   if (options.mentalWellbeingRepository) await registerMentalWellbeingRoutes(app, options.mentalWellbeingRepository, secure);
   if (options.injectableRepository) await registerInjectableRoutes(app, options.injectableRepository, secure);
   if(options.groupRepository)await registerGroupRoutes(app,options.groupRepository,secure);
-  app.setErrorHandler((error, _request, reply) => {
+  app.setErrorHandler((error, request, reply) => {
     if ((error as { statusCode?: number }).statusCode === 413) return reply.code(413).send({ code: 'PAYLOAD_TOO_LARGE', message: 'O arquivo ou conteúdo enviado ultrapassa o limite permitido.' });
     if ((error as { statusCode?: number }).statusCode === 415) return reply.code(415).send({ code: 'INVALID_INPUT', message: 'Formato de conteúdo não suportado.' });
     if ((error as { statusCode?: number }).statusCode === 429) return reply.code(429).send({ code: 'RATE_LIMITED', message: 'Muitas tentativas. Aguarde um minuto e tente novamente.' });
     if (error instanceof ZodError || (error as { validation?: unknown }).validation) return reply.code(400).send({ code: 'INVALID_INPUT', message: 'Revise os dados informados.', fieldErrors: error instanceof ZodError ? error.flatten().fieldErrors : undefined });
     if (error instanceof UniqueConstraintError) return reply.code(409).send({ code: 'EMAIL_ALREADY_EXISTS', message: 'Este e-mail já está cadastrado.', fieldErrors: { email: ['Este e-mail já está cadastrado.'] } });
-    app.log.error(error); return reply.code(500).send({ code: 'INTERNAL_ERROR', message: 'Não foi possível concluir a solicitação.' });
+    // Other client errors raised by Fastify (empty JSON body, malformed JSON…) keep their 4xx status instead of becoming 500.
+    const status = (error as { statusCode?: number }).statusCode;
+    if (status && status >= 400 && status < 500) return reply.code(status).send({ code: 'INVALID_INPUT', message: 'Revise os dados enviados.' });
+    // Only the route template and error type/code: no messages, ids, SQL or request content, which may hold health data.
+    console.error(JSON.stringify({ level: 'error', at: new Date().toISOString(), method: request.method, route: request.routeOptions?.url ?? 'unknown', error: error instanceof Error ? error.name : 'Unknown', code: (error as { original?: { code?: string }; code?: string }).original?.code ?? (error as { code?: string }).code ?? null }));
+    return reply.code(500).send({ code: 'INTERNAL_ERROR', message: 'Não foi possível concluir a solicitação.' });
   });
   return app;
 }

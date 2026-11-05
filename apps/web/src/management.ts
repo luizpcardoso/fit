@@ -1,5 +1,7 @@
+import { analytics } from "./analytics.js";
 import { api } from "./main.js";
-import { library, groups, student } from "./library.js";
+import { library, groups } from "./library.js";
+import { students } from "./students.js";
 type Type = { id: string; name: string; capabilities: string[] };
 export const names: Record<string, string> = {
   "fitness.view": "Treinos: visualizar",
@@ -14,9 +16,13 @@ export const names: Record<string, string> = {
   "mental.manage": "Mente: gerenciar",
   "groups.manage": "Grupos: gerenciar",
 };
-export function notice(text: string) {
-  const node = document.querySelector("#message");
-  if (node) node.textContent = text;
+export function notice(text: string, tone: "success" | "error" = "success") {
+  const target = document.querySelector<HTMLElement>("#message");
+  if (target) {
+    target.textContent = text;
+    target.dataset.tone = tone;
+    target.setAttribute("role", tone === "error" ? "alert" : "status");
+  }
 }
 export function content(html: string) {
   notice("");
@@ -45,10 +51,11 @@ export function button(text: string, parent: Element, action: () => unknown) {
 }
 export async function task(element: HTMLButtonElement, action: () => unknown) {
   element.disabled = true;
+  notice("");
   try {
     await action();
   } catch (error) {
-    notice((error as Error).message);
+    notice((error as Error).message, "error");
   } finally {
     element.disabled = false;
   }
@@ -136,18 +143,17 @@ export function managementNav(
   };
   const management = group("Gestão");
   if (access.role === "admin") {
-    item("Tipos profissionais", "▦", management, home).classList.add(
-      "active",
-    );
+    item("Métricas do app", "▥", management, analytics).classList.add("active");
+    item("Tipos profissionais", "▦", management, home);
     item("Profissionais", "◉", management, professionals);
     item("Editar tipos", "✎", management, editTypes);
     item("Auditoria", "≡", management, audit);
   } else
     item(
-      "Alunos e convites",
+      "Meus alunos",
       "◉",
       management,
-      () => relationships(access.capabilities),
+      () => students(access.capabilities),
     ).classList.add("active");
 
   const categories = [
@@ -184,8 +190,11 @@ export function managementNav(
     )
       continue;
     const section = group(`${category.icon}  ${category.label}`);
-    for (const [kind, label, icon] of category.entries)
-      item(label, icon, section, () => library(kind, access));
+    for (const [kind, label, icon] of category.entries) {
+      if (access.role !== "admin" && ["exercise", "food"].includes(kind)) continue;
+      const personalLabels: Record<string, string> = { workout: "Minhas fichas", diet: "Minhas dietas", goal: "Minhas metas", guidance: "Minhas orientações" };
+      item(access.role === "admin" ? label : personalLabels[kind] || label, icon, section, () => library(kind, access));
+    }
   }
 
   const organization = group("Organização");
@@ -371,47 +380,6 @@ async function professionals() {
           target.replaceChildren();
           node("p", `Nova credencial para ${row.email} (48 horas)`, target);
           node("code", result.temporaryPassword, target);
-        });
-    }
-  };
-  await load();
-}
-async function relationships(capabilities: string[]) {
-  content(
-    '<div class="grid"><section class="card"><h2>Convidar aluno</h2><p class="muted">O aluno precisa aceitar as áreas de acesso pelo aplicativo. O convite vale por 7 dias.</p><form id="invite"><label>E-mail do aluno<input name="email" type="email" maxlength="254" required></label><fieldset id="invite-caps"></fieldset><button type="submit">Enviar convite</button></form></section><section class="card"><h2>Alunos e convites</h2><div id="relationships">Carregando…</div></section></div>',
-  );
-  checks(document.querySelector("#invite-caps")!, capabilities);
-  submit("#invite", async (form) => {
-    const result = await api("/portal/invitations", "POST", {
-      email: value(form, "email"),
-      capabilities: selected(document.querySelector("#invite-caps")!),
-    });
-    form.reset();
-    notice(result.message);
-    await load();
-  });
-  const load = async () => {
-    const rows = await api("/portal/relationships");
-    const target = document.querySelector("#relationships")!;
-    target.replaceChildren();
-    if (!rows.length) target.textContent = "Nenhum aluno ou convite.";
-    for (const row of rows) {
-      const section = document.createElement("article");
-      section.className = "item";
-      target.append(section);
-      node("h3", row.studentName || "Convite enviado", section);
-      node(
-        "p",
-        `${row.status} • ${row.capabilities.map((cap: string) => names[cap]).join(", ")}`,
-        section,
-      );
-      if (row.status === "active")
-        button("Abrir acompanhamento", section, () => student(row));
-      if (["active", "pending"].includes(row.status))
-        button("Encerrar vínculo / cancelar convite", section, async () => {
-          if (!confirm("Encerrar acesso a este aluno?")) return;
-          await api(`/portal/relationships/${row.id}/end`, "POST");
-          await load();
         });
     }
   };

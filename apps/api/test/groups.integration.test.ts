@@ -105,6 +105,21 @@ test(
         ).statusCode,
         204,
       );
+      const groupAvatar=await sharp({create:{width:900,height:600,channels:3,background:'red'}}).png().toBuffer();
+      const groupCover=await sharp({create:{width:1200,height:900,channels:3,background:'green'}}).png().toBuffer();
+      assert.equal((await app.inject({method:'PUT',url:`/groups/${groupId}/media/avatar`,payload:{photoDataUrl:`data:image/png;base64,${groupAvatar.toString('base64')}`}})).statusCode,401);
+      assert.equal((await app.inject({method:'PUT',url:`/groups/${groupId}/media/avatar`,headers:member,payload:{photoDataUrl:`data:image/png;base64,${groupAvatar.toString('base64')}`}})).statusCode,403);
+      assert.equal((await app.inject({method:'PUT',url:`/groups/${groupId}/media/avatar`,headers:owner,payload:{photoDataUrl:`data:image/png;base64,${groupAvatar.toString('base64')}`}})).statusCode,204);
+      assert.equal((await app.inject({method:'PUT',url:`/groups/${groupId}/media/cover`,headers:owner,payload:{photoDataUrl:`data:image/png;base64,${groupCover.toString('base64')}`}})).statusCode,204);
+      const [brandedPaths]=await db.query<{avatar_path:string;cover_path:string}>('SELECT avatar_path,cover_path FROM `groups` WHERE id=?',{replacements:[groupId],type:QueryTypes.SELECT});
+      const branded=await app.inject({method:'GET',url:`/groups/${groupId}`,headers:member});
+      assert.match(branded.json().avatarUrl,new RegExp(`/groups/${groupId}/media/avatar\\?v=\\d+`));
+      assert.match(branded.json().coverUrl,new RegExp(`/groups/${groupId}/media/cover\\?v=\\d+`));
+      const avatarDownload=await app.inject({method:'GET',url:`/groups/${groupId}/media/avatar`,headers:member});
+      const coverDownload=await app.inject({method:'GET',url:`/groups/${groupId}/media/cover`,headers:member});
+      assert.equal(avatarDownload.statusCode,200);assert.deepEqual(await sharp(avatarDownload.rawPayload).metadata().then(({width,height})=>({width,height})),{width:512,height:512});
+      assert.equal(coverDownload.statusCode,200);assert.deepEqual(await sharp(coverDownload.rawPayload).metadata().then(({width,height})=>({width,height})),{width:1600,height:600});
+      assert.equal((await app.inject({method:'GET',url:`/groups/${groupId}/media/cover`,headers:outsider})).statusCode,404);
       const firstFeed = await app.inject({
         method: "GET",
         url: `/groups/${groupId}/posts`,
@@ -136,6 +151,8 @@ test(
       const image=await sharp({create:{width:800,height:600,channels:3,background:'blue'}}).png().toBuffer();
       const shared=await app.inject({method:'POST',url:'/groups/posts',headers:owner,payload:{groupIds:[groupId,secondGroup],photoDataUrl:`data:image/png;base64,${image.toString('base64')}`}});
       assert.equal(shared.statusCode,201);
+      const sharedFeed=await app.inject({method:'GET',url:`/groups/${groupId}/posts`,headers:owner});
+      assert.equal(sharedFeed.json().items.find((post:any)=>post.id===shared.json().ids[0]).photoAspectRatio,4/3);
       const imageRows=await db.query<{id:string;photo_path:string;photo_data:Buffer|null}>('SELECT id,photo_path,photo_data FROM group_posts WHERE id IN (?)',{replacements:[shared.json().ids],type:QueryTypes.SELECT});
       assert.equal(imageRows.length,2);assert.equal(imageRows[0].photo_path,imageRows[1].photo_path);assert.equal(imageRows[0].photo_data,null);
       const file=await readMedia(imageRows[0].photo_path);assert.equal((await sharp(file).metadata()).format,'webp');
@@ -292,6 +309,9 @@ test(
         ).statusCode,
         409,
       );
+      assert.equal((await app.inject({method:'PUT',url:`/groups/${groupId}/media/avatar`,headers:owner,payload:{photoDataUrl:null}})).statusCode,204);
+      assert.equal((await app.inject({method:'PUT',url:`/groups/${groupId}/media/cover`,headers:owner,payload:{photoDataUrl:null}})).statusCode,204);
+      await assert.rejects(()=>readMedia(brandedPaths.avatar_path));await assert.rejects(()=>readMedia(brandedPaths.cover_path));
       assert.equal(
         (
           await app.inject({

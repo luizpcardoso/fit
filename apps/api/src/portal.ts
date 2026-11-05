@@ -150,6 +150,9 @@ export async function registerPortalRoutes(
     ["/portal/main.js", "dist/main.js", "text/javascript"],
     ["/portal/management.js", "dist/management.js", "text/javascript"],
     ["/portal/library.js", "dist/library.js", "text/javascript"],
+    ["/portal/analytics.js", "dist/analytics.js", "text/javascript"],
+    ["/portal/students.js", "dist/students.js", "text/javascript"],
+    ["/portal/groups.js", "dist/groups.js", "text/javascript"],
     ["/portal/style.css", "style.css", "text/css"],
   ] as const) {
     app.get(route, async (_request, reply) =>

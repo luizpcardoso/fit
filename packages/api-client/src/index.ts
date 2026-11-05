@@ -1,7 +1,9 @@
+import type { WorkoutRun, SaveWorkoutRunInput } from '@fit/contracts';
+import type { AnalyticsBatch, AnalyticsDashboard } from '@fit/contracts';
 import type { NutritionGoalInput, Page, HealthPageQuery, PageQuery } from '@fit/contracts';
 import type { ApiError, AuthResponse, CatalogExercise, CompleteWorkoutInput, CreateWorkoutPlanInput, LoginInput, PublicUser, RegisterInput, SuggestedWorkoutPlan, Supplement, SupplementInput, SupplementToday, UpdateProfileInput, UpdateSupplementInput, UpdateWorkoutPlanInput, UpdateWorkoutSessionInput, WorkoutGoalInput, WorkoutGoalSummary, WorkoutPlan, WorkoutSession } from '@fit/contracts';
 import type { HealthKind, HealthItem, HealthItemInput, HealthToday, UpdateHealthItemInput, MedicationToday } from '@fit/contracts';
-import type { BodyMeasurement, BodyMeasurementInput, DailyExpenditure, DailyExpenditureInput, DailyNutritionSummary, FavoriteMeal, Food, FoodInput, Meal, MealInput, UpdateFoodInput } from '@fit/contracts';
+import type { BodyMeasurement, BodyMeasurementInput, DailyExpenditure, DailyExpenditureInput, DailyNutritionSummary, FavoriteMeal, Food, FoodInput, Meal, MealSyncEntry, MealSyncResult, MealCategory, MealInput, UpdateFoodInput } from '@fit/contracts';
 import type { CardioSession, CardioSessionInput } from '@fit/contracts';
 import type { HomeShortcuts } from '@fit/contracts';
 import type { MentalCheckIn, MentalCheckInInput } from '@fit/contracts';
@@ -23,7 +25,7 @@ type ClientOptions = {
 };
 
 export function createApiClient(options: ClientOptions) {
-  const changeListeners = new Set<() => void>();
+  const changeListeners = new Set<(path:string) => void>();
   const transportHeaders: Record<string,string> = /\.(?:ngrok-free\.(?:app|dev)|ngrok\.app)$/.test(new URL(options.baseUrl).hostname) ? {'ngrok-skip-browser-warning':'1'} : {};
   const normalizeMedia=(value:any):any=>{if(Array.isArray(value))return value.map(normalizeMedia);if(value&&typeof value==='object'){for(const key of Object.keys(value)){if((key==='avatarUrl'||key==='imageUrl')&&typeof value[key]==='string'&&value[key].startsWith('/media/'))value[key]=`${options.baseUrl}${value[key]}`;else if(typeof value[key]==='object')normalizeMedia(value[key]);}}return value;};
   let refreshInFlight: Promise<void> | null = null;
@@ -65,13 +67,20 @@ export function createApiClient(options: ClientOptions) {
     if(reusable&&pending.has(path))return pending.get(path) as Promise<T>;
     const work=networkRequest<T>(path,init,retry,binary);
     if(reusable){pending.set(path,work);void work.then(value=>{if(pending.get(path)===work){recent.set(path,{until:Date.now()+15_000,value});if(recent.size>50)recent.delete(recent.keys().next().value!);}}).catch(()=>{}).finally(()=>{if(pending.get(path)===work)pending.delete(path)});}
-    const value=await work;if(!read){recent.clear();for(const listener of changeListeners)listener();}return value;
+    const value=await work;if(!read){recent.clear();pending.clear();for(const listener of changeListeners)listener(path);}return value;
   };
   return {
-    subscribeToChanges: (listener: () => void) => { changeListeners.add(listener); return () => { changeListeners.delete(listener); }; },
-    getDailySummary: async (date: string) => dailySummarySchema.parse(await request(`/me/daily-summary?date=${encodeURIComponent(date)}`)),
+    recordAnalytics: async (batch: AnalyticsBatch, signal?: AbortSignal) => {
+      // Separate transport: analytics must not invalidate domain caches, publish change notifications or end the user's session.
+      return networkRequest<{ accepted: number }>('/me/analytics/events', { method: 'POST', body: JSON.stringify(batch), signal }, false);
+    },
+    getAnalyticsDashboard: (days: 7 | 30 | 90 = 30) => networkRequest<AnalyticsDashboard>(`/portal/analytics?days=${days}`),
+    subscribeToChanges: (listener: (path:string) => void) => { changeListeners.add(listener); return () => { changeListeners.delete(listener); }; },
+    getDailySummary: async (date: string) => dailySummarySchema.parse(await networkRequest(`/me/daily-summary?date=${encodeURIComponent(date)}`, { headers: { "x-orami-summary-version": "2" } })),
     listDiets:()=>request<DietView[]>('/nutrition/diets'),
     recordDietMeal:(input:DietMealInput)=>request<{id:string}>('/nutrition/diet-meals',{method:'POST',body:JSON.stringify(input)}),
+    listProfessionalNotifications:()=>request<import('@fit/contracts').ProfessionalNotifications>('/me/notifications'),
+    readProfessionalNotification:(id:string)=>request<{ok:boolean}>(`/me/notifications/${encodeURIComponent(id)}/read`,{method:'PATCH'}),
     listProfessionals:()=>request<ProfessionalRelationship[]>('/me/professionals'),
     listProfessionalAssignments:()=>request<PortalAssignment[]>('/me/professional-assignments'),
     respondProfessionalAssignment:(id:string,accept:boolean)=>request<{ok:boolean}>(`/me/professional-assignments/${encodeURIComponent(id)}/respond`,{method:'POST',body:JSON.stringify({accept})}),
@@ -81,11 +90,19 @@ export function createApiClient(options: ClientOptions) {
     sendFeedback:(input:import('@fit/contracts').FeedbackInput)=>request<{id:string}>('/me/feedback',{method:'POST',body:JSON.stringify(input)}),
     updateSocialProfile:(input:UpdateSocialProfileInput)=>request<PublicUser>('/me/social-profile',{method:'PATCH',body:JSON.stringify(input)}),
     searchUsers:(username:string)=>request<GroupUser[]>(`/users/search?username=${encodeURIComponent(username)}`),
+    listSocialFeed:(before?:string)=>request<import('@fit/contracts').SocialFeedPage>(`/social/feed${before?`?before=${encodeURIComponent(before)}`:''}`),
     listGroups:()=>request<GroupSummary[]>('/groups'),
     getGroupsDashboard:()=>request<GroupDashboard>('/groups/dashboard'),
     createGroup:(input:CreateGroupInput)=>request<{id:string}>('/groups',{method:'POST',body:JSON.stringify(input)}),
     getGroup:(id:string)=>request<GroupDetails>(`/groups/${id}`),
     updateGroup:(id:string,input:UpdateGroupInput)=>request<void>(`/groups/${id}`,{method:'PATCH',body:JSON.stringify(input)}),
+    setGroupMedia:(id:string,kind:'avatar'|'cover',photoDataUrl:string|null)=>request<void>(`/groups/${id}/media/${kind}`,{method:'PUT',body:JSON.stringify({photoDataUrl})}),
+    getGroupMediaSource:async(mediaUrl:string)=>{
+      const absolute=mediaUrl.startsWith('/')?`${options.baseUrl}${mediaUrl}`:mediaUrl;
+      if(!absolute.startsWith(`${options.baseUrl}/groups/`))return {uri:absolute};
+      const tokens=await options.getTokens?.();
+      return {uri:absolute,headers:{...transportHeaders,...(tokens?{authorization:`Bearer ${tokens.accessToken}`}:{})},cacheKey:absolute};
+    },
     updateGroupEvents:(id:string,input:GroupEventSettings)=>request<void>(`/groups/${id}/events`,{method:'PUT',body:JSON.stringify(input)}),
     updateGroupPreferences:(id:string,input:GroupSharePreferences)=>request<void>(`/groups/${id}/preferences`,{method:'PUT',body:JSON.stringify(input)}),
     listGroupMembers:(id:string)=>request<GroupMember[]>(`/groups/${id}/members`),
@@ -110,7 +127,7 @@ export function createApiClient(options: ClientOptions) {
     createGroupComment:(groupId:string,postId:string,text:string)=>request<{id:string}>(`/groups/${groupId}/posts/${postId}/comments`,{method:'POST',body:JSON.stringify({text})}),
     updateGroupComment:(groupId:string,commentId:string,text:string)=>request<void>(`/groups/${groupId}/comments/${commentId}`,{method:'PATCH',body:JSON.stringify({text})}),
     deleteGroupComment:(groupId:string,commentId:string)=>request<void>(`/groups/${groupId}/comments/${commentId}`,{method:'DELETE'}),
-    markGroupSeen:(groupId:string)=>request<void>(`/groups/${groupId}/seen`,{method:'POST'}),
+    markGroupSeen:(groupId:string,postId?:string)=>request<void>(`/groups/${groupId}/seen`,{method:'POST',...(postId?{body:JSON.stringify({postId})}:{})}),
     shareGroupActivity:(groupIds:string[],eventType:'workout_completed'|'cardio_completed'|'weekly_goal'|'weekly_streak',sourceType:'workout_session'|'cardio_session'|'weekly_goal',sourceId:string)=>request<{created:number}>('/groups/share-activity',{method:'POST',body:JSON.stringify({groupIds,eventType,sourceType,sourceId})}),
     listGroupNotifications:()=>request<GroupNotification[]>('/groups/notifications'),
     readGroupNotification:(id:string)=>request<void>(`/groups/notifications/${id}/read`,{method:'PATCH'}),
@@ -126,11 +143,13 @@ export function createApiClient(options: ClientOptions) {
     getInjectablesToday: (date:string) => request<InjectableToday>(`/injectables/today?date=${encodeURIComponent(date)}`),
     setInjectableApplication: (id:string,date:string,applied:boolean) => request<void>(`/injectables/${id}/applications`, { method:applied?'POST':'DELETE',body:JSON.stringify({date}) }),
     getInjectableEstimate: (id:string,days=30) => request<InjectableEstimate>(`/injectables/${id}/estimate?days=${days}`),
+    getReminderAgenda:(from:string,to:string)=>request<import('@fit/contracts').ReminderAgenda>(`/me/reminder-agenda?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`),
     listMentalCheckIns: (from:string,to:string) => request<MentalCheckIn[]>(`/mental-check-ins?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`),
     createMentalCheckIn: (input:MentalCheckInInput) => request<MentalCheckIn>('/mental-check-ins', { method:'POST', body:JSON.stringify(input) }),
     updateMentalCheckIn: (id:string,input:MentalCheckInInput) => request<MentalCheckIn>(`/mental-check-ins/${id}`, { method:'PUT', body:JSON.stringify(input) }),
     deleteMentalCheckIn: (id:string) => request<void>(`/mental-check-ins/${id}`, { method:'DELETE' }),
     listCardioSessions: (date:string) => request<CardioSession[]>(`/cardio-sessions?date=${encodeURIComponent(date)}`),
+    getCardioSessionsPage: (query: PageQuery) => request<Page<CardioSession>>(`/cardio-sessions/page?page=${query.page}&pageSize=${query.pageSize}`),
     createCardioSession: (input:CardioSessionInput) => request<CardioSession>('/cardio-sessions', { method:'POST', body:JSON.stringify(input) }),
     deleteCardioSession: (id:string) => request<void>(`/cardio-sessions/${id}`, { method:'DELETE' }),
     getHomeShortcuts: () => request<HomeShortcuts>('/me/home-shortcuts'),
@@ -140,6 +159,7 @@ export function createApiClient(options: ClientOptions) {
     updateFood: (id:string,input:UpdateFoodInput) => request<void>(`/nutrition/foods/${id}`, { method:'PATCH', body:JSON.stringify(input) }),
     deleteFood: (id:string) => request<void>(`/nutrition/foods/${id}`, { method:'DELETE' }),
     listMeals: (date:string) => request<Meal[]>(`/nutrition/meals?date=${encodeURIComponent(date)}`),
+    syncMeals: (entries: MealSyncEntry[], ownerId?: string) => request<MealSyncResult[]>('/nutrition/meal-sync', { method: 'POST', body: JSON.stringify({entries}), headers: ownerId ? {'x-orami-owner': ownerId} : undefined }),
     createMeal: (input:MealInput) => request<{id:string}>('/nutrition/meals', { method:'POST', body:JSON.stringify(input) }),
     updateMeal: (id:string,input:MealInput) => request<void>(`/nutrition/meals/${id}`, { method:'PUT', body:JSON.stringify(input) }),
     deleteMeal: (id:string) => request<void>(`/nutrition/meals/${id}`, { method:'DELETE' }),
@@ -147,13 +167,14 @@ export function createApiClient(options: ClientOptions) {
     listFavoriteMeals: () => request<FavoriteMeal[]>('/nutrition/favorites'),
     renameFavoriteMeal: (id:string,name:string) => request<void>(`/nutrition/favorites/${id}`, { method:'PATCH', body:JSON.stringify({name}) }),
     deleteFavoriteMeal: (id:string) => request<void>(`/nutrition/favorites/${id}`, { method:'DELETE' }),
-    reuseFavoriteMeal: (id:string,date:string,time:string,multiplier:number) => request<{id:string}>(`/nutrition/favorites/${id}/use`, { method:'POST', body:JSON.stringify({date,time,multiplier}) }),
+    reuseFavoriteMeal: (id:string,date:string,time:string,multiplier:number,category?:MealCategory|null) => request<{id:string}>(`/nutrition/favorites/${id}/use`, { method:'POST', body:JSON.stringify({date,time,multiplier,category}) }),
     getDailyExpenditure: (date:string) => request<DailyExpenditure|null>(`/nutrition/expenditures/${encodeURIComponent(date)}`),
     saveDailyExpenditure: (input:DailyExpenditureInput) => request<DailyExpenditure>('/nutrition/expenditures', { method:'PUT', body:JSON.stringify(input) }),
     deleteDailyExpenditure: (date:string) => request<void>(`/nutrition/expenditures/${encodeURIComponent(date)}`, { method:'DELETE' }),
     saveNutritionGoal: (input: NutritionGoalInput) => request<void>('/nutrition/goal', { method: 'PUT', body: JSON.stringify(input) }),
     getNutritionSummary: (date:string) => request<DailyNutritionSummary>(`/nutrition/summary?date=${encodeURIComponent(date)}`),
-    getBodyMeasurementsPage: (query: PageQuery) => request<Page<BodyMeasurement> & { latest: BodyMeasurement[] }>(`/body-measurements/page?page=${query.page}&pageSize=${query.pageSize}`),
+    getWeightTrend: (from: string) => request<import("@fit/contracts").WeightPoint[]>(`/body-measurements/weights?from=${encodeURIComponent(from)}`),
+    getBodyMeasurementsPage: (query: PageQuery) => request<import("@fit/contracts").BodyMeasurementPage>(`/body-measurements/page?page=${query.page}&pageSize=${query.pageSize}`),
     getHealthItemsPage: (kind: HealthKind, query: HealthPageQuery) => request<Page<HealthItem>>(`${kind === 'medication' ? '/medications' : '/supplements'}/page?page=${query.page}&pageSize=${query.pageSize}&search=${encodeURIComponent(query.search)}&status=${query.status}`),
     listBodyMeasurements: () => request<BodyMeasurement[]>('/body-measurements'),
     createBodyMeasurement: (input:BodyMeasurementInput) => request<{id:string}>('/body-measurements', { method:'POST', body:JSON.stringify(input) }),
@@ -181,6 +202,10 @@ export function createApiClient(options: ClientOptions) {
       if (tokens?.refreshToken) await request<void>('/auth/logout', { method: 'POST', body: JSON.stringify({ refreshToken: tokens.refreshToken }) }, false).catch(() => undefined);
       await options.saveTokens?.(null);
     },
+    getActiveWorkoutRun: () => networkRequest<WorkoutRun | null>('/workout-runs/active'),
+    getWorkoutRun: (id: string) => networkRequest<WorkoutRun>(`/workout-runs/${id}`),
+    getPreviousWorkoutValues: (divisionId: string) => networkRequest<import('@fit/contracts').WorkoutRunPrevious>(`/workout-runs/previous?divisionId=${encodeURIComponent(divisionId)}`),
+    saveWorkoutRun: (id: string, input: SaveWorkoutRunInput, ownerId?: string) => request<WorkoutRun>(`/workout-runs/${id}`, { method: 'PUT', body: JSON.stringify(input), headers: ownerId ? {'x-orami-owner': ownerId} : undefined }),
     listWorkoutPlans: () => request<WorkoutPlan[]>('/workout-plans'),
     getWorkoutPlan: (id: string) => request<WorkoutPlan>(`/workout-plans/${id}`),
     createWorkoutPlan: (input: CreateWorkoutPlanInput) => request<{ id: string }>('/workout-plans', { method: 'POST', body: JSON.stringify(input) }),
@@ -194,6 +219,7 @@ export function createApiClient(options: ClientOptions) {
     listWorkoutPlanSuggestions: () => request<SuggestedWorkoutPlan[]>('/workout-plan-suggestions'),
     completeWorkout: (input: CompleteWorkoutInput) => request<{ id: string }>('/workout-sessions', { method: 'POST', body: JSON.stringify(input) }),
     listWorkoutSessions: () => request<WorkoutSession[]>('/workout-sessions'),
+    getWorkoutSessionsPage: (query: PageQuery) => request<Page<WorkoutSession>>(`/workout-sessions/page?page=${query.page}&pageSize=${query.pageSize}`),
     getWorkoutGoal: (date: string) => request<WorkoutGoalSummary>(`/workout-goal?date=${encodeURIComponent(date)}`),
     updateWorkoutGoal: (input: WorkoutGoalInput) => request<void>('/workout-goal', { method: 'PUT', body: JSON.stringify(input) }),
     updateWorkoutSession: (id: string, input: UpdateWorkoutSessionInput) => request<void>(`/workout-sessions/${id}`, { method: 'PATCH', body: JSON.stringify(input) }),

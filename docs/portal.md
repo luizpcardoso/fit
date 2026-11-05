@@ -2,13 +2,18 @@
 
 Usa as mesmas contas, sessões e MySQL do app. Servido pela API em `/portal`, com layout Petróleo responsivo e tema do sistema.
 
+Consulte também `docs/portal-workspace-context.md` para o mapa resumido da implementação. Mantenha ambos atualizados ao alterar os fluxos.
+
 ## Funcionalidades
+
+- Entrada do admin: **Métricas do app**, com contas/cadastros, ativos DAU/WAU/MAU, presença recente, sessões, ações, funcionalidades mais usadas, ativação/D7, versões/plataformas, histórico mensal agregado e qualidade da API. Acesso exclusivo do administrador ativo. Definições, retenção e contexto em `docs/observability-context.md`.
 
 - Tipos profissionais editáveis, capacidades por área e restrições individuais.
 - Cadastro profissional exclusivo pelo administrador; senha temporária aleatória, exibida uma vez, válida por 48 horas; primeira ativação exige senha definitiva diferente e aceite das condições de uso de dados.
 - Suspensão/reativação e regeneração de acesso para contas ainda não ativadas.
 - Convites por e-mail válidos por sete dias, aceite/recusa pelo app, consentimento granular, redução de permissões e encerramento do vínculo.
-- Bibliotecas globais e privadas organizadas por Fitness, Nutrição e Saúde & bem-estar: alimentos com porções e nutrientes, exercícios, categorias, fichas, metas, dietas e orientações de saúde mental.
+- Profissional: Meus alunos com busca, filtros e painel individual; Minhas fichas, Minhas dietas, Minhas metas e Minhas orientações. Convites em tela própria; modelos podem ser atribuídos pela biblioteca ou pelo painel, com prévia e seleção de aluno autorizado.
+- Catálogos globais na navegação administrativa; profissionais usam sua biblioteca privada e mantêm referências globais nos editores. Bibliotecas organizadas por Fitness, Nutrição e Saúde & bem-estar: alimentos com porções e nutrientes, exercícios, categorias, fichas, metas, dietas e orientações de saúde mental.
 - Busca, filtros de visibilidade/status/categoria e paginação nas bibliotecas; busca e paginação na auditoria.
 - Fichas com divisões e configuração de exercícios; dietas com refeições, porções, nutrientes, substituições e orientações.
 - Cada exercício pode ter uma imagem instrucional. O portal aceita JPEG, PNG ou WebP de até 8 MB e converte para WebP limitado a 900 × 700 px antes de armazenar.
@@ -16,7 +21,7 @@ Usa as mesmas contas, sessões e MySQL do app. Servido pela API em `/portal`, co
 - Atribuição direta mediante capacidade manage, ou sugestão mediante suggest com aceite.
 - Ajustes preservam versões anteriores e sessões realizadas. Fichas são materializadas nas tabelas de treino existentes e aparecem no app.
 - Acompanhamento autorizado por área: treinos, metas, medidas, diário alimentar e check-ins mentais.
-- Grupos: criação, edição, desativação/reativação, membros, convites por @usuário, papéis e remoção de membros. Proprietário não pode ser removido/rebaixado por esta ação.
+- Grupos: listagem com busca/status/paginação, criação em tela própria e detalhe com Participantes, Convidar e Configurações. Profissional lista seus grupos de propriedade; administrador lista todos. Edição, desativação/reativação, membros, convites por @usuário, papéis e remoção de membros. Proprietário não pode ser removido/rebaixado por esta ação.
 - Auditoria administrativa com ator, ação, recurso e data.
 - App: Perfil → Meus profissionais reúne convites, consentimentos e planos recebidos, incluindo prévia e aceite. Nutrição → Minha dieta mostra o plano por refeição, alternativas e macros; opções podem ser registradas no diário alimentar com ajuste das quantidades consumidas. Consulte `docs/nutrition.md`.
 
@@ -41,7 +46,7 @@ Tokens ficam em memória: recarregar exige login; durante o uso, há renovação
 
 ## Limites do MVP
 
-- A API ainda limita as listas administrativas e a biblioteca a 200 registros e membros a 500. A interface pagina e filtra esse conjunto; paginação no servidor continua necessária antes de volumes maiores.
+- Vínculos profissionais, conteúdo e grupos suportam `offset` validado em lotes de 200; o portal percorre os lotes para listar o conjunto completo. Busca e paginação visual ainda operam localmente. Outras listas administrativas e histórico de atribuições permanecem limitados a 200 e membros a 500. Carteiras maiores ainda podem exigir busca/paginação integralmente no servidor.
 - Progresso alimentar mostra os registros da data final selecionada. Ausência de registro não significa descumprimento.
 - Fichas respeitam o limite atual do app: três disponíveis e uma ativa. Atribuições que ultrapassem o limite falham sem gravação parcial.
 - O catálogo legado de exercícios continua existindo. Exercícios globais novos são gravados também no catálogo do app. A migração 029 importa as sugestões de fichas existentes para a biblioteca global do portal. Alimentos e modelos profissionais ficam na biblioteca no mesmo banco, sem expor alimentos privados dos usuários.

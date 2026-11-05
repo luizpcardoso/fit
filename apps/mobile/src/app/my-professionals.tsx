@@ -15,7 +15,7 @@ import { useAuth } from "@/auth/auth-context";
 import { useAppTheme } from "@/theme/theme-provider";
 import { ProfessionalPlans } from "@/components/professional-plans";
 import { confirmAction, showToast } from "@/components/app-dialog";
-import { ScreenHeader } from "@/components/screen-header";
+import { FixedScreenHeader } from "@/components/screen-header";
 import { Radius, Type, type AppPalette } from "@/constants/theme";
 import { apiErrorMessage } from "@/utils/api-errors";
 import { formatDate, localDate } from "@/utils/dates";
@@ -67,6 +67,8 @@ export default function MyProfessionals() {
   const { api } = useAuth(),
     { colors: c } = useAppTheme();
   const s = styles(c);
+  const [managing, setManaging] = useState<string | null>(null);
+  const [plansOpen, setPlansOpen] = useState(false);
   const [rows, setRows] = useState<ProfessionalRelationship[]>([]),
     [chosen, setChosen] = useState<Record<string, string[]>>({}),
     [loading, setLoading] = useState(true),
@@ -145,8 +147,7 @@ export default function MyProfessionals() {
     }));
   return (
     <SafeAreaView style={s.safe} edges={["top"]}>
-      <ScrollView contentContainerStyle={s.content}>
-        <ScreenHeader backLabel="Início" />
+      <FixedScreenHeader backLabel="Início" /><ScrollView contentContainerStyle={s.content}>
         <Text accessibilityRole="header" style={s.title}>
           Meus profissionais
         </Text>
@@ -191,7 +192,9 @@ export default function MyProfessionals() {
               {pending && dayOf(row.expiresAt) ? ` · válido até ${dayOf(row.expiresAt)}` : ""}
               {row.status === "active" && dayOf(row.createdAt) ? ` · desde ${dayOf(row.createdAt)}` : ""}
             </Text>
-            {editable ? (
+            <View style={s.summaryRow}><MaterialCommunityIcons name="account-tie-outline" size={22} color={c.link}/><Text style={s.summaryText}>{[...new Set(row.capabilities.map(cap => (areas[cap.split('.')[0]] ?? unknownArea).label))].join(' · ') || 'Sem permissões ativas'}</Text></View>
+            {editable ? <Pressable accessibilityRole="button" accessibilityLabel={`Gerenciar ${row.professionalName}`} aria-expanded={managing === row.id} disabled={busy !== null} onPress={() => setManaging(current => current === row.id ? null : row.id)} style={s.manage}><Text style={s.link}>{managing === row.id ? 'Recolher detalhes' : pending ? 'Gerenciar convite' : 'Gerenciar'}</Text><MaterialCommunityIcons name={managing === row.id ? 'chevron-up' : 'chevron-down'} size={20} color={c.link}/></Pressable> : null}
+            {editable && managing === row.id ? (
               <>
                 <Text style={s.sectionLabel}>
                   {pending ? "Escolha o que você autoriza:" : "Permissões autorizadas:"}
@@ -259,7 +262,8 @@ export default function MyProfessionals() {
           </View>
           );
         })}
-        <ProfessionalPlans />
+        <Pressable accessibilityRole="button" aria-expanded={plansOpen} onPress={() => setPlansOpen(value => !value)} style={s.manage}><Text style={s.link}>Planos recebidos</Text><MaterialCommunityIcons name={plansOpen ? 'chevron-up' : 'chevron-down'} size={22} color={c.link}/></Pressable>
+        {plansOpen ? <ProfessionalPlans /> : null}
       </ScrollView>
     </SafeAreaView>
   );
@@ -278,6 +282,9 @@ const styles = (c: AppPalette) => StyleSheet.create({
   emptyTitle: { ...Type.bodyLarge, fontWeight: "800", color: c.text },
   emptyText: { ...Type.label, color: c.textMuted, textAlign: "center" },
   card: { padding: 20, borderRadius: Radius.xl, backgroundColor: c.surface, gap: 12 },
+  summaryRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  summaryText: { ...Type.label, color: c.textMuted, flex: 1 },
+  manage: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   cardTitle: { ...Type.title, fontWeight: "800", color: c.text },
   sectionLabel: { ...Type.label, fontWeight: "800", color: c.text, marginTop: 4 },
   option: { minHeight: 56, flexDirection: "row", alignItems: "flex-start", gap: 12, padding: 12, borderRadius: Radius.md, borderWidth: 1, borderColor: c.border },

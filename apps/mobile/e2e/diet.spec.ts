@@ -3,13 +3,17 @@ import { resolve } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { config } from 'dotenv';
 import { createConnection } from 'mysql2/promise';
+import { waitForApiBudget } from './helpers/api-budget';
 
 const apiURL = process.env.FIT_E2E_API_URL ?? 'http://127.0.0.1:33318';
 const testDatabase = process.env.FIT_E2E_DB_NAME;
 test('dieta: Home registra prescrição e Minha dieta apresenta o dia em linhas compactas', async ({page,request}) => {
+  test.setTimeout(240000);
   test.skip(!testDatabase?.includes('test'), 'Requer banco exclusivo de testes em FIT_E2E_DB_NAME.');
   if (!['localhost','127.0.0.1'].includes(new URL(apiURL).hostname)) throw new Error('Use API local isolada');
   page.setDefaultTimeout(15000);
+  page.setDefaultNavigationTimeout(60000);
+  await waitForApiBudget(request, apiURL);
   config({path:resolve(__dirname,'../../api/.env'),quiet:true});
   const db = await createConnection({host:process.env.DB_HOST,port:Number(process.env.DB_PORT),user:process.env.DB_USER,password:process.env.DB_PASS,database:testDatabase});
   const users: string[] = [], assignments: string[] = [];
@@ -26,8 +30,8 @@ test('dieta: Home registra prescrição e Minha dieta apresenta o dia em linhas 
     await page.goto('/');
     await page.getByRole('button',{name:'Adicionar refeição',exact:true}).click();
     await expect(page.getByText('Buscando dieta vinculada…')).toHaveCount(0);
-    await expect(page.getByRole('radio',{name:'Refeição da dieta',exact:true})).toBeVisible();
-    await page.getByRole('radio',{name:'Refeição da dieta',exact:true}).click();
+    await expect(page.getByRole('radio',{name:'Usar minha dieta',exact:true})).toBeVisible();
+    await page.getByRole('radio',{name:'Usar minha dieta',exact:true}).click();
     await expect(page.getByText(/Nenhuma dieta vinculada disponível/)).toBeVisible();
     await page.getByRole('button',{name:'Fechar refeição da dieta'}).click();
     await page.getByText('Fechar',{exact:true}).click();
@@ -39,16 +43,25 @@ test('dieta: Home registra prescrição e Minha dieta apresenta o dia em linhas 
       await db.execute("INSERT INTO professional_assignments (id,author_id,student_id,relationship_id,kind,status,source_id,source_revision,snapshot,request_id,created_at,updated_at) VALUES (?,?,?,?,'diet',?,?,1,?,?,UTC_TIMESTAMP(),UTC_TIMESTAMP())",[id,users[1],users[0],randomUUID(),status,randomUUID(),JSON.stringify({...snapshot,name:status === 'active' ? snapshot.name : 'Plano anterior E2E'}),randomUUID()]);
     }
     await page.route('**/nutrition/foods', route => route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({code:'INTERNAL_ERROR',message:'Catálogo temporariamente indisponível'})}));
+    await page.evaluate(owner => { for(const key of Object.keys(localStorage)) if(key.startsWith(`fit.nutrition.${owner}`)) localStorage.removeItem(key); }, users[0]);
     await page.reload();
     await page.getByRole('button',{name:'Adicionar refeição',exact:true}).click();
-    await page.getByRole('radio',{name:'Refeição da dieta',exact:true}).click();
+    await page.getByRole('radio',{name:'Usar minha dieta',exact:true}).click();
     await page.getByRole('button',{name:'Abrir Almoço às 11:00',exact:true}).click();
+    await expect(page.getByLabel('Nome da refeição',{exact:true})).toHaveValue('');
+    await page.getByLabel('Nome da refeição',{exact:true}).fill('Marmita da dieta E2E');
+    await page.getByRole('button',{name:'Aumentar horário em 30 minutos',exact:true}).click();
     await page.getByRole('radio',{name:'Almoço B',exact:true}).click();
+    await expect(page.getByLabel('Nome da refeição',{exact:true})).toHaveValue('Marmita da dieta E2E');
+    await expect(page.getByLabel('Horário exato (HH:MM)', { exact: true })).toHaveValue('11:30');
     await page.getByLabel('Quantidade consumida de Batata do plano').fill('150');
     await page.getByRole('button',{name:'Registrar consumo da dieta',exact:true}).click();
-    await expect(page.getByText('Refeição registrada.',{exact:true})).toBeVisible();
+    await expect(page.getByText('Refeição salva neste aparelho.',{exact:true})).toBeVisible();
+    await page.getByRole('button',{name:'Sincronizar refeições agora',exact:true}).click();
+    await expect(page.getByTestId('meal-sync-status')).toHaveCount(0);
     const date = new Date().toLocaleDateString('sv-SE',{timeZone:'America/Bahia'});
     const summary = await (await request.get(apiURL+`/nutrition/summary?date=${date}`,{headers})).json();
+    expect(summary.meals[0]).toMatchObject({name:'Marmita da dieta E2E',category:'lunch',time:'11:30'});
     expect(summary.consumed.calories).toBe(120);expect(summary.meals).toHaveLength(1);
     expect(summary.meals[0].items[0].foodName).toBe('Batata do plano');
     await page.goto('/diet');

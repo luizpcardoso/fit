@@ -1,8 +1,11 @@
+import { defaultWorkoutCover } from '@fit/contracts';
 import { randomUUID } from "node:crypto";
 import { QueryTypes, type Transaction } from "sequelize";
 import { z } from "zod";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import {
+  portalContentListQuerySchema,
+  portalListQuerySchema,
   createWorkoutPlanSchema,
   portalAssignmentInputSchema,
   portalContentInputSchema,
@@ -82,11 +85,11 @@ export class PortalContentService {
       archived: Boolean(row.archived),
     };
   }
-  async list(actor: string, kind: string) {
+  async list(actor: string, kind: string, scope?: "private" | "global", offset = 0) {
     await this.editable(actor, kind, "private");
     const rows = await this.db.query<any>(
-      "SELECT pc.id,pc.owner_id ownerId,pc.kind,pc.scope,pc.name,pc.data,pc.revision,pc.archived,pc.updated_at updatedAt,e.image_url imageKey FROM portal_content pc LEFT JOIN exercises e ON e.id=pc.id WHERE pc.kind=? AND (pc.owner_id=? OR pc.scope='global') ORDER BY pc.archived,pc.updated_at DESC LIMIT 200",
-      { replacements: [kind, actor], type: QueryTypes.SELECT },
+      `SELECT pc.id,pc.owner_id ownerId,pc.kind,pc.scope,pc.name,pc.data,pc.revision,pc.archived,pc.updated_at updatedAt,e.image_url imageKey FROM portal_content pc LEFT JOIN exercises e ON e.id=pc.id WHERE pc.kind=? AND (pc.owner_id=? OR pc.scope='global') ${scope ? "AND pc.scope=?" : ""} ORDER BY pc.archived,pc.updated_at DESC,pc.id DESC LIMIT 200 OFFSET ?`,
+      { replacements: scope ? [kind, actor, scope, offset] : [kind, actor, offset], type: QueryTypes.SELECT },
     );
     return rows.map((row) => ({
       ...row,
@@ -102,6 +105,8 @@ export class PortalContentService {
     target: string,
     imageDataUrl: string | null,
   ) {
+    const admin = await this.management.require(actor, false);
+    if (admin.role !== 'admin') throw new PortalError(403, 'Somente administradores podem alterar imagens de exercícios.');
     const row = await this.content(actor, target);
     if (row.kind !== "exercise")
       throw new PortalError(400, "A imagem só pode ser anexada a um exercício.");
@@ -159,6 +164,10 @@ export class PortalContentService {
     input = portalContentInputSchema.parse(input);
     return this.db.transaction(async (t) => {
       const account = await this.editable(actor, input.kind, input.scope, t);
+      if (input.kind === 'workout' && input.data.coverId !== undefined && account.role !== 'admin') throw new PortalError(403, 'Somente administradores podem alterar a capa da ficha.');
+      const attachCover = (previous?: {coverId?: string|null}) => {
+        if (input.kind === 'workout') input = {...input,data:{...input.data,coverId: input.data.coverId === undefined ? (previous && Object.hasOwn(previous,'coverId') ? previous.coverId : defaultWorkoutCover(input.name)) : input.data.coverId}} as PortalContentInput;
+      };
       const id = target || randomUUID();
       let next = 1;
       if (target) {
@@ -182,6 +191,7 @@ export class PortalContentService {
             "Conteúdo alterado por outra sessão. Recarregue antes de salvar.",
           );
         next = Number(old.revision) + 1;
+        attachCover(old.data);
         await this.db.query(
           "UPDATE portal_content SET scope=?,name=?,data=?,revision=?,updated_at=UTC_TIMESTAMP() WHERE id=?",
           {
@@ -195,7 +205,8 @@ export class PortalContentService {
             transaction: t,
           },
         );
-      } else
+      } else {
+        attachCover();
         await this.db.query(
           "INSERT INTO portal_content (id,owner_id,kind,scope,name,data,revision,archived,created_at,updated_at) VALUES (?,?,?,?,?,?,1,FALSE,UTC_TIMESTAMP(),UTC_TIMESTAMP())",
           {
@@ -210,6 +221,8 @@ export class PortalContentService {
             transaction: t,
           },
         );
+      }
+      if (input.kind === 'workout' && input.scope === 'global') await this.db.query('UPDATE suggested_workout_plans SET cover_id=? WHERE id=?', {replacements:[input.data.coverId ?? null,id],transaction:t});
       await this.db.query(
         "INSERT INTO portal_content_versions (id,content_id,revision,snapshot,actor_id,created_at) VALUES (?,?,?,?,?,UTC_TIMESTAMP())",
         {
@@ -245,16 +258,15 @@ export class PortalContentService {
   async materialize(student: string, assignment: any, t: Transaction) {
     const snapshot = portalContentSnapshotSchema.parse(json(assignment.snapshot));
     if (snapshot.kind === "workout") {
-      const input = createWorkoutPlanSchema.parse({
-        name: snapshot.name,
-        ...snapshot.data,
-      });
+      const {coverId,...prescription} = snapshot.data;
+      const input = createWorkoutPlanSchema.parse({ name: snapshot.name, ...prescription });
       // All exercises are snapshots: a private library item never grants another user's exercise ID.
       const result = await new WorkoutRepository(this.db).createPlan(
         student,
         input,
         t,
         assignment.author_id,
+        coverId,
       );
       if (result === "limit")
         throw new PortalError(
@@ -535,21 +547,8 @@ export async function registerPortalContent(
     "/portal/content",
     { preHandler: secure },
     run((req) => {
-      const { kind } = z
-        .strictObject({
-          kind: z.enum([
-            "food",
-            "exercise",
-            "equipment",
-            "category",
-            "workout",
-            "diet",
-            "goal",
-            "guidance",
-          ]),
-        })
-        .parse(req.query);
-      return service.list(req.user.sub, kind);
+      const { kind, scope, offset } = portalContentListQuerySchema.parse(req.query);
+      return service.list(req.user.sub, kind, scope, offset);
     }),
   );
   app.post(
@@ -957,14 +956,13 @@ export async function registerPortalContent(
     { preHandler: secure },
     run(async (req) => {
       const account = await service.management.require(req.user.sub);
-      if (account.role === "admin")
-        return service.db.query(
-          "SELECT g.id,g.name,g.description,g.active,g.owner_user_id ownerId,(SELECT COUNT(*) FROM group_members m WHERE m.group_id=g.id AND m.status='active') members FROM `groups` g ORDER BY g.updated_at DESC LIMIT 200",
-          { type: QueryTypes.SELECT },
-        );
-      if (!account.capabilities.includes("groups.manage"))
+      const { offset } = portalListQuerySchema.parse(req.query);
+      if (account.role !== "admin" && !account.capabilities.includes("groups.manage"))
         throw new PortalError(403, "Sem permissão para grupos.");
-      return groups.list(req.user.sub);
+      return service.db.query(
+        `SELECT g.id,g.name,g.description,g.active,g.owner_user_id ownerId,(SELECT COUNT(*) FROM group_members m WHERE m.group_id=g.id AND m.status='active') members FROM \`groups\` g ${account.role === "admin" ? "" : "WHERE g.owner_user_id=?"} ORDER BY g.updated_at DESC,g.id DESC LIMIT 200 OFFSET ?`,
+        { replacements: account.role === "admin" ? [offset] : [req.user.sub, offset], type: QueryTypes.SELECT },
+      );
     }),
   );
   app.post(

@@ -1,16 +1,19 @@
+import { WorkoutPlanCover } from '@/components/workout-plan-cover';
+import { WorkoutIllustration } from '@/components/workout-illustration';
 import { useAuth } from '@/auth/auth-context';
 import { PlanValidity } from '@/components/plan-validity';
 import { RenewPlan } from '@/components/renew-plan';
-import { CardShadow, Radius, Type, type AppPalette } from '@/constants/theme';
-import { ScreenHeader } from '@/components/screen-header';
+import { CardShadow, Radius, Scrim, Type, type AppPalette } from '@/constants/theme';
+import { FixedScreenHeader, ScreenHeader } from '@/components/screen-header';
 import { confirmAction, showDialog, showToast } from '@/components/app-dialog';
 import { useAppTheme } from '@/theme/theme-provider';
 import MaterialCommunityIcons from '@/components/icon';
 import { Image } from 'expo-image';
-import type { WorkoutPlan } from '@fit/contracts';
+import { isWorkoutRunOpen, type WorkoutPlan } from '@fit/contracts';
+import { useWorkoutRun } from '@/components/workout-run-provider';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function WorkoutDetail() {
@@ -23,6 +26,9 @@ export default function WorkoutDetail() {
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
   const [loadError, setLoadError] = useState('');
+  const [actionsOpen, setActionsOpen] = useState(false);
+  const { run } = useWorkoutRun();
+  const openRun = run && isWorkoutRunOpen(run.progress) ? run : null;
 
   // Reloads on focus so returning from "Editar ficha" shows the saved version.
   const load = useCallback(() => {
@@ -72,16 +78,18 @@ export default function WorkoutDetail() {
   } }]);
   const openEdit = () => router.push({ pathname: '/workout-create', params: { id: plan.id } });
 
-  return <SafeAreaView style={s.safe} edges={['top']}>
+  return <SafeAreaView style={s.safe} edges={['top', 'bottom']}>
+    <FixedScreenHeader backLabel="Fichas" right={<Pressable accessibilityRole="button" accessibilityLabel={`Ações da ficha ${plan.name}`} onPress={() => setActionsOpen(true)} style={s.menuButton}><MaterialCommunityIcons name="dots-horizontal" size={24} color={c.link} /></Pressable>} />
     <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
-      <ScreenHeader backLabel="Fichas" />
 
       <View style={[s.identity, CardShadow]}>
+        <WorkoutPlanCover coverId={plan.coverId}/>
         <View style={s.identityTop}>
           <View style={s.identityIcon}><MaterialCommunityIcons name="clipboard-text-outline" size={24} color={c.primaryStrong} /></View>
-          <View style={s.flex}><Text style={s.eyebrow}>Detalhes da ficha</Text><Text accessibilityRole="header" style={s.title}>{plan.name}</Text></View>
+          <Text style={[s.eyebrow, s.flex]}>Detalhes da ficha</Text>
           <View style={[s.status, archived && s.statusArchived]}><MaterialCommunityIcons name={statusIcon} size={14} color={c.primaryStrong} /><Text style={s.statusText}>{statusLabel}</Text></View>
         </View>
+        <Text accessibilityRole="header" style={s.title}>{plan.name}</Text>
         <View style={s.stats}>
           <View style={s.stat}><Text style={s.statValue}>{plan.divisions.length}</Text><Text style={s.statLabel}>{plan.divisions.length === 1 ? 'treino' : 'treinos'}</Text></View>
           <View style={s.statDivider} /><View style={s.stat}><Text style={s.statValue}>{exerciseCount}</Text><Text style={s.statLabel}>exercícios</Text></View>
@@ -91,17 +99,9 @@ export default function WorkoutDetail() {
         {readOnly ? <View style={s.origin}><MaterialCommunityIcons name="account-tie-outline" size={16} color={c.heroTint} /><Text style={s.originText}>Enviada pelo seu profissional</Text></View> : null}
       </View>
 
-      {message ? <View accessibilityRole="alert" style={s.notice}><MaterialCommunityIcons name="information-outline" size={18} color={c.link} /><Text style={s.noticeText}>{message}</Text></View> : null}
-
-      <View style={s.sectionHeading}><Text style={s.sectionTitle}>Ações desta ficha</Text><Text style={s.sectionSubtitle}>Todas as alterações abaixo se aplicam a {plan.name}</Text></View>
-      <View style={s.actionGrid}>
-        {!readOnly ? <Pressable accessibilityRole="button" accessibilityLabel={`Editar ficha ${plan.name}`} disabled={busy} onPress={openEdit} style={[s.actionTile, busy && s.disabled]}><View style={s.actionIcon}><MaterialCommunityIcons name="pencil-outline" size={21} color={c.link} /></View><Text style={s.actionTitle}>Editar ficha</Text><Text style={s.actionText}>Nome, validade, treinos e exercícios</Text></Pressable> : null}
-        <RenewPlan variant="tile" plan={plan} onRenewed={updated => { setPlan(updated); setMessage('Validade da ficha atualizada.'); }} />
-        {!archived ? <Pressable accessibilityRole="button" accessibilityLabel={`${plan.isActive ? 'Desativar' : 'Ativar'} ficha ${plan.name}`} disabled={busy} onPress={() => void updateActive()} style={[s.actionTile, busy && s.disabled]}><View style={s.actionIcon}><MaterialCommunityIcons name={plan.isActive ? 'pause-circle-outline' : 'play-circle-outline'} size={21} color={c.link} /></View><Text style={s.actionTitle}>{plan.isActive ? 'Desativar ficha' : 'Ativar ficha'}</Text><Text style={s.actionText}>{plan.isActive ? 'Parar de usar como principal' : 'Usar nos próximos treinos'}</Text></Pressable> : null}
-        <Pressable accessibilityRole="button" accessibilityLabel={`${archived ? 'Restaurar' : 'Arquivar'} ficha ${plan.name}`} disabled={busy} onPress={() => void confirmArchive()} style={[s.actionTile, busy && s.disabled]}><View style={s.actionIcon}><MaterialCommunityIcons name={archived ? 'archive-arrow-up-outline' : 'archive-outline'} size={21} color={archived ? c.link : c.warning} /></View><Text style={s.actionTitle}>{archived ? 'Restaurar ficha' : 'Arquivar ficha'}</Text><Text style={s.actionText}>{archived ? 'Voltar para fichas atuais' : 'Retirar das fichas atuais'}</Text></Pressable>
-        <Pressable accessibilityRole="button" accessibilityLabel={`Excluir ficha ${plan.name} permanentemente`} disabled={busy} onPress={confirmDelete} style={[s.actionTile, s.dangerTile, busy && s.disabled]}><View style={[s.actionIcon, s.dangerIcon]}><MaterialCommunityIcons name="trash-can-outline" size={21} color={c.danger} /></View><Text style={[s.actionTitle, s.dangerText]}>Excluir ficha</Text><Text style={s.actionText}>Remover permanentemente</Text></Pressable>
-      </View>
       {readOnly ? <View style={s.readOnlyNote}><MaterialCommunityIcons name="lock-outline" size={18} color={c.textMuted} /><Text style={s.inactiveHintText}>Esta ficha foi enviada pelo seu profissional e não pode ser editada por aqui. Para mudar exercícios ou cargas, peça o ajuste a ele.</Text></View> : null}
+
+      {message ? <View accessibilityRole="alert" style={s.notice}><MaterialCommunityIcons name="information-outline" size={18} color={c.link} /><Text style={s.noticeText}>{message}</Text></View> : null}
 
       <View style={s.sectionHeading}><Text style={s.sectionTitle}>Treinos da ficha</Text><Text style={s.sectionSubtitle}>Troque de treino sem sair desta ficha</Text></View>
       {plan.divisions.length ? <>
@@ -116,19 +116,31 @@ export default function WorkoutDetail() {
         </ScrollView>
 
         {selectedDivision ? <View style={[s.divisionPanel, CardShadow]}>
-          <View style={s.divisionHeader}><View style={s.divisionLetter}><Text style={s.divisionLetterText}>{selectedDivision.label}</Text></View><View style={s.flex}><Text style={s.divisionTitle}>Treino {selectedDivision.label} · {selectedDivision.name}</Text><Text style={s.muted}>{selectedDivision.completedSessions} {selectedDivision.completedSessions === 1 ? 'vez realizado' : 'vezes realizado'}</Text></View></View>
+          <View style={s.divisionHeader}>{selectedDivision.illustrationId ? <WorkoutIllustration id={selectedDivision.illustrationId} style={{ width: 96 }}/> : <View style={s.divisionLetter}><Text style={s.divisionLetterText}>{selectedDivision.label}</Text></View>}<View style={s.flex}><Text style={s.divisionTitle}>Treino {selectedDivision.label} · {selectedDivision.name}</Text><Text style={s.muted}>{selectedDivision.completedSessions} {selectedDivision.completedSessions === 1 ? 'vez realizado' : 'vezes realizado'}</Text></View></View>
           <View style={s.exerciseList}>{selectedDivision.exercises.map((exercise, index) => <View key={exercise.id} style={[s.exercise, index > 0 && s.exerciseDivider]}>{exercise.imageUrl ? <Image source={{ uri: exercise.imageUrl }} contentFit="cover" transition={180} style={s.exerciseImage} accessibilityLabel={`Imagem de ${exercise.name}`} /> : <View style={s.exerciseIndex}><Text style={s.exerciseIndexText}>{index + 1}</Text></View>}<View style={s.flex}><Text style={s.exerciseName}>{exercise.name}</Text><Text style={s.muted}>{exercise.sets} × {exercise.reps}{exercise.load != null ? ` · ${exercise.load} kg` : ''}</Text></View></View>)}</View>
           {!selectedDivision.exercises.length ? <View style={s.empty}><MaterialCommunityIcons name="dumbbell" size={24} color={c.textMuted} /><Text style={s.muted}>Nenhum exercício neste treino.</Text></View> : null}
-          {!archived && plan.isActive ? <Pressable accessibilityRole="button" style={s.start} onPress={() => router.push({ pathname: '/workout-run', params: { planId: plan.id, divisionId: selectedDivision.id } })}><MaterialCommunityIcons name="play" size={19} color={c.onPrimary} /><Text style={s.startText}>Começar treino {selectedDivision.label}</Text></Pressable> : <View style={s.inactiveHint}><MaterialCommunityIcons name={archived ? 'archive-outline' : 'information-outline'} size={18} color={c.textMuted} /><Text style={s.inactiveHintText}>{archived ? 'Restaure e ative a ficha para iniciar este treino.' : 'Ative esta ficha para iniciar um treino.'}</Text></View>}
+          {!archived && plan.isActive ? null : <View style={s.inactiveHint}><MaterialCommunityIcons name={archived ? 'archive-outline' : 'information-outline'} size={18} color={c.textMuted} /><Text style={s.inactiveHintText}>{archived ? 'Restaure e ative a ficha para iniciar este treino.' : 'Ative esta ficha para iniciar um treino.'}</Text></View>}
         </View> : null}
       </> : <View style={s.empty}><MaterialCommunityIcons name="clipboard-alert-outline" size={27} color={c.textMuted} /><Text style={s.muted}>Esta ficha não possui treinos.</Text></View>}
     </ScrollView>
+    {!archived && plan.isActive && selectedDivision ? <View style={s.footer}><Pressable accessibilityRole="button" style={[s.start, s.footerInner]} onPress={() => router.push(openRun ? '/workout-run' : { pathname: '/workout-run', params: { planId: plan.id, divisionId: selectedDivision.id } })}><MaterialCommunityIcons name="play" size={19} color={c.onPrimary} /><Text style={s.startText}>{openRun ? `Continuar treino ${openRun.divisionLabel}` : `Iniciar treino ${selectedDivision.label}`}</Text></Pressable></View> : null}
+    <Modal visible={actionsOpen} transparent animationType="slide" onRequestClose={() => setActionsOpen(false)}><View style={s.overlay}><Pressable accessibilityRole="button" accessibilityLabel="Fechar ações da ficha" onPress={() => setActionsOpen(false)} style={StyleSheet.absoluteFill} /><SafeAreaView edges={['bottom']} style={s.sheet}>
+      <View style={s.sheetHandle} />
+      <View style={s.sheetHeader}><View style={s.flex}><Text accessibilityRole="header" style={s.sectionTitle}>Ações da ficha</Text><Text style={s.sectionSubtitle}>Aplicam-se a {plan.name}</Text></View><Pressable accessibilityRole="button" accessibilityLabel="Fechar" onPress={() => setActionsOpen(false)} style={s.menuButton}><MaterialCommunityIcons name="close" size={22} color={c.link} /></Pressable></View>
+      <View style={s.actionGrid}>
+        {!readOnly ? <Pressable accessibilityRole="button" accessibilityLabel={`Editar ficha ${plan.name}`} disabled={busy} onPress={() => { setActionsOpen(false); openEdit(); }} style={[s.actionTile, busy && s.disabled]}><View style={s.actionIcon}><MaterialCommunityIcons name="pencil-outline" size={21} color={c.link} /></View><Text style={s.actionTitle}>Editar ficha</Text><Text style={s.actionText}>Nome, validade, treinos e exercícios</Text></Pressable> : null}
+        <RenewPlan variant="tile" plan={plan} onRenewed={updated => { setActionsOpen(false); setPlan(updated); setMessage('Validade da ficha atualizada.'); }} />
+        {!archived ? <Pressable accessibilityRole="button" accessibilityLabel={`${plan.isActive ? 'Desativar' : 'Ativar'} ficha ${plan.name}`} disabled={busy} onPress={() => { setActionsOpen(false); void updateActive(); }} style={[s.actionTile, busy && s.disabled]}><View style={s.actionIcon}><MaterialCommunityIcons name={plan.isActive ? 'pause-circle-outline' : 'play-circle-outline'} size={21} color={c.link} /></View><Text style={s.actionTitle}>{plan.isActive ? 'Desativar ficha' : 'Ativar ficha'}</Text><Text style={s.actionText}>{plan.isActive ? 'Parar de usar como principal' : 'Usar nos próximos treinos'}</Text></Pressable> : null}
+        <Pressable accessibilityRole="button" accessibilityLabel={`${archived ? 'Restaurar' : 'Arquivar'} ficha ${plan.name}`} disabled={busy} onPress={() => { setActionsOpen(false); void confirmArchive(); }} style={[s.actionTile, busy && s.disabled]}><View style={s.actionIcon}><MaterialCommunityIcons name={archived ? 'archive-arrow-up-outline' : 'archive-outline'} size={21} color={archived ? c.link : c.warning} /></View><Text style={s.actionTitle}>{archived ? 'Restaurar ficha' : 'Arquivar ficha'}</Text><Text style={s.actionText}>{archived ? 'Voltar para fichas atuais' : 'Retirar das fichas atuais'}</Text></Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel={`Excluir ficha ${plan.name} permanentemente`} disabled={busy} onPress={() => { setActionsOpen(false); confirmDelete(); }} style={[s.actionTile, s.dangerTile, busy && s.disabled]}><View style={[s.actionIcon, s.dangerIcon]}><MaterialCommunityIcons name="trash-can-outline" size={21} color={c.danger} /></View><Text style={[s.actionTitle, s.dangerText]}>Excluir ficha</Text><Text style={s.actionText}>Remover permanentemente</Text></Pressable>
+      </View>
+    </SafeAreaView></View></Modal>
   </SafeAreaView>;
 }
 
 const styles = (c: AppPalette) => StyleSheet.create({
-  safe:{flex:1,backgroundColor:c.background},content:{padding:20,paddingBottom:110,gap:14,maxWidth:680,width:'100%',alignSelf:'center'},flex:{flex:1,minWidth:0},loading:{marginTop:80},errorCard:{backgroundColor:c.surface,borderWidth:1,borderColor:c.border,borderRadius:Radius.xl,padding:18,gap:10,marginTop:16},
-  identity:{backgroundColor:c.primaryStrong,borderRadius:24,padding:17,gap:15},identityTop:{flexDirection:'row',alignItems:'center',gap:11},identityIcon:{width:44,height:44,borderRadius: 16,backgroundColor:c.white,alignItems:'center',justifyContent:'center'},eyebrow:{...Type.caption,fontWeight: '800',letterSpacing:.5,textTransform:'uppercase',color:c.heroMuted},title:{fontSize:23,fontWeight: '800',color:c.white,marginTop:2},status:{flexDirection:'row',alignItems:'center',gap:4,backgroundColor:c.white,paddingHorizontal:8,paddingVertical:6,borderRadius:Radius.md},statusText:{...Type.caption,fontWeight: '800',color:c.primaryStrong},statusArchived:{backgroundColor:c.heroWarning},origin:{flexDirection:'row',alignItems:'center',gap:6},originText:{...Type.caption,fontWeight:'700',color:c.heroTint},readOnlyNote:{flexDirection:'row',alignItems:'flex-start',gap:8,backgroundColor:c.surfaceSoft,padding:12,borderRadius:Radius.lg},stats:{flexDirection:'row',alignItems:'center'},stat:{flex:1,alignItems:'center'},statValue:{fontSize:20,fontWeight: '800',color:c.white},statLabel:{fontSize: 12,color:c.heroMuted,marginTop:1},statDivider:{width:1,height:29,backgroundColor:'rgba(255,255,255,.14)'},validity:{backgroundColor:c.surface,borderRadius:12,paddingHorizontal:11,paddingVertical:9},
+  safe:{flex:1,backgroundColor:c.background},menuButton:{width:44,height:44,borderRadius:Radius.md,alignItems:'center',justifyContent:'center',backgroundColor:c.surfaceSoft},footer:{borderTopWidth:1,borderTopColor:c.border,backgroundColor:c.surface,paddingHorizontal:16,paddingVertical:12},footerInner:{maxWidth:640,width:'100%',alignSelf:'center',minHeight:52},overlay:{flex:1,justifyContent:'flex-end',backgroundColor:Scrim},sheet:{backgroundColor:c.background,borderTopLeftRadius:24,borderTopRightRadius:24,padding:16,gap:12,maxWidth:680,width:'100%',alignSelf:'center'},sheetHandle:{width:40,height:4,borderRadius:2,backgroundColor:c.border,alignSelf:'center'},sheetHeader:{flexDirection:'row',alignItems:'center',gap:10},content:{padding:20,paddingBottom:32,gap:14,maxWidth:680,width:'100%',alignSelf:'center'},flex:{flex:1,minWidth:0},loading:{marginTop:80},errorCard:{backgroundColor:c.surface,borderWidth:1,borderColor:c.border,borderRadius:Radius.xl,padding:18,gap:10,marginTop:16},
+  identity:{backgroundColor:c.primaryStrong,borderRadius:24,padding:17,gap:15},identityTop:{flexDirection:'row',alignItems:'center',gap:11,flexWrap:'wrap'},identityIcon:{width:44,height:44,borderRadius: 16,backgroundColor:c.white,alignItems:'center',justifyContent:'center'},eyebrow:{...Type.caption,fontWeight: '800',letterSpacing:.5,textTransform:'uppercase',color:c.heroMuted},title:{fontSize:23,fontWeight: '800',color:c.white,marginTop:2},status:{flexDirection:'row',alignItems:'center',gap:4,backgroundColor:c.white,paddingHorizontal:8,paddingVertical:6,borderRadius:Radius.md},statusText:{...Type.caption,fontWeight: '800',color:c.primaryStrong},statusArchived:{backgroundColor:c.heroWarning},origin:{flexDirection:'row',alignItems:'center',gap:6},originText:{...Type.caption,fontWeight:'700',color:c.heroTint},readOnlyNote:{flexDirection:'row',alignItems:'flex-start',gap:8,backgroundColor:c.surfaceSoft,padding:12,borderRadius:Radius.lg},stats:{flexDirection:'row',alignItems:'center'},stat:{flex:1,alignItems:'center'},statValue:{fontSize:20,fontWeight: '800',color:c.white},statLabel:{fontSize: 12,color:c.heroMuted,marginTop:1},statDivider:{width:1,height:29,backgroundColor:'rgba(255,255,255,.14)'},validity:{backgroundColor:c.surface,borderRadius:12,paddingHorizontal:11,paddingVertical:9},
   notice:{flexDirection:'row',alignItems:'center',gap:8,backgroundColor:c.primarySoft,padding:12,borderRadius: 16},noticeText:{flex:1,color:c.link,fontSize: 12,fontWeight:'700'},sectionHeading:{gap:2,marginTop:3},sectionTitle:{fontSize:19,fontWeight: '800',color:c.text},sectionSubtitle:{fontSize: 12,color:c.textMuted},
   actionGrid:{flexDirection:'row',flexWrap:'wrap',gap:8},actionTile:{width:'48%',flexGrow:1,minWidth:140,minHeight:105,borderWidth:1,borderColor:c.border,borderRadius:16,backgroundColor:c.surface,padding:12,justifyContent:'center'},actionIcon:{width:36,height:36,borderRadius:12,backgroundColor:c.primarySoft,alignItems:'center',justifyContent:'center',marginBottom:7},actionTitle:{fontSize:12,fontWeight: '800',color:c.text},actionText:{fontSize: 12,color:c.textMuted,marginTop:2},dangerTile:{borderColor:c.dangerSoft},dangerIcon:{backgroundColor:c.dangerSoft},dangerText:{color:c.danger},disabled:{opacity:.55},
   tabs:{gap:8,paddingRight:20},tab:{minWidth:145,maxWidth:210,flexDirection:'row',alignItems:'center',gap:9,borderWidth:1,borderColor:c.border,borderRadius:16,backgroundColor:c.surface,padding:10},tabSelected:{backgroundColor:c.primary,borderColor:c.primary},tabLetter:{width:35,height:35,borderRadius: 12,backgroundColor:c.surfaceSoft,alignItems:'center',justifyContent:'center'},tabLetterSelected:{backgroundColor:c.white},tabLetterText:{fontSize:14,fontWeight: '800',color:c.link},tabLetterTextSelected:{color:c.primaryStrong},tabTitle:{maxWidth:135,fontSize:12,fontWeight: '800',color:c.text},tabTitleSelected:{color:c.white},tabMeta:{fontSize: 12,color:c.textMuted,marginTop:2},tabMetaSelected:{color:c.heroMuted},

@@ -1,17 +1,40 @@
+import { readFile } from 'node:fs/promises';
+import { pageQuerySchema, workoutCovers, workoutCoverIdSchema } from '@fit/contracts';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
-import { completeWorkoutSchema, createWorkoutPlanSchema, renewWorkoutPlanSchema, updateWorkoutPlanSchema, updateWorkoutSessionSchema, workoutGoalInputSchema, workoutPlanReadOnlyCode } from '@fit/contracts';
+import { saveWorkoutRunSchema, completeWorkoutSchema, createWorkoutPlanSchema, renewWorkoutPlanSchema, updateWorkoutPlanSchema, updateWorkoutSessionSchema, workoutGoalInputSchema, workoutPlanReadOnlyCode } from '@fit/contracts';
 import type { WorkoutRepository } from './workout-repository.js';
 import type { GroupRepository } from './group-repository.js';
 
 const idParams = z.object({ id: z.string().uuid() });
 const error = { type:'object',required:['code','message'],properties:{code:{type:'string'},message:{type:'string'}} } as const;
+const previousRunQuery = z.strictObject({ divisionId: z.string().uuid() });
 export async function registerWorkoutRoutes(app:FastifyInstance,repository:WorkoutRepository,secure:(request:FastifyRequest,reply:FastifyReply)=>Promise<unknown>,groups?:GroupRepository){
   const base={preHandler:secure,schema:{security:[{bearerAuth:[]}],tags:['Treinos']}};
+  app.get('/workout-plan-covers', async () => workoutCovers.map(item => ({...item,url:`/assets/plan-covers/${item.id}.webp`})));
+  app.get('/assets/plan-covers/:id.webp', async (request, reply) => {
+    const id = workoutCoverIdSchema.parse((request.params as {id:string}).id);
+    return reply.type('image/webp').header('cache-control','public, max-age=31536000, immutable').header('x-content-type-options','nosniff').send(await readFile(new URL(`../../mobile/assets/images/plan-covers/${id}.webp`,import.meta.url)));
+  });
+  app.get('/workout-runs/active', { ...base }, (request, reply) => { reply.header('Cache-Control', 'no-store'); return repository.runs.active(request.user.sub); });
+  app.get('/workout-runs/previous', { ...base, schema: { ...base.schema, summary: 'Valores realizados na última execução de cada exercício do treino' } }, (request, reply) => { reply.header('Cache-Control', 'no-store'); return repository.runs.previous(request.user.sub, previousRunQuery.parse(request.query).divisionId); });
+  app.get('/workout-runs/:id', { ...base }, async (request, reply) => {
+    const { id } = idParams.parse(request.params);
+    reply.header('Cache-Control', 'no-store');
+    return await repository.runs.get(request.user.sub, id) ?? reply.code(404).send({ code: 'NOT_FOUND', message: 'Sessão não encontrada.' });
+  });
+  app.put('/workout-runs/:id', { ...base }, async (request, reply) => {
+    const { id } = idParams.parse(request.params);
+    const result = await repository.runs.save(request.user.sub, id, saveWorkoutRunSchema.parse(request.body));
+    if (result.kind === 'conflict') return reply.code(409).send({ code: 'WORKOUT_RUN_CONFLICT', message: 'Há uma versão mais recente ou outro treino aberto. Revise a sessão antes de continuar.', run: result.run });
+    if (result.kind === 'not_found') return reply.code(404).send({ code: 'NOT_FOUND', message: 'Treino não encontrado.' });
+    if (result.kind === 'invalid') return reply.code(400).send({ code: 'INVALID_WORKOUT_PROGRESS', message: 'O progresso não corresponde aos exercícios deste treino.' });
+    return result.run;
+  });
   app.get('/exercises',{...base,schema:{...base.schema,summary:'Lista exercícios do catálogo',querystring:{type:'object',properties:{search:{type:'string',maxLength:100}}}}},async request=>repository.listCatalog((request.query as {search?:string}).search));
   app.get('/workout-plan-suggestions',{...base,schema:{...base.schema,summary:'Lista fichas sugeridas do catálogo'}},async()=>repository.listSuggestedPlans());
   app.get('/workout-plans',{...base,schema:{...base.schema,summary:'Lista fichas do usuário'}},async request=>repository.listPlans(request.user.sub));
-  app.post('/workout-plans',{...base,schema:{...base.schema,summary:'Cria uma ficha com divisões e exercícios',response:{201:{type:'object',properties:{id:{type:'string'}},required:['id']},400:error,409:error}}},async(request,reply)=>{const input=createWorkoutPlanSchema.parse(request.body);const id=await repository.createPlan(request.user.sub,input);return id==='limit'?reply.code(409).send({code:'PLAN_LIMIT_REACHED',message:'Você já possui 3 fichas disponíveis. Arquive uma ficha para criar outra.'}):reply.code(201).send({id});});
+  app.post('/workout-plans',{...base,schema:{...base.schema,summary:'Cria uma ficha com divisões e exercícios',response:{201:{type:'object',properties:{id:{type:'string'}},required:['id']},400:error,404:error,409:error}}},async(request,reply)=>{const input=createWorkoutPlanSchema.parse(request.body);const id=await repository.createPlan(request.user.sub,input);return id==='missing_suggestion'?reply.code(404).send({code:'NOT_FOUND',message:'A ficha do catálogo não está mais disponível. Escolha outra ficha.'}):id==='limit'?reply.code(409).send({code:'PLAN_LIMIT_REACHED',message:'Você já possui 3 fichas disponíveis. Arquive uma ficha para criar outra.'}):reply.code(201).send({id});});
   app.get('/workout-plans/:id',{...base,schema:{...base.schema,summary:'Detalha uma ficha',response:{404:error}}},async(request,reply)=>{const {id}=idParams.parse(request.params);const plan=await repository.getPlan(request.user.sub,id);return plan??reply.code(404).send({code:'NOT_FOUND',message:'Ficha não encontrada.'});});
   app.put('/workout-plans/:id', { ...base, schema: { ...base.schema, summary: 'Edita uma ficha própria preservando o histórico', response: { 400: error, 403: error, 404: error } } }, async (request, reply) => {
     const { id } = idParams.parse(request.params);
@@ -32,6 +55,7 @@ export async function registerWorkoutRoutes(app:FastifyInstance,repository:Worko
   app.patch('/workout-plans/:id/archive',{...base,schema:{...base.schema,summary:'Arquiva ou restaura uma ficha',body:{type:'object',required:['archived'],additionalProperties:false,properties:{archived:{type:'boolean'}}},response:{204:{type:'null'},404:error}}},async(request,reply)=>{const {id}=idParams.parse(request.params);const archived=z.object({archived:z.boolean()}).parse(request.body).archived;return await repository.setArchived(request.user.sub,id,archived)?reply.code(204).send():reply.code(404).send({code:'NOT_FOUND',message:'Ficha não encontrada.'});});
   app.delete('/workout-plans/:id',{...base,schema:{...base.schema,summary:'Exclui uma ficha preservando o histórico',response:{204:{type:'null'},404:error}}},async(request,reply)=>{const {id}=idParams.parse(request.params);return await repository.deletePlan(request.user.sub,id)?reply.code(204).send():reply.code(404).send({code:'NOT_FOUND',message:'Ficha não encontrada.'});});
   app.get('/workout-sessions',{...base,schema:{...base.schema,summary:'Lista histórico de treinos'}},async request=>repository.listSessions(request.user.sub));
+  app.get('/workout-sessions/page',{...base,schema:{...base.schema,summary:'Lista o histórico de treinos completo, paginado'}},async request=>repository.sessionsPage(request.user.sub,pageQuerySchema.parse(request.query)));
   app.get('/workout-goal',{...base,schema:{...base.schema,summary:'Meta semanal e progresso real',querystring:{type:'object',required:['date'],additionalProperties:false,properties:{date:{type:'string',format:'date'}}}}},async request=>{const { date }=z.object({date:z.string().date()}).parse(request.query);return repository.getGoalSummary(request.user.sub,date);});
   app.put('/workout-goal',{...base,schema:{...base.schema,summary:'Salva meta semanal',response:{204:{type:'null'},400:error,404:error}}},async(request,reply)=>{const input=workoutGoalInputSchema.parse(request.body);return await repository.saveGoal(request.user.sub,input)?reply.code(204).send():reply.code(404).send({code:'NOT_FOUND',message:'Um treino planejado não foi encontrado.'});});
   app.post('/workout-sessions', { ...base, schema: { ...base.schema, summary: 'Marca um treino como realizado', response: { 201: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] }, 404: error } } }, async (request, reply) => {

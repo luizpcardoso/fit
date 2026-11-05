@@ -101,3 +101,12 @@ export type ProfessionalRelationship = {
   expiresAt: string;
   createdAt: string;
 };
+
+// Arrays remain compatible with existing clients; each request is bounded to 200 records.
+export const portalListQuerySchema = z.strictObject({
+  offset: z.coerce.number().int().min(0).max(1000000).default(0),
+});
+export const portalContentListQuerySchema = portalListQuerySchema.extend({
+  kind: z.enum(["food", "exercise", "equipment", "category", "workout", "diet", "goal", "guidance"]),
+  scope: z.enum(["private", "global"]).optional(),
+});

@@ -12,8 +12,9 @@ Na aba Saúde, o card Mente abre uma tela com:
 - cinco estados emocionais textuais e acessíveis;
 - emoções, influências e anotação opcionais;
 - gráfico descritivo dos últimos sete dias;
-- diário com edição e exclusão;
+- diário com edição e exclusão, exibido de 7 em 7 (“Ver mais”); ao fim dos 90 dias carregados, “Buscar registros anteriores” amplia o período em 90 dias;
 - lembrete diário local e opcional;
+- botão fixo “Apoio” no cabeçalho, que leva aos contatos em qualquer ponto da tela;
 - contatos de apoio, incluindo CVV 188 e SAMU 192, com botões de ligar (`tel:`) e, quando o aparelho não consegue discar, um aviso com o número.
 
 Quando o check-in de hoje é “Muito mal”, o card de apoio sobe para logo abaixo do resumo, com o botão “Ver formas de apoio” que rola até ele. No formulário, escolher “Muito mal” mostra o atalho para ligar ao CVV e o botão “Ver formas de apoio”, que fecha o check-in e leva ao card. Emoções e textos usam formas neutras de gênero (“Com calma”, “Com motivação”, “Você não precisa passar por isso sem apoio”). Cada dia do gráfico tem leitura acessível com data e humor (ou “sem registro”).

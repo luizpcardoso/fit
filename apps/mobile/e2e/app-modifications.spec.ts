@@ -1,0 +1,56 @@
+import {waitForApiBudget} from './helpers/api-budget';
+import {test, expect} from '@playwright/test';
+import {randomUUID} from 'node:crypto';
+import {config} from 'dotenv';
+import {createConnection} from 'mysql2/promise';
+import {resolve} from 'node:path';
+const apiURL=process.env.FIT_E2E_API_URL ?? 'http://127.0.0.1:33318';
+test('convites, contador persistente, cards e check-in opcional', async({page,request})=>{
+  const database=process.env.FIT_E2E_DB_NAME;
+  test.skip(!database?.includes('test'),'Requer banco isolado.');
+  await waitForApiBudget(request,apiURL);
+  config({path:resolve(__dirname,'../../api/.env'),quiet:true});
+  const db=await createConnection({host:process.env.DB_HOST,port:Number(process.env.DB_PORT),user:process.env.DB_USER,password:process.env.DB_PASS,database});
+  const users:string[]=[];const relationship=randomUUID();const errors:string[]=[];page.on('pageerror',error=>errors.push(error.message));
+  try{
+    const register=async(firstName:string)=>{const res=await request.post(apiURL+'/auth/register',{data:{email:`changes-${randomUUID()}@example.com`,password:'test-password-123',phone:'71999990000',firstName,lastName:'Teste'}});expect(res.status()).toBe(201);const account=await res.json();users.push(account.user.id);return account;};
+    const owner=await register('Aluno');const professional=await register('Personal');
+    await db.execute("INSERT INTO professional_relationships (id,professional_id,invited_email,status,capabilities,expires_at,created_at,updated_at) VALUES (?,?,?,'pending',?,DATE_ADD(NOW(),INTERVAL 7 DAY),NOW(),NOW())",[relationship,professional.user.id,owner.user.email,JSON.stringify(['fitness.view','fitness.manage'])]);
+    await page.route(/^http:\/\/[^/]+:3333\//, async route => { const url=new URL(route.request().url());await route.fulfill({response:await route.fetch({url:apiURL+url.pathname+url.search})}); });
+    await page.addInitScript(account=>localStorage.setItem('fit.auth.tokens',JSON.stringify(account)),owner);
+    await page.goto('/');
+    await expect(page.getByRole('button',{name:'Notificações, 1 não lidas',exact:true})).toBeVisible({timeout:30000});
+    await page.getByRole('button',{name:'Notificações, 1 não lidas',exact:true}).click();
+    await page.getByRole('button',{name:/^Nova: Convite de Personal Teste/ }).click();
+    await expect(page.getByRole('heading',{name:'Meus profissionais',exact:true})).toBeVisible();
+    await expect(page.getByRole('checkbox')).toHaveCount(0);
+    await page.getByRole('button',{name:'Gerenciar Personal Teste',exact:true}).click();
+    await expect(page.getByRole('checkbox')).toHaveCount(2);
+    await page.getByRole('button',{name:'Gerenciar Personal Teste',exact:true}).click();
+    await expect(page.getByRole('checkbox')).toHaveCount(0);
+    await page.screenshot({path:'artifacts/ux-review/professionals-compact.png'});
+    await page.goto('/');
+    await expect(page.getByRole('button',{name:'Notificações, 0 não lidas',exact:true})).toBeVisible();
+    await page.getByRole('button',{name:'Notificações, 0 não lidas',exact:true}).click();
+    await expect(page.getByRole('button',{name:/^Lida: Convite de Personal Teste/ })).toBeVisible();
+    await page.goto('/mental-wellbeing');
+    const toggle=page.getByRole('switch',{name:'Contabilizar check-in de saúde mental',exact:true});
+    await expect(toggle).toBeChecked();await toggle.click();await expect(toggle).not.toBeChecked();
+    await page.reload();await expect(toggle).not.toBeChecked();
+    await page.goto('/?showChecks=1');
+    await expect(page.getByText('Check-in da Mente',{exact:true})).toHaveCount(0);
+    await page.goto('/mental-wellbeing');await toggle.click();await expect(toggle).toBeChecked();
+    await page.goto('/?showChecks=1');await expect(page.getByText('Check-in da Mente',{exact:true})).toBeVisible();
+    await page.goto('/workout-create');
+    await page.getByRole('button',{name:/Criar minha ficha/}).click();
+    await page.getByRole('button',{name:'Adicionar exercícios ao treino A',exact:true}).click();
+    await page.getByLabel('Buscar no catálogo',{exact:true}).fill('biceps');
+    await expect(page.getByRole('checkbox',{name:'Rosca 21',exact:true})).toBeVisible();
+    await page.getByLabel('Buscar no catálogo',{exact:true}).fill('Scott com halter');
+    await expect(page.getByRole('checkbox',{name:'Rosca Scott com halter',exact:true})).toBeVisible();
+    expect(errors).toEqual([]);
+  }finally{
+    await db.execute('DELETE FROM professional_relationships WHERE id=?',[relationship]);
+    for(const user of users){await db.execute('DELETE FROM sessions WHERE user_id=?',[user]);await db.execute('DELETE FROM users WHERE id=?',[user]);}await db.end();
+  }
+});

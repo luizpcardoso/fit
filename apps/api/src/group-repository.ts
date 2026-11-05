@@ -14,7 +14,6 @@ import type {
   GroupInvite,
   GroupMember,
   GroupNotification,
-  GroupPost,
   GroupReaction,
   GroupReport,
   GroupReportReason,
@@ -51,6 +50,8 @@ const preferenceDefaults: GroupSharePreferences = {
 const privileged = (role: GroupRole) => role === "owner" || role === "admin";
 const moderator = (role: GroupRole) => privileged(role) || role === "moderator";
 const iso = (value: Date | string) => new Date(value).toISOString();
+const groupMediaUrl = (groupId:string, kind:'avatar'|'cover', updatedAt:Date|string) =>
+  `/groups/${groupId}/media/${kind}?v=${new Date(updatedAt).getTime()}`;
 
 export class GroupRepository {
   constructor(private readonly db: Sequelize) {}
@@ -64,7 +65,7 @@ export class GroupRepository {
     if(input.photoDataUrl&&!processed)return 'invalid_photo';
     const ids=[...new Set(groupIds)];
     for(const id of ids){const group=await this.get(userId,id);if(!group)return 'missing';if(!group.active||group.postingMode==='admins_only'&&!privileged(group.role))return 'forbidden';}
-    const sharedPhoto=processed?{mime:processed.mime,path:await saveMedia(processed.data)}:null;
+    const sharedPhoto=processed?{mime:processed.mime,path:await saveMedia(processed.data),width:processed.width,height:processed.height}:null;
     try{return await this.db.transaction(async transaction=>{
       const created:string[]=[];
       for(const groupId of ids){const result=await this.createPost(userId,groupId,input,transaction,sharedPhoto??undefined);if(!/^[a-f0-9-]{36}$/.test(result))throw new Error('Unable to publish');created.push(result);}
@@ -155,11 +156,13 @@ export class GroupRepository {
 
   async list(userId: string): Promise<GroupSummary[]> {
     const rows = await this.db.query<any>(
-      `SELECT g.id,g.name,g.description,g.avatar_url avatarUrl,m.role,g.active,g.created_at createdAt,(SELECT COUNT(*) FROM group_members x WHERE x.group_id=g.id AND x.status='active') memberCount,((SELECT COUNT(*) FROM group_posts p WHERE p.group_id=g.id AND p.deleted_at IS NULL AND p.created_at>=m.joined_at AND p.created_at>COALESCE(m.last_seen_at,m.joined_at))+(SELECT COUNT(*) FROM group_comments c JOIN group_posts p ON p.id=c.post_id WHERE p.group_id=g.id AND p.created_at>=m.joined_at AND c.deleted_at IS NULL AND c.created_at>COALESCE(m.last_seen_at,m.joined_at))+(SELECT COUNT(*) FROM group_post_reactions r JOIN group_posts p ON p.id=r.post_id WHERE p.group_id=g.id AND p.created_at>=m.joined_at AND r.created_at>COALESCE(m.last_seen_at,m.joined_at))) unseenCount FROM group_members m JOIN \`groups\` g ON g.id=m.group_id WHERE m.user_id=? AND m.status='active' ORDER BY g.active DESC,g.updated_at DESC`,
+      `SELECT g.id,g.name,g.description,g.avatar_url avatarUrl,g.avatar_path avatarPath,g.cover_path coverPath,g.updated_at updatedAt,m.role,g.active,g.created_at createdAt,(SELECT COUNT(*) FROM group_members x WHERE x.group_id=g.id AND x.status='active') memberCount,((SELECT COUNT(*) FROM group_posts p WHERE p.group_id=g.id AND p.deleted_at IS NULL AND p.created_at>=m.joined_at AND p.created_at>COALESCE(m.last_seen_at,m.joined_at))+(SELECT COUNT(*) FROM group_comments c JOIN group_posts p ON p.id=c.post_id WHERE p.group_id=g.id AND p.created_at>=m.joined_at AND c.deleted_at IS NULL AND c.created_at>COALESCE(m.last_seen_at,m.joined_at))+(SELECT COUNT(*) FROM group_post_reactions r JOIN group_posts p ON p.id=r.post_id WHERE p.group_id=g.id AND p.created_at>=m.joined_at AND r.created_at>COALESCE(m.last_seen_at,m.joined_at))) unseenCount FROM group_members m JOIN \`groups\` g ON g.id=m.group_id WHERE m.user_id=? AND m.status='active' ORDER BY g.active DESC,g.updated_at DESC`,
       { replacements: [userId], type: QueryTypes.SELECT },
     );
     return rows.map((r: any) => ({
       ...r,
+      avatarUrl: r.avatarPath ? groupMediaUrl(r.id,'avatar',r.updatedAt) : r.avatarUrl,
+      coverUrl: r.coverPath ? groupMediaUrl(r.id,'cover',r.updatedAt) : null,
       active: Boolean(r.active),
       memberCount: Number(r.memberCount),
       unseenCount: Number(r.unseenCount),
@@ -170,7 +173,7 @@ export class GroupRepository {
     const m = await this.membership(userId, groupId);
     if (!m) return null;
     const [g] = await this.db.query<any>(
-      `SELECT g.id,g.name,g.description,g.avatar_url avatarUrl,g.posting_mode postingMode,g.comments_enabled commentsEnabled,g.active,g.created_at createdAt,(SELECT COUNT(*) FROM group_members x WHERE x.group_id=g.id AND x.status='active') memberCount,(SELECT COUNT(*) FROM group_posts p WHERE p.group_id=g.id AND p.deleted_at IS NULL AND p.created_at>=(SELECT joined_at FROM group_members WHERE group_id=g.id AND user_id=? AND status='active') AND p.created_at>COALESCE((SELECT last_seen_at FROM group_members WHERE group_id=g.id AND user_id=?),(SELECT joined_at FROM group_members WHERE group_id=g.id AND user_id=? AND status='active'))) unseenCount FROM \`groups\` g WHERE g.id=?`,
+      `SELECT g.id,g.name,g.description,g.avatar_url avatarUrl,g.avatar_path avatarPath,g.cover_path coverPath,g.updated_at updatedAt,g.posting_mode postingMode,g.comments_enabled commentsEnabled,g.active,g.created_at createdAt,(SELECT COUNT(*) FROM group_members x WHERE x.group_id=g.id AND x.status='active') memberCount,(SELECT COUNT(*) FROM group_posts p WHERE p.group_id=g.id AND p.deleted_at IS NULL AND p.created_at>=(SELECT joined_at FROM group_members WHERE group_id=g.id AND user_id=? AND status='active') AND p.created_at>COALESCE((SELECT last_seen_at FROM group_members WHERE group_id=g.id AND user_id=?),(SELECT joined_at FROM group_members WHERE group_id=g.id AND user_id=? AND status='active'))) unseenCount FROM \`groups\` g WHERE g.id=?`,
       {
         replacements: [userId, userId, userId, groupId],
         type: QueryTypes.SELECT,
@@ -187,6 +190,8 @@ export class GroupRepository {
     );
     return {
       ...g,
+      avatarUrl: g.avatarPath ? groupMediaUrl(g.id,'avatar',g.updatedAt) : g.avatarUrl,
+      coverUrl: g.coverPath ? groupMediaUrl(g.id,'cover',g.updatedAt) : null,
       role: m.role,
       active: Boolean(g.active),
       commentsEnabled: Boolean(g.commentsEnabled),
@@ -237,6 +242,30 @@ export class GroupRepository {
         },
       );
     return "ok";
+  }
+  async updateMedia(userId:string,groupId:string,kind:'avatar'|'cover',photoDataUrl:string|null) {
+    const membership=await this.membership(userId,groupId);
+    if(!membership)return 'missing' as const;
+    if(!privileged(membership.role))return 'forbidden' as const;
+    const [current]=await this.db.query<{avatar_path:string|null;cover_path:string|null}>('SELECT avatar_path,cover_path FROM `groups` WHERE id=?',{replacements:[groupId],type:QueryTypes.SELECT});
+    if(!current)return 'missing' as const;
+    const processed=photoDataUrl?await this.groupImage(photoDataUrl,kind):null;
+    if(photoDataUrl&&!processed)return 'invalid_photo' as const;
+    const nextPath=processed?await saveMedia(processed):null;
+    const column=kind==='avatar'?'avatar_path':'cover_path';
+    const previous=kind==='avatar'?current.avatar_path:current.cover_path;
+    try{
+      await this.db.query(`UPDATE \`groups\` SET ${column}=?,${kind==='avatar'?'avatar_url=NULL,':''}updated_at=UTC_TIMESTAMP(6) WHERE id=?`,{replacements:[nextPath,groupId],type:QueryTypes.UPDATE});
+    }catch(error){if(nextPath)await removeMedia(nextPath);throw error;}
+    if(previous&&previous!==nextPath)await removeMedia(previous).catch(()=>{});
+    return 'ok' as const;
+  }
+  async mediaData(userId:string,groupId:string,kind:'avatar'|'cover') {
+    if(!await this.membership(userId,groupId))return null;
+    const column=kind==='avatar'?'avatar_path':'cover_path';
+    const [row]=await this.db.query<{path:string|null}>(`SELECT ${column} path FROM \`groups\` WHERE id=?`,{replacements:[groupId],type:QueryTypes.SELECT});
+    if(!row?.path)return null;
+    try{return await readMedia(row.path);}catch{return null;}
   }
   async updateEvents(
     userId: string,
@@ -360,13 +389,13 @@ export class GroupRepository {
   }
   async invites(userId: string): Promise<GroupInvite[]> {
     const rows = await this.db.query<any>(
-      "SELECT i.id,i.status,i.created_at createdAt,i.expires_at expiresAt,g.id groupId,g.name groupName,g.avatar_url groupAvatar,u.id inviterId,u.username inviterUsername,COALESCE(u.display_name,CONCAT(u.first_name,' ',u.last_name)) inviterName,u.avatar_url inviterAvatar FROM group_invites i JOIN `groups` g ON g.id=i.group_id JOIN users u ON u.id=i.invited_by_user_id WHERE i.invited_user_id=? AND i.status='pending' AND i.expires_at>UTC_TIMESTAMP(6) ORDER BY i.created_at DESC",
+      "SELECT i.id,i.status,i.created_at createdAt,i.expires_at expiresAt,g.id groupId,g.name groupName,g.avatar_url groupAvatar,g.avatar_path groupAvatarPath,g.updated_at groupUpdatedAt,u.id inviterId,u.username inviterUsername,COALESCE(u.display_name,CONCAT(u.first_name,' ',u.last_name)) inviterName,u.avatar_url inviterAvatar FROM group_invites i JOIN `groups` g ON g.id=i.group_id JOIN users u ON u.id=i.invited_by_user_id WHERE i.invited_user_id=? AND i.status='pending' AND i.expires_at>UTC_TIMESTAMP(6) ORDER BY i.created_at DESC",
       { replacements: [userId], type: QueryTypes.SELECT },
     );
     return rows.map((r: any) => ({
       id: r.id,
       status: r.status,
-      group: { id: r.groupId, name: r.groupName, avatarUrl: r.groupAvatar },
+      group: { id: r.groupId, name: r.groupName, avatarUrl: r.groupAvatarPath ? groupMediaUrl(r.groupId,'avatar',r.groupUpdatedAt) : r.groupAvatar },
       invitedBy: {
         id: r.inviterId,
         username: r.inviterUsername,
@@ -548,11 +577,10 @@ export class GroupRepository {
     return "ok" as const;
   }
 
-  async listPosts(userId: string, groupId: string, before?: string) {
+  async listPosts(userId: string, groupId: string | undefined, before?: string) {
     await this.purgeExpiredPhotos();
-    const m = await this.membership(userId, groupId);
-    if (!m) return null;
-    const params: any[] = [userId, userId, groupId];
+    if (groupId && !(await this.membership(userId, groupId))) return null;
+    const params: any[] = [userId, userId, ...(groupId ? [groupId] : [])];
     let cursor = "";
     if (before) {
       const [date,id]=before.split('|');
@@ -560,7 +588,7 @@ export class GroupRepository {
       else{cursor = " AND p.created_at < ?";params.push(new Date(before));}
     }
     const rows = await this.db.query<any>(
-      `SELECT DATE_FORMAT(p.created_at,'%Y-%m-%d %H:%i:%s.%f') cursorTime,p.id,p.group_id groupId,p.author_user_id,p.kind,p.event_type eventType,p.text,(p.photo_data IS NOT NULL OR p.photo_path IS NOT NULL) hasPhoto,p.comments_enabled commentsEnabled,p.created_at createdAt,p.updated_at updatedAt,u.id authorId,u.username,COALESCE(u.display_name,CONCAT(u.first_name,' ',u.last_name)) displayName,u.avatar_url avatarUrl,(SELECT COUNT(*) FROM group_comments c WHERE c.post_id=p.id AND c.deleted_at IS NULL) commentCount FROM group_posts p JOIN users u ON u.id=p.author_user_id JOIN group_members viewer ON viewer.group_id=p.group_id AND viewer.user_id=? AND viewer.status='active' WHERE NOT EXISTS (SELECT 1 FROM user_blocks b WHERE b.blocker_user_id=? AND b.blocked_user_id=p.author_user_id) AND p.group_id=? AND p.deleted_at IS NULL AND p.created_at>=viewer.joined_at${cursor} ORDER BY p.created_at DESC,p.id DESC LIMIT 31`,
+      `SELECT DATE_FORMAT(p.created_at,'%Y-%m-%d %H:%i:%s.%f') cursorTime,g.name groupName,g.active groupActive,viewer.role groupRole,p.id,p.group_id groupId,p.author_user_id,p.kind,p.event_type eventType,p.text,(p.photo_data IS NOT NULL OR p.photo_path IS NOT NULL) hasPhoto,p.photo_width photoWidth,p.photo_height photoHeight,p.comments_enabled commentsEnabled,p.created_at createdAt,p.updated_at updatedAt,u.id authorId,u.username,COALESCE(u.display_name,CONCAT(u.first_name,' ',u.last_name)) displayName,u.avatar_url avatarUrl,(SELECT COUNT(*) FROM group_comments c WHERE c.post_id=p.id AND c.deleted_at IS NULL) commentCount FROM group_posts p JOIN \`groups\` g ON g.id=p.group_id JOIN users u ON u.id=p.author_user_id JOIN group_members viewer ON viewer.group_id=p.group_id AND viewer.user_id=? AND viewer.status='active' WHERE NOT EXISTS (SELECT 1 FROM user_blocks b WHERE b.blocker_user_id=? AND b.blocked_user_id=p.author_user_id) ${groupId ? 'AND p.group_id=?' : 'AND g.active=1'} AND p.deleted_at IS NULL AND p.created_at>=viewer.joined_at${cursor} ORDER BY p.created_at DESC,p.id DESC LIMIT 31`,
       { replacements: params, type: QueryTypes.SELECT },
     );
     const visible = rows.slice(0, 30);
@@ -571,9 +599,10 @@ export class GroupRepository {
           { replacements: [userId, ids], type: QueryTypes.SELECT },
         )
       : [];
-    const items: GroupPost[] = visible.map((r: any) => ({
+    const items: import('@fit/contracts').SocialPost[] = visible.map((r: any) => ({
       id: r.id,
       groupId: r.groupId,
+      group: { id:r.groupId, name:r.groupName, role:r.groupRole, active:Boolean(r.groupActive) },
       author: {
         id: r.authorId,
         username: r.username,
@@ -583,7 +612,8 @@ export class GroupRepository {
       kind: r.kind,
       eventType: r.eventType,
       text: r.text,
-      photoUrl: r.hasPhoto ? `/groups/${groupId}/posts/${r.id}/photo` : null,
+      photoUrl: r.hasPhoto ? `/groups/${r.groupId}/posts/${r.id}/photo` : null,
+      photoAspectRatio: Number(r.photoWidth)>0&&Number(r.photoHeight)>0 ? Number(r.photoWidth)/Number(r.photoHeight) : null,
       commentsEnabled: Boolean(r.commentsEnabled),
       reactionCounts: reactions
         .filter((x: any) => x.postId === r.id)
@@ -607,7 +637,7 @@ export class GroupRepository {
     groupId: string,
     input: CreateGroupPostInput,
     transaction?:Transaction,
-    storedPhoto?:{mime:string;path:string},
+    storedPhoto?:{mime:string;path:string;width:number;height:number},
   ) {
     const m = await this.membership(userId, groupId);
     if (!m) return "missing" as const;
@@ -624,17 +654,19 @@ export class GroupRepository {
       return "forbidden" as const;
     let mime: string | null = null;
     let data: Buffer | null = null;
+    let width:number|null=null;
+    let height:number|null=null;
     if (input.photoDataUrl&&!storedPhoto) {
       const parsed = await this.photo(input.photoDataUrl);
       if (!parsed) return "invalid_photo" as const;
-      ({ mime, data } = parsed);
+      ({ mime, data, width, height } = parsed);
     }
     const id = randomUUID();
     const photoPath=storedPhoto?.path??(data?await saveMedia(data):null);
-    if(storedPhoto)mime=storedPhoto.mime;
+    if(storedPhoto){mime=storedPhoto.mime;width=storedPhoto.width;height=storedPhoto.height;}
     try {
     await this.db.query(
-      "INSERT INTO group_posts (id,group_id,author_user_id,kind,text,photo_mime,photo_path,comments_enabled,created_at,updated_at) VALUES (?,?,?,'manual',?,?,?,?,UTC_TIMESTAMP(6),UTC_TIMESTAMP(6))",
+      "INSERT INTO group_posts (id,group_id,author_user_id,kind,text,photo_mime,photo_path,photo_width,photo_height,comments_enabled,created_at,updated_at) VALUES (?,?,?,'manual',?,?,?,?,?,?,UTC_TIMESTAMP(6),UTC_TIMESTAMP(6))",
       {
         replacements: [
           id,
@@ -643,6 +675,8 @@ export class GroupRepository {
           input.text ?? null,
           mime,
           photoPath,
+          width,
+          height,
           (input.commentsEnabled ?? true) && Boolean(g.comments_enabled),
         ],
         type: QueryTypes.INSERT,
@@ -672,10 +706,23 @@ export class GroupRepository {
         })
         .webp({ quality: 82 })
         .toBuffer();
-      return { mime: "image/webp", data };
+      const output=await sharp(data).metadata();
+      if(!output.width||!output.height)return null;
+      return { mime: "image/webp", data, width:output.width, height:output.height };
     } catch {
       return null;
     }
+  }
+  private async groupImage(value:string,kind:'avatar'|'cover') {
+    try{
+      const match=/^data:image\/(jpeg|png|webp);base64,(.+)$/.exec(value);if(!match)return null;
+      const original=Buffer.from(match[2],'base64');if(original.length>10*1024*1024)return null;
+      const source=sharp(original,{limitInputPixels:40_000_000}).rotate();
+      const metadata=await source.metadata();if(!['jpeg','png','webp'].includes(metadata.format??''))return null;
+      return kind==='avatar'
+        ? await source.resize(512,512,{fit:'cover',position:'centre'}).webp({quality:84}).toBuffer()
+        : await source.resize(1600,600,{fit:'cover',position:'centre'}).webp({quality:84}).toBuffer();
+    }catch{return null;}
   }
   async photoData(userId: string, groupId: string, postId: string) {
     await this.purgeExpiredPhotos();
@@ -882,12 +929,13 @@ export class GroupRepository {
     return "ok" as const;
   }
 
-  async markSeen(userId: string, groupId: string) {
+  async markSeen(userId: string, groupId: string, postId?:string) {
     if (!(await this.membership(userId, groupId))) return false;
-    await this.db.query(
-      "UPDATE group_members SET last_seen_at=UTC_TIMESTAMP(6),updated_at=UTC_TIMESTAMP(6) WHERE group_id=? AND user_id=? AND status='active'",
-      { replacements: [groupId, userId], type: QueryTypes.UPDATE },
-    );
+    if(postId){
+      const [post]=await this.db.query<{seenAt:string}>("SELECT DATE_FORMAT(p.created_at,'%Y-%m-%d %H:%i:%s.%f') seenAt FROM group_posts p JOIN group_members m ON m.group_id=p.group_id AND m.user_id=? AND m.status='active' WHERE p.id=? AND p.group_id=? AND p.deleted_at IS NULL AND p.created_at>=m.joined_at AND NOT EXISTS (SELECT 1 FROM user_blocks b WHERE b.blocker_user_id=? AND b.blocked_user_id=p.author_user_id)",{replacements:[userId,postId,groupId,userId],type:QueryTypes.SELECT});
+      if(!post)return false;
+      await this.db.query("UPDATE group_members SET last_seen_at=GREATEST(COALESCE(last_seen_at,joined_at),LEAST(?,UTC_TIMESTAMP(6))),updated_at=UTC_TIMESTAMP(6) WHERE group_id=? AND user_id=? AND status='active'",{replacements:[post.seenAt,groupId,userId],type:QueryTypes.UPDATE});
+    }else await this.db.query("UPDATE group_members SET last_seen_at=UTC_TIMESTAMP(6),updated_at=UTC_TIMESTAMP(6) WHERE group_id=? AND user_id=? AND status='active'",{replacements:[groupId,userId],type:QueryTypes.UPDATE});
     return true;
   }
   async dashboard(userId: string): Promise<GroupDashboard> {
@@ -899,7 +947,7 @@ export class GroupRepository {
       [notifications],
     ] = await Promise.all([
       this.db.query<any>(
-        "SELECT COUNT(*) total FROM group_posts p JOIN group_members m ON m.group_id=p.group_id AND m.user_id=? AND m.status='active' WHERE p.deleted_at IS NULL AND p.created_at>=m.joined_at AND p.created_at>COALESCE(m.last_seen_at,m.joined_at)",
+        "SELECT COUNT(*) total,COALESCE(SUM(CASE WHEN p.author_user_id<>m.user_id AND NOT EXISTS (SELECT 1 FROM user_blocks b WHERE b.blocker_user_id=m.user_id AND b.blocked_user_id=p.author_user_id) THEN 1 ELSE 0 END),0) postsUnseen FROM group_posts p JOIN group_members m ON m.group_id=p.group_id AND m.user_id=? AND m.status='active' WHERE p.deleted_at IS NULL AND p.created_at>=m.joined_at AND p.created_at>COALESCE(m.last_seen_at,m.joined_at)",
         { replacements: [userId], type: QueryTypes.SELECT },
       ),
       this.db.query<any>(
@@ -920,6 +968,7 @@ export class GroupRepository {
       ),
     ]);
     return {
+      postsUnseen: Number(unseenPosts?.postsUnseen ?? 0),
       totalUnseen:
         Number(unseenPosts?.total ?? 0) +
         Number(unseenComments?.total ?? 0) +

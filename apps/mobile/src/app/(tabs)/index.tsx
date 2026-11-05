@@ -1,10 +1,15 @@
+import { showToast } from '@/components/app-dialog';
+import { ActiveWorkoutBanner } from '@/components/active-workout-banner';
+import { useWorkoutRun } from '@/components/workout-run-provider';
+import { isWorkoutRunOpen } from '@fit/contracts';
+import Constants from 'expo-constants';
+import {useGroupUpdates} from '@/components/group-updates-provider';
 import { HomeNutrition } from '@/components/home-nutrition';
 import { useAppTheme } from "@/theme/theme-provider";
 import { Scrim, Type, type AppPalette } from "@/constants/theme";
 import { SceneBackdrop } from "@/components/scene";
 import MaterialCommunityIcons from '@/components/icon';
 import type {
-  GroupDashboard,
   GroupSummary,
   HealthKind,
   WorkoutGoalInput,
@@ -37,7 +42,6 @@ import { CardioSection } from "@/components/cardio-section";
 import { HomeShortcuts, QuickRegisterSheet } from "@/components/home-shortcuts";
 import { useInjectablesToday } from "@/hooks/use-injectables-today";
 import { InjectablesTodayModal } from "@/components/injectables-today-modal";
-import { confirmAction } from "@/components/app-dialog";
 import { useHomePreferences } from "@/utils/home-preferences";
 
 type IconName = keyof typeof MaterialCommunityIcons.glyphMap;
@@ -49,6 +53,10 @@ type DailyActivity = {
   done: boolean;
   open(): void;
   toggle?(): Promise<void>;
+  /** Scheduled time, used to group doses taken together ("08:00 · 10 itens"). */
+  time?: string;
+  /** Records the dose without refreshing, so a whole time slot is saved before one refresh. */
+  markDone?(): Promise<unknown>;
 };
 
 const weekdays = [
@@ -65,7 +73,9 @@ export default function HomeScreen() {
   const { showChecks } = useLocalSearchParams<{ showChecks?: string }>();
   const { colors: c, scheme } = useAppTheme();
   const s = createStyles(c, scheme);
-  const { showEnergyBalance } = useHomePreferences();
+  const { run: workoutRun } = useWorkoutRun();
+  const openRun = workoutRun && isWorkoutRunOpen(workoutRun.progress) ? workoutRun : null;
+  const { showEnergyBalance, showShortcuts } = useHomePreferences();
 
   const { user, api, logout } = useAuth();
   const [nutritionRevision, setNutritionRevision] = useState(0);
@@ -76,12 +86,10 @@ export default function HomeScreen() {
   const [goalError, setGoalError] = useState("");
   const [healthOpen, setHealthOpen] = useState<HealthKind | null>(null);
   const [injectablesOpen, setInjectablesOpen] = useState(false);
+  const [professionalUnread, setProfessionalUnread] = useState(0);
+  const [notificationError, setNotificationError] = useState(false);
   const [groups, setGroups] = useState<GroupSummary[]>([]);
-  const [groupDashboard, setGroupDashboard] = useState<GroupDashboard>({
-    totalUnseen: 0,
-    pendingInvites: 0,
-    notificationsUnread: 0,
-  });
+  const groupDashboard=useGroupUpdates();
   const [activeGroupId, setActiveGroupId] = useState("");
   const [groupPickerOpen, setGroupPickerOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -130,14 +138,17 @@ export default function HomeScreen() {
       void refreshMental();
     }, [refreshMental]),
   );
+  useFocusEffect(useCallback(() => {
+    let active = true;
+    const refresh = () => api.listProfessionalNotifications().then(result => { if (active) { setProfessionalUnread(result.unreadCount); setNotificationError(false); } }).catch(() => { if (active) setNotificationError(true); });
+    void refresh();
+    const timer = setInterval(() => { void refresh(); }, 60000);
+    return () => { active = false; clearInterval(timer); };
+  }, [api]));
   const refreshGroups = useCallback(async () => {
     try {
-      const [items, dashboard] = await Promise.all([
-        api.listGroups(),
-        api.getGroupsDashboard(),
-      ]);
+      const items = await api.listGroups();
       setGroups(items);
-      setGroupDashboard(dashboard);
       setGroupsState("ready");
       setActiveGroupId((current) =>
         items.some((group) => group.id === current)
@@ -203,13 +214,6 @@ export default function HomeScreen() {
       setGoalSaving(false);
     }
   };
-  const todayWeekday = ((today.getDay() + 6) % 7) + 1;
-  const plannedToday = goal?.schedule.find(
-    (item) => item.weekday === todayWeekday,
-  );
-  const plannedDivision = plannedToday?.divisionId
-    ? divisionsById.get(plannedToday.divisionId)
-    : null;
   const dailyActivities: DailyActivity[] = [
     ...(medications.daily?.items.map((entry) => ({
       id: `medication:${entry.item.id}:${entry.slot}`,
@@ -217,6 +221,8 @@ export default function HomeScreen() {
       detail: `Medicamento${entry.time ? ` · ${entry.time}` : ""}`,
       icon: "pill" as IconName,
       done: Boolean(entry.consumedAt),
+      time: entry.time ?? undefined,
+      markDone: () => api.setHealthIntake('medication', entry.item.id, todayKey, entry.slot, true),
       open: () => setHealthOpen("medication"),
       toggle: async () => { await api.setHealthIntake('medication', entry.item.id, todayKey, entry.slot, !entry.consumedAt); if (!await medications.refresh()) throw new Error('refresh'); },
     })) ?? []),
@@ -226,6 +232,8 @@ export default function HomeScreen() {
       detail: `Suplemento${entry.time ? ` · ${entry.time}` : ""}`,
       icon: "shaker-outline" as IconName,
       done: Boolean(entry.consumedAt),
+      time: entry.time ?? undefined,
+      markDone: () => api.setHealthIntake('supplement', entry.item.id, todayKey, entry.slot, true),
       open: () => setHealthOpen("supplement"),
       toggle: async () => { await api.setHealthIntake('supplement', entry.item.id, todayKey, entry.slot, !entry.consumedAt); if (!await supplements.refresh()) throw new Error('refresh'); },
     })) ?? []),
@@ -237,28 +245,15 @@ export default function HomeScreen() {
       done: Boolean(entry.application),
       open: () => setInjectablesOpen(true),
     })) ?? []),
-    {
+    ...(user?.countMentalCheckIn !== false ? [{
       id: "mental-check-in",
       title: "Como você está se sentindo?",
       detail: mentalDone === "error" ? "Não foi possível verificar agora" : "Check-in da Mente",
-      icon: "head-heart-outline",
+      icon: "head-heart-outline" as IconName,
       done: mentalDone === true,
       open: () => router.push("/mental-wellbeing"),
-    },
-    ...(plannedToday
-      ? [
-          {
-            id: "planned-workout",
-            title: plannedDivision
-              ? `Treino ${plannedDivision.label} · ${plannedDivision.name}`
-              : "Treino planejado",
-            detail: "Treino planejado para hoje",
-            icon: "dumbbell" as IconName,
-            done: (goal?.sessionsByDate[todayKey] ?? 0) > 0,
-            open: () => router.push("/workout-run"),
-          },
-        ]
-      : []),
+    }] : []),
+
   ];
   const toggleActivity = async (activity: DailyActivity) => {
     if (actionLock.current || !activity.toggle) return;
@@ -268,6 +263,22 @@ export default function HomeScreen() {
     catch { setActivityError('Não foi possível confirmar a alteração. Atualize a rotina antes de tentar novamente.'); await Promise.all([medications.refresh(), supplements.refresh()]); }
     finally { actionLock.current = false; setActivityBusy(''); }
   };
+  const markGroup = async (items: DailyActivity[]) => {
+    const pending = items.filter(item => !item.done && item.markDone);
+    if (actionLock.current || !pending.length) return;
+    if (localDay() !== todayKey) { setActivityError('O dia mudou. Aguarde a atualização antes de registrar.'); return; }
+    actionLock.current = true; setActivityBusy(`group:${items[0].time}`); setActivityError('');
+    try { for (const item of pending) await item.markDone!(); showToast(`${pending.length} ${pending.length === 1 ? 'dose registrada' : 'doses registradas'}. Toque em uma para desfazer.`); }
+    catch { setActivityError('Nem todas as doses foram registradas. Confira a lista e tente novamente.'); }
+    finally { await Promise.all([medications.refresh(), supplements.refresh()]); actionLock.current = false; setActivityBusy(''); }
+  };
+  // Doses with the same time are taken together: group them so a slot can be checked at once.
+  const activityGroups = dailyActivities.reduce<{ key: string; time?: string; items: DailyActivity[] }[]>((groups, activity) => {
+    const key = activity.markDone && activity.time ? activity.time : 'other';
+    const group = groups.find(item => item.key === key);
+    if (group) group.items.push(activity); else groups.push({ key, time: key === 'other' ? undefined : key, items: [activity] });
+    return groups;
+  }, []).sort((a, b) => (a.time ?? '99:99').localeCompare(b.time ?? '99:99'));
   const completedActivities = dailyActivities.filter(
     (item) => item.done,
   ).length;
@@ -275,8 +286,7 @@ export default function HomeScreen() {
     medications.loading ||
     supplements.loading ||
     injectables.loading ||
-    mentalDone === null ||
-    (!goal && !goalError);
+    (user?.countMentalCheckIn !== false && mentalDone === null);
   const nextActivity = dailyActivities.find((item) => !item.done);
   const activityProgress = dailyActivities.length
     ? completedActivities / dailyActivities.length
@@ -289,7 +299,9 @@ export default function HomeScreen() {
   return (
     <View style={s.root}>
       <SafeAreaView style={s.safe} edges={["top"]}>
+        <ActiveWorkoutBanner containerStyle={s.workoutDock}/>
         <ScrollView
+          testID="home-scroll"
           contentContainerStyle={s.content}
           showsVerticalScrollIndicator={false}
         >
@@ -311,6 +323,10 @@ export default function HomeScreen() {
               </Text>
               <Text style={s.subtitle}>Vamos cuidar da sua rotina hoje?</Text>
             </View>
+            <Pressable accessibilityRole="button" accessibilityLabel={`Notificações, ${professionalUnread + groupDashboard.notificationsUnread} não lidas${notificationError ? ', atualização indisponível' : ''}`} onPress={() => router.push('/group-notifications')} style={s.menuButton}>
+              <MaterialCommunityIcons name="bell-outline" size={25} color={c.link}/>
+              {professionalUnread + groupDashboard.notificationsUnread > 0 ? <View style={{position:'absolute',right:0,top:0,minWidth:18,height:18,borderRadius:9,backgroundColor:c.danger,alignItems:'center',justifyContent:'center'}}><Text style={{color:c.onPrimary,fontSize:10,fontWeight:'800'}}>{professionalUnread + groupDashboard.notificationsUnread > 99 ? '99+' : professionalUnread + groupDashboard.notificationsUnread}</Text></View> : notificationError ? <Text style={{color:c.warning,position:'absolute',right:0,top:0}}>!</Text> : null}
+            </Pressable>
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Abrir menu"
@@ -337,11 +353,11 @@ export default function HomeScreen() {
                   />
                 </View>
                 <View style={s.flex}>
-                  <Text style={s.todayLabel}>Hoje</Text>
+                  <Text style={s.todayLabel}>Pendências de hoje</Text>
                   <Text style={s.todayTitle}>
                     {activitiesLoading
                       ? "Atualizando…"
-                      : `${completedActivities} de ${dailyActivities.length} ${dailyActivities.length === 1 ? "atividade" : "atividades"}`}
+                      : `${completedActivities} de ${dailyActivities.length} feitas`}
                   </Text>
                 </View>
                 <MaterialCommunityIcons
@@ -373,7 +389,7 @@ export default function HomeScreen() {
                 <MaterialCommunityIcons name="plus" size={22} color={c.onPrimary} />
               </View>
               <Text style={s.quickRegisterTitle}>Registrar</Text>
-              <Text numberOfLines={2} style={s.quickRegisterText}>Treino, refeição e mais</Text>
+              <Text numberOfLines={2} style={s.quickRegisterText}>Treino e refeição</Text>
             </Pressable>
           </View>
 
@@ -448,6 +464,7 @@ export default function HomeScreen() {
             <View style={s.week}>
               {weekdays.map((day, index) => {
                 const date = weekDates[index];
+                const isToday = date === todayKey;
                 const sessions = goal?.sessionsByDate[date] ?? 0;
                 const scheduled = goal?.schedule.find(
                   (item) => item.weekday === index + 1,
@@ -468,7 +485,7 @@ export default function HomeScreen() {
                     key={day.short}
                     accessible
                     accessibilityLabel={[
-                      day.full,
+                      isToday ? `${day.full}, hoje` : day.full,
                       division ? `treino ${division.label} planejado: ${division.name}` : scheduled ? "treino planejado" : "",
                       doneLabel || (scheduled ? "ainda não realizado" : "sem treino"),
                     ].filter(Boolean).join(", ")}
@@ -476,6 +493,7 @@ export default function HomeScreen() {
                       s.day,
                       sessions > 0 && s.dayDone,
                       scheduled && sessions === 0 && s.dayPlanned,
+                      isToday && s.dayToday,
                     ]}
                   >
                     <Text style={[s.dayText, sessions > 0 && s.dayTextDone]}>
@@ -496,15 +514,15 @@ export default function HomeScreen() {
             </View>
             <View style={s.fitnessActions}>
               <Pressable accessibilityRole="button"
-                onPress={() => router.push(hasPlans || !goal ? "/workout-run" : "/workout-create")}
+                onPress={() => router.push(openRun || hasPlans || !goal ? "/workout-run" : "/workout-create")}
                 style={s.heroButton}
               >
                 <MaterialCommunityIcons
-                  name={hasPlans || !goal ? "play" : "plus"}
+                  name={openRun || hasPlans || !goal ? "play" : "plus"}
                   size={18}
                   color={c.primaryStrong}
                 />
-                <Text style={s.heroButtonText}>{hasPlans || !goal ? "Treinar" : "Criar ficha"}</Text>
+                <Text style={s.heroButtonText}>{openRun ? `Continuar treino ${openRun.divisionLabel}` : hasPlans || !goal ? "Iniciar treino" : "Criar ficha"}</Text>
               </Pressable>
               <Pressable accessibilityRole="button"
                 onPress={() => router.push("/workouts")}
@@ -522,7 +540,7 @@ export default function HomeScreen() {
           </View>
 
           {showEnergyBalance ? <HomeNutrition key={`${todayKey}:${nutritionRevision}`} date={todayKey} /> : null}
-          <HomeShortcuts />
+          {showShortcuts ? <HomeShortcuts /> : null}
 
           <View style={s.sectionHeading}>
             <View>
@@ -694,7 +712,7 @@ export default function HomeScreen() {
                 <View style={s.sheetHandle} />
                 <View style={s.activitiesHeader}>
                   <View style={s.flex}>
-                    <Text style={s.activitiesTitle}>Atividades de hoje</Text>
+                    <Text style={s.activitiesTitle}>Pendências de hoje</Text>
                     <Text style={s.activitiesSubtitle}>
                       {activitiesLoading
                         ? "Atualizando sua rotina…"
@@ -716,7 +734,9 @@ export default function HomeScreen() {
                 <ScrollView contentContainerStyle={s.activitiesList}>
                   {activityError ? <Text accessibilityRole="alert" style={{ color: c.danger, paddingVertical: 12 }}>{activityError}</Text> : null}
                   {medications.error || supplements.error ? <Text accessibilityRole="alert" style={{ color: c.danger }}>{medications.error || supplements.error}</Text> : null}
-                  {dailyActivities.map((activity) => (
+                  {activityGroups.map(group => <View key={group.key}>
+                    {activityGroups.length > 1 || group.time ? <View style={s.activityGroupHeader}><Text style={s.activityGroupTitle}>{group.time ? `${group.time} · ${group.items.length} ${group.items.length === 1 ? 'item' : 'itens'}` : 'Outras pendências'}</Text>{group.time && group.items.filter(item => !item.done).length > 1 ? <Pressable accessibilityRole="button" accessibilityLabel={`Marcar todas as doses das ${group.time}`} disabled={Boolean(activityBusy) || Boolean(medications.error || supplements.error)} onPress={() => void markGroup(group.items)} style={s.activityGroupAction}>{activityBusy === `group:${group.time}` ? <ActivityIndicator color={c.link}/> : <Text style={s.activityGroupActionText}>Marcar todos</Text>}</Pressable> : null}</View> : null}
+                  {group.items.map((activity) => (
                     <View key={activity.id} style={s.activityRow}>
                       <Pressable accessibilityRole="button" accessibilityLabel={`Ver ${activity.title}`} onPress={() => openDailyActivity(activity)} style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 11, minHeight: 60 }}>
                         <View style={[s.activityIcon, activity.done && s.activityIconDone]}><MaterialCommunityIcons name={activity.done ? 'check' : activity.icon} size={20} color={activity.done ? c.background : c.link} /></View>
@@ -727,6 +747,7 @@ export default function HomeScreen() {
                       </Pressable> : <MaterialCommunityIcons name="chevron-right" size={20} color={c.textMuted} />}
                     </View>
                   ))}
+                  </View>)}
                   {!dailyActivities.length && !activitiesLoading ? (
                     <View style={s.activitiesEmpty}>
                       <MaterialCommunityIcons
@@ -854,7 +875,7 @@ export default function HomeScreen() {
               <Pressable accessibilityRole="button"
                 onPress={async () => {
                   setMenuOpen(false);
-                  if (await confirmAction({ title: "Sair da conta?", message: "Você precisará entrar novamente com e-mail e senha neste aparelho.", confirmLabel: "Sair da conta", cancelLabel: "Continuar conectado" })) void logout();
+                  await logout();
                 }}
                 style={s.menuItem}
               >
@@ -867,6 +888,7 @@ export default function HomeScreen() {
                   Sair da conta
                 </Text>
               </Pressable>
+              <Text style={s.menuVersion}>Versão {String(Constants.expoConfig?.extra?.releaseName ?? Constants.expoConfig?.version ?? '—')}</Text>
             </View>
           </View>
         </Modal>
@@ -879,10 +901,11 @@ const createStyles = (c: AppPalette, scheme: "light" | "dark") =>
   StyleSheet.create({
     root: { flex: 1, backgroundColor: c.background },
     safe: { flex: 1 },
+    workoutDock: { width: '100%', maxWidth: 680, alignSelf: 'center', paddingHorizontal: 20, paddingTop: 12, paddingBottom: 8 },
     content: {
       paddingHorizontal: 20,
       paddingTop: 18,
-      paddingBottom: 118,
+      paddingBottom: 24,
       maxWidth: 720,
       width: "100%",
       alignSelf: "center",
@@ -952,6 +975,7 @@ const createStyles = (c: AppPalette, scheme: "light" | "dark") =>
       paddingHorizontal: 5,
     },
     menuItemTitle: { ...Type.body, fontWeight: "700", color: c.text },
+    menuVersion: { fontSize: 11, color: c.textMuted, textAlign: "center", marginTop: 8, marginBottom: 4 },
     menuItemText: { fontSize: 12, color: c.textMuted, marginTop: 2 },
     menuDivider: { height: 1, backgroundColor: c.border, marginVertical: 5 },
     hero: {
@@ -1014,6 +1038,7 @@ const createStyles = (c: AppPalette, scheme: "light" | "dark") =>
       gap: 1,
     },
     dayDone: { backgroundColor: c.secondary },
+    dayToday: { borderWidth: 2, borderColor: c.white },
     dayPlanned: { borderWidth: 1, borderColor: "rgba(255,255,255,.62)" },
     dayText: { fontSize: 12, color: c.heroMuted, fontWeight: "700" },
     dayTextDone: { color: c.primaryStrong },
@@ -1243,6 +1268,10 @@ const createStyles = (c: AppPalette, scheme: "light" | "dark") =>
       justifyContent: "center",
     },
     activitiesList: { paddingHorizontal: 18, paddingBottom: 18 },
+    activityGroupHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, paddingTop: 12, paddingBottom: 4 },
+    activityGroupTitle: { fontSize: 12, fontWeight: '800', letterSpacing: .4, color: c.textMuted, textTransform: 'uppercase' },
+    activityGroupAction: { minHeight: 44, paddingHorizontal: 12, borderRadius: 12, justifyContent: 'center', backgroundColor: c.primarySoft },
+    activityGroupActionText: { fontSize: 13, fontWeight: '800', color: c.link },
     activityRow: {
       minHeight: 70,
       flexDirection: "row",

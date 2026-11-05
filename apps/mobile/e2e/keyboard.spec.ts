@@ -124,7 +124,7 @@ for (const width of [320, 390]) test(`escrita com teclado e troca de campo: ${wi
   await page.getByRole('button',{name:'Registrar refeição',exact:true}).first().click();
   await keyboard(page, 390);
   await writeVisible(page, page.getByLabel('Calorias (kcal)',{exact:true}), '500');
-  await writeVisible(page, page.getByLabel('Nome',{exact:true}), 'Almoço teste');
+  await writeVisible(page, page.getByLabel('Nome da refeição',{exact:true}), 'Almoço teste');
   await keyboard(page, 844);
 
   await page.goto('/body-measurements');

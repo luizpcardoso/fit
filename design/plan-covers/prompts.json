@@ -1,0 +1,66 @@
+[
+  {
+    "id": "running-woman",
+    "label": "Corrida · mulher",
+    "subject": "One adult woman with medium brown skin and a ponytail jogging forward in a relaxed energetic stride outdoors, comfortable athletic build, leggings and modest running top, simple hint of a park path.",
+    "prompt": "Use case: stylized-concept. Asset type: small illustrative cover for a Brazilian fitness training PLAN card, landscape 16:9, subject must remain fully visible when reduced to 640x360. Original professional editorial illustration, polished soft 3D / semi-cartoon aesthetic, friendly adult proportions, understated shading, rounded shapes and readable silhouette, no anatomical muscle overlay. Pale icy teal background #e6f5f8, dark teal #16404b and aqua #0b7e9c sportswear, small warm coral accent. Minimal abstract gym/park geometry, uncluttered generous safe margins, person centered, entire body including shoes with 10% margin. Absolutely no text, letters, logos, watermark, charts, scales, before-and-after comparison, or body transformation promises. Diverse healthy believable bodies, respectful appearance, not sexualized. Subject: One adult woman with medium brown skin and a ponytail jogging forward in a relaxed energetic stride outdoors, comfortable athletic build, leggings and modest running top, simple hint of a park path.",
+    "path": "/home/luiz/.codex/generated_images/01a1a2fb-b251-7d41-bf28-2435fdb99541/exec-05567d79-517f-405f-b88f-84cfbaecd36f.png",
+    "file": "apps/mobile/assets/images/plan-covers/running-woman.webp"
+  },
+  {
+    "id": "running-man",
+    "label": "Corrida · homem",
+    "subject": "One adult man with dark brown skin and short hair jogging forward in a relaxed energetic stride outdoors, comfortable athletic build, running shorts and a sports shirt, simple hint of a park path.",
+    "prompt": "Use case: stylized-concept. Asset type: small illustrative cover for a Brazilian fitness training PLAN card, landscape 16:9, subject must remain fully visible when reduced to 640x360. Original professional editorial illustration, polished soft 3D / semi-cartoon aesthetic, friendly adult proportions, understated shading, rounded shapes and readable silhouette, no anatomical muscle overlay. Pale icy teal background #e6f5f8, dark teal #16404b and aqua #0b7e9c sportswear, small warm coral accent. Minimal abstract gym/park geometry, uncluttered generous safe margins, person centered, entire body including shoes with 10% margin. Absolutely no text, letters, logos, watermark, charts, scales, before-and-after comparison, or body transformation promises. Diverse healthy believable bodies, respectful appearance, not sexualized. Subject: One adult man with dark brown skin and short hair jogging forward in a relaxed energetic stride outdoors, comfortable athletic build, running shorts and a sports shirt, simple hint of a park path.",
+    "path": "/home/luiz/.codex/generated_images/01a1a2fb-b251-7d41-bf28-2435fdb99541/exec-8a2b3511-b24e-46ef-b2e1-a331af6b9e57.png",
+    "file": "apps/mobile/assets/images/plan-covers/running-man.webp"
+  },
+  {
+    "id": "muscle-woman",
+    "label": "Musculação · mulher",
+    "subject": "One athletic strong adult woman with light olive skin, tied-back dark hair, visibly muscular but realistic shoulders and legs, confidently standing holding a dumbbell in each hand, modest sports tank top and leggings, minimal gym setting.",
+    "prompt": "Use case: stylized-concept. Asset type: small illustrative cover for a Brazilian fitness training PLAN card, landscape 16:9, subject must remain fully visible when reduced to 640x360. Original professional editorial illustration, polished soft 3D / semi-cartoon aesthetic, friendly adult proportions, understated shading, rounded shapes and readable silhouette, no anatomical muscle overlay. Pale icy teal background #e6f5f8, dark teal #16404b and aqua #0b7e9c sportswear, small warm coral accent. Minimal abstract gym/park geometry, uncluttered generous safe margins, person centered, entire body including shoes with 10% margin. Absolutely no text, letters, logos, watermark, charts, scales, before-and-after comparison, or body transformation promises. Diverse healthy believable bodies, respectful appearance, not sexualized. Subject: One athletic strong adult woman with light olive skin, tied-back dark hair, visibly muscular but realistic shoulders and legs, confidently standing holding a dumbbell in each hand, modest sports tank top and leggings, minimal gym setting.",
+    "path": "/home/luiz/.codex/generated_images/01a1a2fb-b251-7d41-bf28-2435fdb99541/exec-7218b6bf-1fd9-4e8c-8e4c-59a147a9122d.png",
+    "file": "apps/mobile/assets/images/plan-covers/muscle-woman.webp"
+  },
+  {
+    "id": "muscle-man",
+    "label": "Musculação · homem",
+    "subject": "One visibly muscular adult man with medium brown skin, short dark hair and a neat beard, realistic strong arms and legs, confidently standing holding a dumbbell in each hand, sports tank top and shorts, minimal gym setting.",
+    "prompt": "Use case: stylized-concept. Asset type: small illustrative cover for a Brazilian fitness training PLAN card, landscape 16:9, subject must remain fully visible when reduced to 640x360. Original professional editorial illustration, polished soft 3D / semi-cartoon aesthetic, friendly adult proportions, understated shading, rounded shapes and readable silhouette, no anatomical muscle overlay. Pale icy teal background #e6f5f8, dark teal #16404b and aqua #0b7e9c sportswear, small warm coral accent. Minimal abstract gym/park geometry, uncluttered generous safe margins, person centered, entire body including shoes with 10% margin. Absolutely no text, letters, logos, watermark, charts, scales, before-and-after comparison, or body transformation promises. Diverse healthy believable bodies, respectful appearance, not sexualized. Subject: One visibly muscular adult man with medium brown skin, short dark hair and a neat beard, realistic strong arms and legs, confidently standing holding a dumbbell in each hand, sports tank top and shorts, minimal gym setting.",
+    "path": "/home/luiz/.codex/generated_images/01a1a2fb-b251-7d41-bf28-2435fdb99541/exec-1771e2ae-8942-4166-9cb0-9a37d9fc5740.png",
+    "file": "apps/mobile/assets/images/plan-covers/muscle-man.webp"
+  },
+  {
+    "id": "strength",
+    "label": "Força",
+    "subject": "One strong adult woman with dark brown skin and short curly hair performing a balanced controlled barbell deadlift in a safe hinge posture, athletic shorts and sports shirt, compact barbell entirely visible, minimal gym setting.",
+    "prompt": "Use case: stylized-concept. Asset type: small illustrative cover for a Brazilian fitness training PLAN card, landscape 16:9, subject must remain fully visible when reduced to 640x360. Original professional editorial illustration, polished soft 3D / semi-cartoon aesthetic, friendly adult proportions, understated shading, rounded shapes and readable silhouette, no anatomical muscle overlay. Pale icy teal background #e6f5f8, dark teal #16404b and aqua #0b7e9c sportswear, small warm coral accent. Minimal abstract gym/park geometry, uncluttered generous safe margins, person centered, entire body including shoes with 10% margin. Absolutely no text, letters, logos, watermark, charts, scales, before-and-after comparison, or body transformation promises. Diverse healthy believable bodies, respectful appearance, not sexualized. Subject: One strong adult woman with dark brown skin and short curly hair performing a balanced controlled barbell deadlift in a safe hinge posture, athletic shorts and sports shirt, compact barbell entirely visible, minimal gym setting.",
+    "path": "/home/luiz/.codex/generated_images/01a1a2fb-b251-7d41-bf28-2435fdb99541/exec-7a5eeaab-7013-4eab-a656-036dfb1c961f.png",
+    "file": "apps/mobile/assets/images/plan-covers/strength.webp"
+  },
+  {
+    "id": "conditioning",
+    "label": "Condicionamento",
+    "subject": "One athletic adult man with light skin and short brown hair doing a dynamic functional exercise step on a low stable exercise platform, comfortable sports shirt and shorts, full body and low platform entirely visible, minimal studio setting.",
+    "prompt": "Use case: stylized-concept. Asset type: small illustrative cover for a Brazilian fitness training PLAN card, landscape 16:9, subject must remain fully visible when reduced to 640x360. Original professional editorial illustration, polished soft 3D / semi-cartoon aesthetic, friendly adult proportions, understated shading, rounded shapes and readable silhouette, no anatomical muscle overlay. Pale icy teal background #e6f5f8, dark teal #16404b and aqua #0b7e9c sportswear, small warm coral accent. Minimal abstract gym/park geometry, uncluttered generous safe margins, person centered, entire body including shoes with 10% margin. Absolutely no text, letters, logos, watermark, charts, scales, before-and-after comparison, or body transformation promises. Diverse healthy believable bodies, respectful appearance, not sexualized. Subject: One athletic adult man with light skin and short brown hair doing a dynamic functional exercise step on a low stable exercise platform, comfortable sports shirt and shorts, full body and low platform entirely visible, minimal studio setting.",
+    "path": "/home/luiz/.codex/generated_images/01a1a2fb-b251-7d41-bf28-2435fdb99541/exec-25d6a1b0-3243-47c1-95dc-4141c63cc60a.png",
+    "file": "apps/mobile/assets/images/plan-covers/conditioning.webp"
+  },
+  {
+    "id": "mobility",
+    "label": "Mobilidade",
+    "subject": "One adult woman with medium brown skin, natural curly hair and an average healthy body doing a gentle standing side stretch with one arm overhead beside a yoga mat, loose comfortable sportswear, calm minimal studio setting.",
+    "prompt": "Use case: stylized-concept. Asset type: small illustrative cover for a Brazilian fitness training PLAN card, landscape 16:9, subject must remain fully visible when reduced to 640x360. Original professional editorial illustration, polished soft 3D / semi-cartoon aesthetic, friendly adult proportions, understated shading, rounded shapes and readable silhouette, no anatomical muscle overlay. Pale icy teal background #e6f5f8, dark teal #16404b and aqua #0b7e9c sportswear, small warm coral accent. Minimal abstract gym/park geometry, uncluttered generous safe margins, person centered, entire body including shoes with 10% margin. Absolutely no text, letters, logos, watermark, charts, scales, before-and-after comparison, or body transformation promises. Diverse healthy believable bodies, respectful appearance, not sexualized. Subject: One adult woman with medium brown skin, natural curly hair and an average healthy body doing a gentle standing side stretch with one arm overhead beside a yoga mat, loose comfortable sportswear, calm minimal studio setting.",
+    "path": "/home/luiz/.codex/generated_images/01a1a2fb-b251-7d41-bf28-2435fdb99541/exec-10c7d2c1-2fdc-457a-abe6-99130808dd78.png",
+    "file": "apps/mobile/assets/images/plan-covers/mobility.webp"
+  },
+  {
+    "id": "wellness",
+    "label": "Bem-estar",
+    "subject": "Two adult friends, one woman with light skin and one man with dark brown skin, average healthy bodies walking together on a park path, comfortable casual sportswear, relaxed hopeful posture, small abstract plant forms, both full bodies entirely visible.",
+    "prompt": "Use case: stylized-concept. Asset type: small illustrative cover for a Brazilian fitness training PLAN card, landscape 16:9, subject must remain fully visible when reduced to 640x360. Original professional editorial illustration, polished soft 3D / semi-cartoon aesthetic, friendly adult proportions, understated shading, rounded shapes and readable silhouette, no anatomical muscle overlay. Pale icy teal background #e6f5f8, dark teal #16404b and aqua #0b7e9c sportswear, small warm coral accent. Minimal abstract gym/park geometry, uncluttered generous safe margins, person centered, entire body including shoes with 10% margin. Absolutely no text, letters, logos, watermark, charts, scales, before-and-after comparison, or body transformation promises. Diverse healthy believable bodies, respectful appearance, not sexualized. Subject: Two adult friends, one woman with light skin and one man with dark brown skin, average healthy bodies walking together on a park path, comfortable casual sportswear, relaxed hopeful posture, small abstract plant forms, both full bodies entirely visible.",
+    "path": "/home/luiz/.codex/generated_images/01a1a2fb-b251-7d41-bf28-2435fdb99541/exec-bf853426-9271-4534-88af-cded7edbfbe6.png",
+    "file": "apps/mobile/assets/images/plan-covers/wellness.webp"
+  }
+]

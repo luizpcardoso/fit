@@ -38,7 +38,7 @@ Na raiz do repositório de desenvolvimento, com Java e Android SDK instalados:
 FIT_API_URL=https://orami.com.br node scripts/build-android-release.mjs
 ```
 
-Na versão 1.05, a saída é `artifacts/android/orami-1.0.5-android.apk`. A chave de assinatura e suas credenciais ficam em `~/.local/share/fit/android-signing` no computador de desenvolvimento. Preservar uma cópia privada: atualizações precisam da mesma chave. Incrementar `android.versionCode` para futuras versões e seguir `docs/versioning.md`.
+Na versão 1.07, a saída é `artifacts/android/orami-1.0.7-android.apk`. A chave de assinatura e suas credenciais ficam em `~/.local/share/fit/android-signing` no computador de desenvolvimento. Preservar uma cópia privada: atualizações precisam da mesma chave. Incrementar `android.versionCode` para futuras versões e seguir `docs/versioning.md`.
 
 Após validar a assinatura e o endereço no bundle, preparar os metadados usando `scripts/prepare-android-download.mjs` (ver `docs/versioning.md`). Enviar o APK versionado para um `.pending` no servidor e ativar por renomeação; só então publicar `downloads/release.json` atomicamente. Manter cópia compatível em `downloads/fit.apk` e checksum `downloads/fit.apk.sha256`. A home exibe versão e tamanho reais pelo manifesto e baixa `/downloads/orami-<SemVer>-android.apk`. Não hospedar chaves, credenciais ou backups nessa pasta.
 

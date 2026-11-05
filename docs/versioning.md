@@ -2,9 +2,9 @@
 
 O aplicativo mostra uma versão curta para o usuário e mantém uma versão técnica compatível com o ecossistema Expo/Android.
 
-- Versão exibida: `1.06`.
-- Versão técnica (SemVer): `1.0.6`.
-- Android `versionCode`: `9`, sempre crescente a cada novo APK.
+- Versão exibida: `1.07`.
+- Versão técnica (SemVer): `1.0.7`.
+- Android `versionCode`: `10`, sempre crescente a cada novo APK.
 
 A versão exibida fica em `expo.extra.releaseName`; a versão técnica e o código ficam em `apps/mobile/app.json`. A tela Configurações → Sobre o app mostra os três valores disponíveis no binário.
 
@@ -102,3 +102,21 @@ Capas escolhidas pelo usuário em fichas próprias; Fitness sem figura decorativ
 - Typecheck, lint, testes gerais, integração MySQL e onze cenários E2E aprovados. Build Android concluído. Validação em aparelho físico permanece pendente.
 
 Publicação concluída: manifesto ativado atomicamente, alias legado atualizado, download integral pelo domínio público com SHA-256 idêntico ao APK local e API `/health` saudável. APKs e runtimes anteriores mantidos.
+
+
+## Versão 1.07 — 05/11/2026
+
+Revisão de UX com séries individuais, carga/repetições e valores do treino anterior, descanso fixo e controles atualizados na notificação Android. Históricos de treino/cardio, cadastros e diário usam paginação; navegação, cabeçalhos, rodapés e números pt-BR seguem os padrões revisados. A API limita requisições por conta autenticada e preserva erros 4xx sem expor dados sensíveis nos logs.
+
+A atualização do módulo nativo exige novo APK (`versionCode` 10). Não publicar o bundle por OTA para runtimes anteriores. As migrações de banco são as mesmas da 1.06.
+
+- APK: `orami-1.0.7-android.apk`, versão pública `1.07`, `versionCode` 10, 108442334 bytes.
+- SHA-256: `6b498e3f8b148367407ad4cbe043519f0b8453bd3eeca7c552880c9806fd370e`.
+- Runtime: `2ba246dc9393399f3e8794010784b4ccf724497c`.
+- Assinatura comparada com a 1.06 e preservada: certificado SHA-256 `8ca4c75ce8113cf0186a0fe63a0a0daad4aef0d64769cd27fae0c10428d559d4`. URL HTTPS de produção conferida no bundle.
+- APK versionado e alias `/downloads/fit.apk` publicados; manifesto ativado atomicamente após verificar SHA-256 no servidor. APKs e runtimes anteriores mantidos.
+- Site/API atualizados e saudáveis; home e portal respondem 200, acesso sem sessão e login inválido respondem 401. O runtime novo usa o bundle embutido (sem OTA).
+- Backup privado de banco, mídia, fontes e manifesto anterior em `/home/luizserver/apps/fit/deploy/backups/release-1.0.7` e `~/.local/share/fit/deployment-backups/release-1.0.7`; imagem anterior preservada como `fit-server-api:before-1.0.7`.
+- Typecheck, lint mobile, suíte da API com todas as integrações MySQL em banco dedicado, E2E do portal e build Android aprovados. Banco dedicado removido após a suíte. Validação em aparelho físico permanece pendente: nenhum dispositivo Android estava conectado.
+
+Downloads integrais de `orami-1.0.7-android.apk` e do alias `/downloads/fit.apk` pelo domínio público conferidos: tamanho e SHA-256 idênticos ao APK local assinado.

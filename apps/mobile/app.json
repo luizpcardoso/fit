@@ -2,7 +2,7 @@
   "expo": {
     "name": "Orami",
     "slug": "fit",
-    "version": "1.0.6",
+    "version": "1.0.7",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "fit",
@@ -18,7 +18,7 @@
       "predictiveBackGestureEnabled": false,
       "softwareKeyboardLayoutMode": "resize",
       "package": "com.luiz.fit",
-      "versionCode": 9
+      "versionCode": 10
     },
     "web": {
       "output": "server",
@@ -41,7 +41,7 @@
       "reactCompiler": true
     },
     "extra": {
-      "releaseName": "1.06"
+      "releaseName": "1.07"
     },
     "runtimeVersion": {
       "policy": "fingerprint"

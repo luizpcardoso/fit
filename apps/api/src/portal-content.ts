@@ -530,18 +530,21 @@ export async function registerPortalContent(
     const { key } = z
       .strictObject({ key: z.string().regex(/^[a-f0-9-]{36}\.webp$/) })
       .parse(req.params);
+    // Read before setting headers: a missing key must not leave image/webp + immutable on the error reply (the CDN would cache it).
+    let data: Buffer;
     try {
-      return reply
-        .header("content-type", "image/webp")
-        .header("cache-control", "public, max-age=86400, immutable")
-        .header("x-content-type-options", "nosniff")
-        .send(await readMedia(key));
+      data = await readMedia(key);
     } catch {
-      return reply.code(404).send({
+      return reply.code(404).header("cache-control", "no-store").send({
         code: "NOT_FOUND",
         message: "Imagem não encontrada.",
       });
     }
+    return reply
+      .header("content-type", "image/webp")
+      .header("cache-control", "public, max-age=86400, immutable")
+      .header("x-content-type-options", "nosniff")
+      .send(data);
   });
   app.get(
     "/portal/content",

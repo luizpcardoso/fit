@@ -124,7 +124,7 @@ export async function buildApp(options: { observabilityStore?: ObservabilityStor
     if(previous?.avatarUrl?.startsWith('/media/avatars/'))await removeMedia(previous.avatarUrl.split('/').at(-1)!).catch(()=>app.log.warn('Falha ao remover avatar substituído.'));
     return result;
   });
-  app.get('/media/avatars/:key',async(request,reply)=>{const {key}=z.strictObject({key:z.string().regex(/^[a-f0-9-]{36}\.webp$/)}).parse(request.params);try{return reply.header('content-type','image/webp').header('cache-control','public, max-age=86400, immutable').send(await readMedia(key));}catch{return reply.code(404).send({code:'NOT_FOUND',message:'Foto não encontrada.'});}});
+  app.get('/media/avatars/:key',async(request,reply)=>{const {key}=z.strictObject({key:z.string().regex(/^[a-f0-9-]{36}\.webp$/)}).parse(request.params);let data:Buffer;try{data=await readMedia(key);}catch{return reply.code(404).header('cache-control','no-store').send({code:'NOT_FOUND',message:'Foto não encontrada.'});}return reply.header('content-type','image/webp').header('cache-control','public, max-age=86400, immutable').send(data);});
   app.get('/health', { schema: { hide: true } }, async () => ({ status: 'ok' }));
   if (options.medicationRepository && options.supplementRepository && options.injectableRepository && options.mentalWellbeingRepository && options.workoutRepository && options.nutritionRepository) {
     registerReminderAgendaRoutes(app, {medications:options.medicationRepository,supplements:options.supplementRepository,injectables:options.injectableRepository,workouts:options.workoutRepository}, secure);

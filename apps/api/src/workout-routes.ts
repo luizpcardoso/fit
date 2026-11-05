@@ -14,7 +14,8 @@ export async function registerWorkoutRoutes(app:FastifyInstance,repository:Worko
   app.get('/workout-plan-covers', async () => workoutCovers.map(item => ({...item,url:`/assets/plan-covers/${item.id}.webp`})));
   app.get('/assets/plan-covers/:id.webp', async (request, reply) => {
     const id = workoutCoverIdSchema.parse((request.params as {id:string}).id);
-    return reply.type('image/webp').header('cache-control','public, max-age=31536000, immutable').header('x-content-type-options','nosniff').send(await readFile(new URL(`../../mobile/assets/images/plan-covers/${id}.webp`,import.meta.url)));
+    const data=await readFile(new URL(`../../mobile/assets/images/plan-covers/${id}.webp`,import.meta.url));
+    return reply.type('image/webp').header('cache-control','public, max-age=31536000, immutable').header('x-content-type-options','nosniff').send(data);
   });
   app.get('/workout-runs/active', { ...base }, (request, reply) => { reply.header('Cache-Control', 'no-store'); return repository.runs.active(request.user.sub); });
   app.get('/workout-runs/previous', { ...base, schema: { ...base.schema, summary: 'Valores realizados na última execução de cada exercício do treino' } }, (request, reply) => { reply.header('Cache-Control', 'no-store'); return repository.runs.previous(request.user.sub, previousRunQuery.parse(request.query).divisionId); });

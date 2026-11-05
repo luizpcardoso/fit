@@ -13,7 +13,7 @@ O check indica publicação pela API. Arquivos locais disponíveis ficam clicáv
 - [x] **Supino reto com barra** — Publicada
   - Catálogo: Supino reto com barra; ID: `b323d10a-807c-4609-878e-2127137678ce`.
   - Imagem: [abrir arquivo](images/supino-reto-com-barra.png).
-  - URL publicada: `/media/exercises/164d7928-ab51-4dbf-8e69-220c4de6a2db.webp`.
+  - URL publicada: `/media/exercises/df792bf5-5290-4e61-b5e6-b9e4ab0fce2a.webp`.
 - [x] **Supino reto com halteres** — Publicada
   - Catálogo: Supino reto com halteres; ID: `d0f06b1a-04c5-426f-8439-c9937118cc60`.
   - Imagem: [abrir arquivo](images/supino-reto-com-halteres.png).
@@ -54,6 +54,10 @@ O check indica publicação pela API. Arquivos locais disponíveis ficam clicáv
   - Imagem: [abrir arquivo](images/puxada-com-pegada-neutra.png).
   - Variação escolhida para o nome genérico: Puxada frontal neutra
   - URL publicada: `/media/exercises/0dc3861a-b42d-465b-a9ee-a5fd93fef2ba.webp`.
+- [ ] **Puxada atrás da nuca** — Gerada; revisar
+  - Catálogo: Vínculo pendente; ID: —.
+  - Imagem: [abrir arquivo](images/puxada-atras-da-nuca.png).
+  - Imagem recebida no lote de 05/11/2026 sem exercício correspondente no catálogo (local e produção). Não vincular a Puxada frontal; cadastrar pelo portal e preencher o ID real.
 - [x] **Remada baixa** — Publicada
   - Catálogo: Remada baixa triangulo; ID: `12c9e425-cf00-4c64-8735-2910508a7471`.
   - Imagem: [abrir arquivo](images/remada-baixa.png).
@@ -129,9 +133,10 @@ O check indica publicação pela API. Arquivos locais disponíveis ficam clicáv
   - Catálogo: Rosca alternada com halteres; ID: `dc368d09-db76-4e63-82e4-2be398e854f5`.
   - Imagem: [abrir arquivo](images/rosca-alternada-com-halteres.png).
   - URL publicada: `/media/exercises/ca0b3005-1a51-4586-b6e4-a6410008cea8.webp`.
-- [ ] **Rosca martelo** — Gerada; revisar
+- [x] **Rosca martelo** — Publicada
   - Catálogo: Rosca martelo; ID: `d9fd9f31-7155-42cd-8c5e-e6fa408aacaa`.
   - Imagem: [abrir arquivo](images/rosca-martelo.png).
+  - URL publicada: `/media/exercises/9b17613a-e640-492b-be4b-4989af2b0774.webp`.
 - [x] **Rosca Scott** — Publicada
   - Catálogo: Rosca Scott com barra W; ID: `d3c42a2a-461d-43f8-8178-dfc14776b4ed`.
   - Imagem: [abrir arquivo](images/rosca-scott.png).

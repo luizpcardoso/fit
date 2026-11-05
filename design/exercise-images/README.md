@@ -1,6 +1,6 @@
 # Imagens instrucionais dos exercícios
 
-`manifest.json` é a fonte de controle dos 71 exercícios solicitados. `CHECKLIST.md` é a visualização gerada, com nomes, IDs, status e links. Os originais ficam em `images/`, versionados junto do manifesto; não são empacotados no app.
+`manifest.json` é a fonte de controle dos 72 exercícios registrados. `CHECKLIST.md` é a visualização gerada, com nomes, IDs, status e links. Os originais ficam em `images/`, versionados junto do manifesto; não são empacotados no app.
 
 Os 69 vínculos preenchidos foram consultados no banco configurado em `apps/api/.env` em 05/11/2026. IDs não foram inferidos dos nomes nem criados novamente. O ambiente consultado não comprova o estado do servidor de produção. Nomes genéricos receberam uma variação explícita em `catalogName`/`mappingNote`; use essa variação ao gerar a imagem. Não vincular a variações próximas de aparelho ou movimento apenas para preencher o campo.
 
@@ -23,7 +23,11 @@ O catálogo e as sugestões leem a imagem atual do exercício. Fichas existentes
 
 ## Estado da coleção
 
-30 exercícios da checklist foram gerados com a ferramenta integrada image_gen e publicados no banco configurado em apps/api/.env, usando o serviço administrativo existente com validação e auditoria. Os WebPs estão na mídia local da API; isso não representa implantação no servidor de produção. A rosca martelo anterior permanece em generated. O manifesto e a checklist registram o estado por item. Os prompts estão junto de cada original. Fichas antigas não foram modificadas.
+31 exercícios da checklist foram gerados com a ferramenta integrada image_gen e publicados no banco local (apps/api/.env) **e em produção** (orami.com.br, 05/11/2026). Os dois ambientes usam a mesma chave de mídia, então `imageUrl` no manifesto vale para ambos. Em produção, os WebPs ficam em `deploy/data/media`, cada vínculo foi feito em uma única transação (conferindo ID, nome, `source='catalog'` e ausência de imagem anterior) e auditado como `exercise.image.updated`. Os vínculos e a mídia de antes da publicação estão em `~/apps/fit/deploy/backups/exercise-images-<data>` no servidor (ver `productionBackup` no manifesto). O manifesto e a checklist registram o estado por item. Os prompts estão junto de cada original. Fichas antigas não foram modificadas.
+
+**Puxada atrás da nuca** veio no lote de imagens mas não existe no catálogo local nem no de produção. A imagem está em `images/` com status `generated` e sem vínculo. Cadastrar o exercício pelo portal e preencher o ID real antes de publicar.
+
+Cache: a rota `/media/exercises/:key` serve o WebP com `cache-control: immutable` (Cloudflare guarda por 24 h). Chave inexistente responde 404 com `no-store`, que não fica em cache. Antes da correção de 05/11/2026, a resposta de erro era 500 com `immutable` e ficava em cache; por isso a imagem do supino reto com barra recebeu outra chave.
 
 ## Backup da coleção
 

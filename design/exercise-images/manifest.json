@@ -14,9 +14,9 @@
       "mappingNote": "",
       "imageStatus": "published",
       "imagePath": "design/exercise-images/images/supino-reto-com-barra.png",
-      "imageUrl": "/media/exercises/164d7928-ab51-4dbf-8e69-220c4de6a2db.webp",
+      "imageUrl": "/media/exercises/df792bf5-5290-4e61-b5e6-b9e4ab0fce2a.webp",
       "publishedSha256": "9a12e6850c8f1127ecea4cd96f9f5b04bd5e26613f4bb653a300deed8be1ac0f",
-      "publishedEnvironment": "Banco configurado em apps/api/.env; mídia local"
+      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois"
     },
     {
       "slug": "supino-reto-com-halteres",
@@ -30,7 +30,7 @@
       "imagePath": "design/exercise-images/images/supino-reto-com-halteres.png",
       "imageUrl": "/media/exercises/67a059f0-6115-4955-a8ad-01be7b0d77fe.webp",
       "publishedSha256": "5a0e42451e2cb0c70f327cd58f8759a80b3c340ec5a318022c2e96f84d0abc81",
-      "publishedEnvironment": "Banco configurado em apps/api/.env; mídia local"
+      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois"
     },
     {
       "slug": "supino-inclinado-com-halteres",
@@ -44,7 +44,7 @@
       "imagePath": "design/exercise-images/images/supino-inclinado-com-halteres.png",
       "imageUrl": "/media/exercises/07da203a-502e-435d-bf45-08a3e0568071.webp",
       "publishedSha256": "f3351cdb453f8bcdb2acebec8b517f6d14038ff7e5603daf83ca2430c8247026",
-      "publishedEnvironment": "Banco configurado em apps/api/.env; mídia local"
+      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois"
     },
     {
       "slug": "crucifixo-com-halteres",
@@ -58,7 +58,7 @@
       "imagePath": "design/exercise-images/images/crucifixo-com-halteres.png",
       "imageUrl": "/media/exercises/826dcaea-829a-4407-8344-5e142b5c9456.webp",
       "publishedSha256": "22faed76f78013496099b4a5afc9bfb182be4d6824b38f293e62705335211b78",
-      "publishedEnvironment": "Banco configurado em apps/api/.env; mídia local"
+      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois"
     },
     {
       "slug": "crucifixo-na-maquina-peck-deck",
@@ -72,7 +72,7 @@
       "imagePath": "design/exercise-images/images/crucifixo-na-maquina-peck-deck.png",
       "imageUrl": "/media/exercises/fc403738-fc75-43e2-8744-244fdeb6c251.webp",
       "publishedSha256": "d93027f365156c7a5f75c84b4268de4cdc04af1294d91ecb66083f5b632cc47c",
-      "publishedEnvironment": "Banco configurado em apps/api/.env; mídia local"
+      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois"
     },
     {
       "slug": "crossover-na-polia",
@@ -86,7 +86,7 @@
       "imagePath": "design/exercise-images/images/crossover-na-polia.png",
       "imageUrl": "/media/exercises/f4a6b42a-47d9-447f-8384-2775a33fbeb4.webp",
       "publishedSha256": "ff00a5d0b3745ad18def48b20671077a7cb4f491236ca9aa6e2e256eb619054c",
-      "publishedEnvironment": "Banco configurado em apps/api/.env; mídia local"
+      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois"
     },
     {
       "slug": "flexao-de-bracos",
@@ -100,7 +100,7 @@
       "imagePath": "design/exercise-images/images/flexao-de-bracos.png",
       "imageUrl": "/media/exercises/1306f8bd-d9a9-4330-b47b-fc1d405f2c5f.webp",
       "publishedSha256": "c4624ea91d2615816ea6614f3a66fa66f2d5435a9335f0261fb7259dac0dbd76",
-      "publishedEnvironment": "Banco configurado em apps/api/.env; mídia local"
+      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois"
     },
     {
       "slug": "puxada-frontal-na-polia",
@@ -114,7 +114,7 @@
       "imagePath": "design/exercise-images/images/puxada-frontal-na-polia.png",
       "imageUrl": "/media/exercises/c1ab24d8-4b8a-4e67-ba4d-c41c694b9d20.webp",
       "publishedSha256": "d377f0179a91e1f3fda97d2f03649bc8f3f9f693af52cc7da1072e728430bd8f",
-      "publishedEnvironment": "Banco configurado em apps/api/.env; mídia local"
+      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois"
     },
     {
       "slug": "puxada-com-pegada-neutra",
@@ -128,7 +128,20 @@
       "imagePath": "design/exercise-images/images/puxada-com-pegada-neutra.png",
       "imageUrl": "/media/exercises/0dc3861a-b42d-465b-a9ee-a5fd93fef2ba.webp",
       "publishedSha256": "cf12b1d4e8ef09370d044f62e6da001e22675462ba3c147f6bd21607a3295337",
-      "publishedEnvironment": "Banco configurado em apps/api/.env; mídia local"
+      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois"
+    },
+    {
+      "slug": "puxada-atras-da-nuca",
+      "name": "Puxada atrás da nuca",
+      "group": "Costas",
+      "catalogExerciseId": null,
+      "catalogName": "",
+      "mappingStatus": "pending",
+      "mappingNote": "Imagem recebida no lote de 05/11/2026 sem exercício correspondente no catálogo (local e produção). Não vincular a Puxada frontal; cadastrar pelo portal e preencher o ID real.",
+      "imageStatus": "generated",
+      "imagePath": "design/exercise-images/images/puxada-atras-da-nuca.png",
+      "imageUrl": null,
+      "publishedSha256": null
     },
     {
       "slug": "remada-baixa",
@@ -142,7 +155,7 @@
       "imagePath": "design/exercise-images/images/remada-baixa.png",
       "imageUrl": "/media/exercises/a3867d30-70b5-47b3-a316-a61ca63004a4.webp",
       "publishedSha256": "20f190c3fdeb48b5cbf44f79f1276a0e4ef0265b5d072dd342436943b2bdcec0",
-      "publishedEnvironment": "Banco configurado em apps/api/.env; mídia local"
+      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois"
     },
     {
       "slug": "remada-curvada-com-barra",
@@ -156,7 +169,7 @@
       "imagePath": "design/exercise-images/images/remada-curvada-com-barra.png",
       "imageUrl": "/media/exercises/ca30d926-71c4-4ee6-a456-a66dbe12caa0.webp",
       "publishedSha256": "d2918a81065c38a67ae47478a09afe218d02fa1eebdc94ec03c305f3a3d49dfb",
-      "publishedEnvironment": "Banco configurado em apps/api/.env; mídia local"
+      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois"
     },
     {
       "slug": "remada-unilateral-com-halter",
@@ -170,7 +183,7 @@
       "imagePath": "design/exercise-images/images/remada-unilateral-com-halter.png",
       "imageUrl": "/media/exercises/29026f59-75f9-4342-80e9-2a07a224d6b4.webp",
       "publishedSha256": "1b6c016882827e7749642e7c3b8ca2d5f0aa0265d27a0f4da47c63414f272d5a",
-      "publishedEnvironment": "Banco configurado em apps/api/.env; mídia local"
+      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois"
     },
     {
       "slug": "remada-na-maquina",
@@ -184,7 +197,7 @@
       "imagePath": "design/exercise-images/images/remada-na-maquina.png",
       "imageUrl": "/media/exercises/8bc4d68f-4d2b-4231-b7ca-308b9d6cf9f6.webp",
       "publishedSha256": "1e42aeef2eb31a3c072a2e51629d895c44b64e6822682b57eaa55c3598406abc",
-      "publishedEnvironment": "Banco configurado em apps/api/.env; mídia local"
+      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois"
     },
     {
       "slug": "barra-fixa",
@@ -198,7 +211,7 @@
       "imagePath": "design/exercise-images/images/barra-fixa.png",
       "imageUrl": "/media/exercises/1ff55c2f-9d6c-4504-ae7f-66f10388b1c9.webp",
       "publishedSha256": "43a95ca7bf77a943d2e5a27d281e7a8eb2385a2a0e825841f8b5fefe30a24102",
-      "publishedEnvironment": "Banco configurado em apps/api/.env; mídia local"
+      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois"
     },
     {
       "slug": "pulldown-com-bracos-estendidos",
@@ -212,7 +225,7 @@
       "imagePath": "design/exercise-images/images/pulldown-com-bracos-estendidos.png",
       "imageUrl": "/media/exercises/4c6b86d8-a933-4559-b2a7-1fd8b4c23d14.webp",
       "publishedSha256": "5379460e49c8580675c5b8a6a7afc5e0b4632321f8df6baaeb972b3aead0ecb2",
-      "publishedEnvironment": "Banco configurado em apps/api/.env; mídia local"
+      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois"
     },
     {
       "slug": "desenvolvimento-com-halteres",
@@ -226,7 +239,7 @@
       "imagePath": "design/exercise-images/images/desenvolvimento-com-halteres.png",
       "imageUrl": "/media/exercises/cb0af7eb-ced0-47fa-81eb-53a7f9a19aae.webp",
       "publishedSha256": "1328b0e6e864744636dfb1bf4b5cab3069fdeca544c27c46791d3745a03d84f7",
-      "publishedEnvironment": "Banco configurado em apps/api/.env; mídia local"
+      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois"
     },
     {
       "slug": "desenvolvimento-na-maquina",
@@ -240,7 +253,7 @@
       "imagePath": "design/exercise-images/images/desenvolvimento-na-maquina.png",
       "imageUrl": "/media/exercises/2418e08b-831f-40e3-a13b-8b2055e57e14.webp",
       "publishedSha256": "f8b2f3ffcdfcb5ec34b593781d412f9ae0c441e324af260be9d73f0ab6eafe06",
-      "publishedEnvironment": "Banco configurado em apps/api/.env; mídia local"
+      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois"
     },
     {
       "slug": "elevacao-lateral-com-halteres",
@@ -254,7 +267,7 @@
       "imagePath": "design/exercise-images/images/elevacao-lateral-com-halteres.png",
       "imageUrl": "/media/exercises/1f233563-a01d-40ec-91ba-a10a46e5f2df.webp",
       "publishedSha256": "53d76cb9376754216d2a3087238588234e641c6eb4d8aae666e0a05e32b4f28c",
-      "publishedEnvironment": "Banco configurado em apps/api/.env; mídia local"
+      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois"
     },
     {
       "slug": "elevacao-lateral-na-polia",
@@ -268,7 +281,7 @@
       "imagePath": "design/exercise-images/images/elevacao-lateral-na-polia.png",
       "imageUrl": "/media/exercises/623e090f-a391-4af1-a495-46cac74675f2.webp",
       "publishedSha256": "829a1a17410502d83adab97555627d878b36a0f66786fb6f033762bf7d332900",
-      "publishedEnvironment": "Banco configurado em apps/api/.env; mídia local"
+      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois"
     },
     {
       "slug": "elevacao-frontal",
@@ -282,7 +295,7 @@
       "imagePath": "design/exercise-images/images/elevacao-frontal.png",
       "imageUrl": "/media/exercises/325e3d24-0fe1-449f-8305-4a7f16524a4d.webp",
       "publishedSha256": "6635599ad0abde20efb81844fba29a560323dc3ff8cc58817d2da861d55a8e14",
-      "publishedEnvironment": "Banco configurado em apps/api/.env; mídia local"
+      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois"
     },
     {
       "slug": "crucifixo-inverso",
@@ -296,7 +309,7 @@
       "imagePath": "design/exercise-images/images/crucifixo-inverso.png",
       "imageUrl": "/media/exercises/e12311dd-7807-489f-b0d7-b0ddac590743.webp",
       "publishedSha256": "c00814b5473d435f677f557253880fe89f6d210b3f0babe6ec8bc836c893784b",
-      "publishedEnvironment": "Banco configurado em apps/api/.env; mídia local"
+      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois"
     },
     {
       "slug": "face-pull",
@@ -310,7 +323,7 @@
       "imagePath": "design/exercise-images/images/face-pull.png",
       "imageUrl": "/media/exercises/9e954eb4-03b0-4856-9257-8bbd42ccf679.webp",
       "publishedSha256": "9b38c1f86aec5f626c541a58eeb8691090d58e500df0e0b5009fa21b93e0cc39",
-      "publishedEnvironment": "Banco configurado em apps/api/.env; mídia local"
+      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois"
     },
     {
       "slug": "rosca-direta-com-barra",
@@ -324,7 +337,7 @@
       "imagePath": "design/exercise-images/images/rosca-direta-com-barra.png",
       "imageUrl": "/media/exercises/55b4f33c-b6c5-4d33-afcf-fd277087d037.webp",
       "publishedSha256": "55a064816833c176f465c2aac5a8b042163d6ce7f974c9520c77d3c83c4e5230",
-      "publishedEnvironment": "Banco configurado em apps/api/.env; mídia local"
+      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois"
     },
     {
       "slug": "rosca-alternada-com-halteres",
@@ -338,7 +351,7 @@
       "imagePath": "design/exercise-images/images/rosca-alternada-com-halteres.png",
       "imageUrl": "/media/exercises/ca0b3005-1a51-4586-b6e4-a6410008cea8.webp",
       "publishedSha256": "a88ee55558e054cdb61aab5938f42e107ffaed4323896ef0b85054a04bfb6919",
-      "publishedEnvironment": "Banco configurado em apps/api/.env; mídia local"
+      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois"
     },
     {
       "slug": "rosca-martelo",
@@ -348,10 +361,11 @@
       "catalogName": "Rosca martelo",
       "mappingStatus": "verified_database",
       "mappingNote": "",
-      "imageStatus": "generated",
+      "imageStatus": "published",
       "imagePath": "design/exercise-images/images/rosca-martelo.png",
-      "imageUrl": null,
-      "publishedSha256": null
+      "imageUrl": "/media/exercises/9b17613a-e640-492b-be4b-4989af2b0774.webp",
+      "publishedSha256": "c95d43d74f0f9d0ae2deafa30b6e1f875506e45edc8b37910755f03e990460a9",
+      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois"
     },
     {
       "slug": "rosca-scott",
@@ -365,7 +379,7 @@
       "imagePath": "design/exercise-images/images/rosca-scott.png",
       "imageUrl": "/media/exercises/bc5f97cc-0dfb-4785-813f-c7addbc3d8e7.webp",
       "publishedSha256": "f1063c915ca179d280186184743c47f75e6499a560f278140c907fc90b4f4305",
-      "publishedEnvironment": "Banco configurado em apps/api/.env; mídia local"
+      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois"
     },
     {
       "slug": "rosca-na-polia",
@@ -379,7 +393,7 @@
       "imagePath": "design/exercise-images/images/rosca-na-polia.png",
       "imageUrl": "/media/exercises/48106b7f-7813-4975-b00a-b7901443d778.webp",
       "publishedSha256": "a5b5db3aa8798504dd5858308b89818f11f3bd0c5863b334a96540a86e692466",
-      "publishedEnvironment": "Banco configurado em apps/api/.env; mídia local"
+      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois"
     },
     {
       "slug": "rosca-concentrada",
@@ -393,7 +407,7 @@
       "imagePath": "design/exercise-images/images/rosca-concentrada.png",
       "imageUrl": "/media/exercises/aaa907d8-197e-4964-b989-ac9a16e3bc8e.webp",
       "publishedSha256": "ffddde60178e29a46dc4092313384e32daefe9624f23da4ab66b2c1d5b2d0bb3",
-      "publishedEnvironment": "Banco configurado em apps/api/.env; mídia local"
+      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois"
     },
     {
       "slug": "triceps-na-polia-com-barra",
@@ -407,7 +421,7 @@
       "imagePath": "design/exercise-images/images/triceps-na-polia-com-barra.png",
       "imageUrl": "/media/exercises/957a612c-b87e-4530-966e-9b67c524cd42.webp",
       "publishedSha256": "00bc00f096368d8e01cdf206e70aaac263ad3da9a8d96b3fb62a1a283eedab53",
-      "publishedEnvironment": "Banco configurado em apps/api/.env; mídia local"
+      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois"
     },
     {
       "slug": "triceps-na-polia-com-corda",
@@ -421,7 +435,7 @@
       "imagePath": "design/exercise-images/images/triceps-na-polia-com-corda.png",
       "imageUrl": "/media/exercises/4b3a139d-33a1-4f82-9686-3f382aa1eae8.webp",
       "publishedSha256": "10713df9bd6505ad583f698560b78f25a28fae9adad2aecbed5d57973ecff93c",
-      "publishedEnvironment": "Banco configurado em apps/api/.env; mídia local"
+      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois"
     },
     {
       "slug": "triceps-testa",
@@ -435,7 +449,7 @@
       "imagePath": "design/exercise-images/images/triceps-testa.png",
       "imageUrl": "/media/exercises/9d7da882-8961-4336-a45e-ac9c9854e778.webp",
       "publishedSha256": "bd1f9055f3e7937e6a6798e00a5f2cb94ee816db28a5511e4707d33729d74266",
-      "publishedEnvironment": "Banco configurado em apps/api/.env; mídia local"
+      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois"
     },
     {
       "slug": "triceps-frances",
@@ -957,5 +971,7 @@
       "imageUrl": null,
       "publishedSha256": null
     }
-  ]
+  ],
+  "productionPublishedAt": "2026-11-05",
+  "productionBackup": "Servidor: ~/apps/fit/deploy/backups/exercise-images-20261105T220353Z (vínculos e mídia antes da publicação)"
 }

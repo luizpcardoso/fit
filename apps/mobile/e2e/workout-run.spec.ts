@@ -53,8 +53,7 @@ for (const theme of ['light', 'dark']) test(`Home mantém treino ativo e permite
   await page.getByRole('checkbox', { name: 'Série 1 concluída', exact: true }).click();
   await expect(page.getByLabel('0 de 3 séries concluídas', { exact: true })).toBeVisible();
   expect((await card.boundingBox())!.height).toBe(before!.height);
-  await page.getByLabel('Carga da série 1, em quilos', { exact: true }).fill('40');
-  await page.getByLabel('Repetições da série 1', { exact: true }).fill('11');
+  await page.getByLabel('Carga de Supino teste, em quilos', { exact: true }).fill('40');
   await primary.click();
   await expect(page.getByLabel('1 de 3 séries concluídas', { exact: true })).toBeVisible();
   await expect(page.getByLabel(/Tempo total do treino/).first()).toBeVisible();
@@ -75,12 +74,12 @@ for (const theme of ['light', 'dark']) test(`Home mantém treino ativo e permite
   await page.setViewportSize({ width: 390, height: 844 });
   await banner.click();
   await expect(page.getByLabel('1 de 3 séries concluídas', { exact: true })).toBeVisible();
-  await expect(page.getByLabel('Carga da série 1, em quilos', { exact: true })).toHaveValue('40');
-  await page.getByRole('button', { name: 'Próximo exercício', exact: true }).first().click();
+  await expect(page.getByLabel('Carga de Supino teste, em quilos', { exact: true })).toHaveValue('40');
+  await page.getByRole('button', { name: '2. Remada teste, 0 de 2 séries', exact: true }).click();
   await expect(page.getByText('Exercício 2 de 2', { exact: true })).toBeVisible();
   await page.reload();
   await expect(page.getByText('Exercício 2 de 2', { exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Exercício anterior', exact: true }).click();
+  await page.getByRole('button', { name: '1. Supino teste, 1 de 3 séries', exact: true }).click();
   await expect(page.getByLabel('1 de 3 séries concluídas', { exact: true })).toBeVisible();
   offline = true;
   await primary.click();
@@ -121,7 +120,7 @@ for (const theme of ['light', 'dark']) test(`Home mantém treino ativo e permite
   expect(history[0].execution.completedExercises).toBe(0);
   expect(history[0].execution.completedSets).toBe(2);
   const previous = await (await request.get(`${apiURL}/workout-runs/previous?divisionId=${plan.divisions[0].id}`, { headers })).json();
-  expect(previous[plan.divisions[0].exercises[0].id][0]).toEqual({ set: 0, loadKg: 40, reps: 11 });
+  expect(previous[plan.divisions[0].exercises[0].id][0]).toEqual({ set: 0, loadKg: 40, reps: 12 });
   await page.goto('/');
   await expect(page.getByText('0 de 1 feitas', { exact: true })).toBeVisible();
   await expect(page.getByLabel('1 de 1 treinos nesta semana. Meta da semana concluída.', { exact: true })).toBeVisible();
@@ -130,13 +129,13 @@ for (const theme of ['light', 'dark']) test(`Home mantém treino ativo e permite
   expect(summary.checks).toEqual({ completed: 0, total: 1 });
   expect(summary.categories.find((item: {kind:string}) => item.kind === 'workout').completed).toBe(1);
   await page.goto(`/session-edit?id=${history[0].id}`);
-  await expect(page.getByText(/^Supino teste: 2\/3 séries · 40 kg × 11/)).toBeVisible({ timeout: 30000 });
+  await expect(page.getByText(/^Supino teste: 2\/3 séries · 40 kg × 12/)).toBeVisible({ timeout: 30000 });
   await page.screenshot({ path: `artifacts/ux-review/workout-run-${theme}-history.png`, fullPage: true });
   // Complete whole exercises from the exercise menu, undo to the partial state, and recover completion offline.
   await waitForApiBudget(request, apiURL);
   await page.goto(`/workout-run?planId=${plan.id}&divisionId=${plan.divisions[0].id}`);
   await page.getByRole('button', { name: 'Iniciar treino A', exact: true }).click();
-  await expect(page.getByLabel('Carga da série 1, em quilos', { exact: true })).toHaveValue('40', { timeout: 20000 });
+  await expect(page.getByLabel('Carga de Supino teste, em quilos', { exact: true })).toHaveValue('40', { timeout: 20000 });
   await primary.click();
   await expect(page.getByLabel('1 de 3 séries concluídas', { exact: true })).toBeVisible();
   const partialHeight = (await card.boundingBox())!.height;

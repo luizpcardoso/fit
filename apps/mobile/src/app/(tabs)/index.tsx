@@ -708,7 +708,7 @@ export default function HomeScreen() {
             {/* Backdrop is a sibling, not a parent, so sheet controls are never nested buttons. */}
             <Pressable accessibilityRole="button" accessibilityLabel="Fechar atividades" style={StyleSheet.absoluteFill} onPress={() => setActivitiesOpen(false)} />
             <SafeAreaView style={s.activitiesSheet} edges={["bottom"]}>
-              <View>
+              <View style={s.shrink}>
                 <View style={s.sheetHandle} />
                 <View style={s.activitiesHeader}>
                   <View style={s.flex}>
@@ -731,7 +731,7 @@ export default function HomeScreen() {
                     />
                   </Pressable>
                 </View>
-                <ScrollView contentContainerStyle={s.activitiesList}>
+                <ScrollView style={s.shrink} contentContainerStyle={s.activitiesList}>
                   {activityError ? <Text accessibilityRole="alert" style={{ color: c.danger, paddingVertical: 12 }}>{activityError}</Text> : null}
                   {medications.error || supplements.error ? <Text accessibilityRole="alert" style={{ color: c.danger }}>{medications.error || supplements.error}</Text> : null}
                   {activityGroups.map(group => <View key={group.key}>
@@ -1267,6 +1267,8 @@ const createStyles = (c: AppPalette, scheme: "light" | "dark") =>
       alignItems: "center",
       justifyContent: "center",
     },
+    // Sem encolher, a lista ultrapassa o maxHeight da folha e o último item fica fora da tela.
+    shrink: { flexShrink: 1 },
     activitiesList: { paddingHorizontal: 18, paddingBottom: 18 },
     activityGroupHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, paddingTop: 12, paddingBottom: 4 },
     activityGroupTitle: { fontSize: 12, fontWeight: '800', letterSpacing: .4, color: c.textMuted, textTransform: 'uppercase' },

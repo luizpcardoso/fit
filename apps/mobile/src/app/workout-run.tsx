@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ComponentRef, type ReactNode } from 'react';
 import { AppState, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, Vibration, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
@@ -7,6 +7,7 @@ import { completeWorkoutRunExercise, isWorkoutRunOpen, moveWorkoutRunExercise, t
 import { useAuth } from '@/auth/auth-context';
 import { useWorkoutRun } from '@/components/workout-run-provider';
 import { WorkoutStart } from '@/components/workout-start';
+import { ExerciseThumbnail } from '@/components/exercise-thumbnail';
 import { formatWorkoutTime } from '@/components/workout-timers';
 import { WorkoutNotificationPreference } from '@/components/workout-notification-preference';
 import { useAppTheme } from '@/theme/theme-provider';
@@ -15,20 +16,17 @@ import { FixedScreenHeader } from '@/components/screen-header';
 import { confirmAction } from '@/components/app-dialog';
 import { ShareActivityModal } from '@/components/share-activity-modal';
 import MaterialCommunityIcons from '@/components/icon';
-import { formatDecimalInput, formatDecimalValue, formatIntegerInput } from '@/utils/input-format';
-import { formatMeasure, formatNumber } from '@/utils/numbers';
+import { formatDecimalInput, formatDecimalValue } from '@/utils/input-format';
+import { formatMeasure } from '@/utils/numbers';
 import { localDate } from '@/utils/dates';
 
 type ExerciseCompletionUndo = { runId: string; exerciseId: string; completedSets: number[]; skipped: boolean; performed?: PerformedSet[] };
 type Panel = 'exercises' | 'exercise' | 'image' | 'options' | 'instructions' | null;
-type Draft = { load: string; reps: string };
 type SetValues = Omit<PerformedSet, 'set'>;
 
 /** "8-10" → "8–10" so ranges read as ranges, not as a subtraction. */
 const repsLabel = (reps: string) => reps.replace(/(\d)\s*-\s*(\d)/g, '$1–$2');
 const parseLoad = (value: string) => { const number = Number(value.replace(',', '.')); return value.trim() && Number.isFinite(number) && number >= 0 && number <= 2000 ? Math.round(number * 100) / 100 : null; };
-const parseReps = (value: string) => { const number = Number(value); return value.trim() && Number.isInteger(number) && number >= 0 && number <= 999 ? number : null; };
-const valuesText = (entry?: Pick<PerformedSet, 'reps' | 'loadKg'> | null) => !entry || (entry.loadKg == null && entry.reps == null) ? '—' : `${entry.loadKg != null ? formatNumber(entry.loadKg, 2) : '—'} × ${entry.reps ?? '—'}`;
 const setsTotal = (exercises: WorkoutExercise[]) => exercises.reduce((sum, exercise) => sum + exercise.sets, 0);
 
 /** Ticks every second while visible; derived from timestamps, so it never drifts in background. */
@@ -46,10 +44,11 @@ function useNow(active = true) {
 export default function WorkoutRunScreen() {
   const { colors: c } = useAppTheme(), s = styles(c), session = useWorkoutRun(), { api } = useAuth();
   const params = useLocalSearchParams<{ planId?: string; divisionId?: string; suggestedDivisionId?: string }>();
-  const [panel, setPanel] = useState<Panel>(null), [busy, setBusy] = useState(false), [error, setError] = useState(''), [finishedHere, setFinishedHere] = useState<string | null>(null), [sharing, setSharing] = useState(false), [failedImage, setFailedImage] = useState<string | null>(null);
+  const [panel, setPanel] = useState<Panel>(null), [busy, setBusy] = useState(false), [error, setError] = useState(''), [finishedHere, setFinishedHere] = useState<string | null>(null), [sharing, setSharing] = useState(false);
   const [completionUndo, setCompletionUndo] = useState<ExerciseCompletionUndo | null>(null);
   const [previous, setPrevious] = useState<{ divisionId: string; values: WorkoutRunPrevious } | null>(null);
-  const [drafts, setDrafts] = useState<Record<string, Draft>>({});
+  const [loadDrafts, setLoadDrafts] = useState<Record<string, string>>({});
+  const strip = useRef<ComponentRef<typeof ScrollView>>(null);
   const run = session.run, p = run?.progress, open = Boolean(p && isWorkoutRunOpen(p));
   const result = Boolean(run && !open && (finishedHere === run.id || session.dirty));
   const exercise = run?.exercises[p?.currentIndex ?? 0], item = p?.exercises.find(x => x.id === exercise?.id);
@@ -75,16 +74,17 @@ export default function WorkoutRunScreen() {
     if (last) return { loadKg: last.loadKg, reps: last.reps };
     return { loadKg: target.load ?? null, reps: /^\d+$/.test(target.reps.trim()) ? Number(target.reps) : null };
   };
-  // Keys include the run, so values typed in a previous session never leak into a new one.
-  const draftKey = (exerciseId: string, set: number) => `${run?.id}:${exerciseId}:${set}`;
+  // Simple logging: one load per exercise (keys include the run, so a previous session never leaks in); reps are taken from the last time or the prescription.
+  const loadKey = (exerciseId: string) => `${run?.id}:${exerciseId}`;
   const recordedFor = (exerciseId: string, set: number) => p?.exercises.find(e => e.id === exerciseId)?.performed?.find(entry => entry.set === set);
-  const shownValues = (target: WorkoutExercise, set: number): Draft => {
-    const recorded = recordedFor(target.id, set), draft = drafts[draftKey(target.id, set)];
-    if (draft) return draft;
-    const value = recorded ?? prefill(target, set);
-    return { load: formatDecimalValue(value.loadKg), reps: value.reps == null ? '' : String(value.reps) };
+  const shownLoad = (target: WorkoutExercise) => {
+    const draft = loadDrafts[loadKey(target.id)];
+    if (draft !== undefined) return draft;
+    const recorded = [...(p?.exercises.find(e => e.id === target.id)?.performed ?? [])].reverse().find(entry => entry.loadKg != null);
+    return formatDecimalValue(recorded ? recorded.loadKg : prefill(target, 0).loadKg);
   };
-  const valuesOf = (target: WorkoutExercise, set: number): SetValues => { const shown = shownValues(target, set); return { loadKg: parseLoad(shown.load), reps: parseReps(shown.reps) }; };
+  const valuesOf = (target: WorkoutExercise, set: number): SetValues => ({ loadKg: parseLoad(shownLoad(target)), reps: recordedFor(target.id, set)?.reps ?? prefill(target, set).reps });
+  const clearLoadDraft = (target: WorkoutExercise) => setLoadDrafts(current => { const next = { ...current }; delete next[loadKey(target.id)]; return next; });
 
   const act = async (work: () => Promise<void>) => {
     if (busy) return;
@@ -95,15 +95,17 @@ export default function WorkoutRunScreen() {
   const toggleSet = (set: number) => {
     if (!run || !exercise) return;
     const values = valuesOf(exercise, set);
-    setDrafts(current => { const next = { ...current }; delete next[draftKey(exercise.id, set)]; return next; });
+    clearLoadDraft(exercise);
     update(value => toggleWorkoutRunSet(value, run.exercises, set, values, Date.now()));
   };
-  const commitDraft = (target: WorkoutExercise, set: number) => {
-    const key = draftKey(target.id, set);
-    if (!drafts[key] || !p?.exercises.find(e => e.id === target.id)?.completedSets.includes(set)) return;
-    const values = valuesOf(target, set);
-    setDrafts(current => { const next = { ...current }; delete next[key]; return next; });
-    update(value => updateWorkoutRunSetValues(value, target.id, set, values));
+  /** A new load applies to the sets already checked in this exercise, keeping their reps. */
+  const commitLoad = (target: WorkoutExercise) => {
+    const draft = loadDrafts[loadKey(target.id)];
+    if (draft === undefined) return;
+    const loadKg = parseLoad(draft), sets = p?.exercises.find(e => e.id === target.id)?.completedSets ?? [];
+    if (!sets.length) return; // kept as a draft until the first set is checked
+    clearLoadDraft(target);
+    update(value => sets.reduce((next, set) => updateWorkoutRunSetValues(next, target.id, set, { loadKg, reps: recordedFor(target.id, set)?.reps ?? prefill(target, set).reps }), value));
   };
   const canUndoCompletion = Boolean(run && exercise && item && completionUndo?.runId === run.id && completionUndo.exerciseId === exercise.id && item.completedSets.length === exercise.sets);
   const completeExercise = () => { setPanel(null); void act(async () => {
@@ -136,6 +138,9 @@ export default function WorkoutRunScreen() {
     await act(() => session.update(value => ({ ...value, status: discard ? 'discarded' : 'completed', finishedAt: Date.now(), pausedMs: value.pausedMs + (value.pausedAt !== null ? Math.max(0, Date.now() - value.pausedAt) : 0), pausedAt: null, restEndsAt: null, restRemainingMs: null })));
   };
 
+  const currentIndex = p?.currentIndex ?? 0;
+  useEffect(() => { strip.current?.scrollTo({ x: Math.max(0, (currentIndex - 1) * 68), animated: true }); }, [currentIndex]);
+
   if (!open && !result && !session.conflict) return <WorkoutStart {...params}/>;
   const nextSet = exercise && item ? Array.from({ length: exercise.sets }, (_, index) => index).find(index => !item.completedSets.includes(index)) : undefined;
   const last = run ? (p?.currentIndex ?? 0) >= run.exercises.length - 1 : false;
@@ -150,38 +155,45 @@ export default function WorkoutRunScreen() {
       <Pressable accessibilityRole="button" accessibilityLabel="Finalizar treino agora" aria-disabled={disabled || !performed} disabled={disabled || !performed} onPress={() => { void finish(); }} style={[s.headerAction, !performed && s.disabled]}><Text style={s.link}>Finalizar</Text></Pressable>
       <Pressable accessibilityRole="button" accessibilityLabel="Opções do treino" onPress={() => setPanel('options')} style={s.iconButton}><MaterialCommunityIcons name="dots-horizontal" size={24} color={c.link}/></Pressable>
     </> : null}/>
-    {run && p && open ? <SessionBar progress={p} label={`Treino ${run.divisionLabel}`} detail={run.divisionName} doneSets={doneSets} totalSets={totalSets} c={c}/> : null}
+    {run && p && open ? <SessionBar progress={p} label={`Treino ${run.divisionLabel}`} detail={run.divisionName} done={done} total={run.exercises.length} c={c}/> : null}
     <ScrollView contentContainerStyle={s.content} keyboardShouldPersistTaps="handled">
       {session.conflict ? <View style={s.card}><Text style={s.heading}>Sessão atualizada em outro aparelho</Text><Text style={s.muted}>Seu progresso local está preservado. Revise a sessão da conta para continuar.</Text><Pressable accessibilityRole="button" disabled={busy} onPress={() => { void act(async () => { if (await confirmAction({ title: 'Usar sessão da conta?', message: 'O progresso local será substituído pela versão mais recente da conta.', confirmLabel: 'Usar sessão da conta', cancelLabel: 'Manter progresso local' })) { await session.useRemote(); setCompletionUndo(null); } }); }} style={s.button}><Text style={s.link}>Usar sessão da conta</Text></Pressable></View> : null}
       {problem ? <Pressable accessibilityRole="alert" onPress={() => setPanel('options')} style={s.problem}><MaterialCommunityIcons name="cloud-alert-outline" size={20} color={c.danger}/><Text style={[s.caption, s.flex, { color: c.danger }]}>{problem} Seu treino continua salvo neste celular.</Text></Pressable> : null}
       {run && p && open && exercise && item ? <>
-        <View style={s.navigation}>
-          <Pressable accessibilityRole="button" accessibilityLabel="Exercício anterior" disabled={disabled || p.currentIndex === 0} aria-disabled={disabled || p.currentIndex === 0} onPress={() => update(value => moveWorkoutRunExercise(value, run.exercises.length, -1))} style={[s.iconButton, p.currentIndex === 0 && s.disabled]}><MaterialCommunityIcons name="chevron-left" size={28} color={c.link}/></Pressable>
-          <Pressable accessibilityRole="button" accessibilityLabel={`Exercício ${p.currentIndex + 1} de ${run.exercises.length}. Ver todos os exercícios`} onPress={() => setPanel('exercises')} style={s.selector}><Text style={s.selectorText}>Exercício {p.currentIndex + 1} de {run.exercises.length}</Text><MaterialCommunityIcons name="format-list-bulleted" size={18} color={c.link}/></Pressable>
-          <Pressable accessibilityRole="button" accessibilityLabel="Próximo exercício" disabled={disabled || last} aria-disabled={disabled || last} onPress={() => update(value => moveWorkoutRunExercise(value, run.exercises.length, 1))} style={[s.iconButton, last && s.disabled]}><MaterialCommunityIcons name="chevron-right" size={28} color={c.link}/></Pressable>
+        <View style={s.stripHead}>
+          <Text style={s.selectorText}>Exercício {p.currentIndex + 1} de {run.exercises.length}</Text>
+          <Pressable accessibilityRole="button" accessibilityLabel="Ver lista de exercícios" onPress={() => setPanel('exercises')} style={s.iconButton}><MaterialCommunityIcons name="format-list-bulleted" size={20} color={c.link}/></Pressable>
         </View>
+        <ScrollView ref={strip} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.strip}>
+          {run.exercises.map((e, i) => { const sets = p.exercises.find(x => x.id === e.id)?.completedSets.length ?? 0, complete = sets === e.sets, current = i === p.currentIndex;
+            return <Pressable key={e.id} accessibilityRole="button" accessibilityLabel={`${i + 1}. ${e.name}, ${complete ? 'concluído' : `${sets} de ${e.sets} séries`}`} aria-selected={current} disabled={disabled} onPress={() => update(value => ({ ...value, currentIndex: i }))} style={[s.chip, current && s.chipCurrent]}>
+              <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants"><ExerciseThumbnail name={e.name} uri={e.imageUrl} size={48}/></View>
+              {sets ? <View style={[s.chipBadge, !complete && s.chipBadgePartial]}><MaterialCommunityIcons name={complete ? 'check' : 'circle-half-full'} size={13} color={c.onPrimary}/></View> : null}
+              <Text style={[s.chipIndex, current && { color: c.link }]}>{i + 1}</Text>
+            </Pressable>; })}
+        </ScrollView>
         <View style={s.exerciseCard} testID="workout-exercise-card">
+          <ExerciseThumbnail key={exercise.id} name={exercise.name} uri={exercise.imageUrl} height={150} onPreview={() => setPanel('image')}/>
           <View style={s.exerciseHeader}>
-            {exercise.imageUrl && exercise.imageUrl !== failedImage ? <Pressable accessibilityRole="button" accessibilityLabel={`Ampliar imagem de ${exercise.name}`} onPress={() => setPanel('image')}><Image source={{ uri: exercise.imageUrl }} contentFit="cover" cachePolicy="memory-disk" onError={() => setFailedImage(exercise.imageUrl)} style={s.thumb}/></Pressable> : null}
             <View style={s.flex}>
               <Text accessibilityRole="header" numberOfLines={2} style={s.exerciseName}>{exercise.name}</Text>
-              <Text style={s.prescription}>{exercise.sets} × {repsLabel(exercise.reps)}{exercise.load != null ? ` · ${formatMeasure(exercise.load, 'kg', 2)}` : ''}{exercise.restSeconds ? ` · descanso ${exercise.restSeconds} s` : ''}</Text>
+              <Text style={s.prescription}>{exercise.sets} × {repsLabel(exercise.reps)}{exercise.restSeconds ? ` · descanso ${exercise.restSeconds} s` : ''}</Text>
             </View>
             <Pressable accessibilityRole="button" accessibilityLabel={`Mais ações para ${exercise.name}`} onPress={() => setPanel('exercise')} style={s.iconButton}><MaterialCommunityIcons name="dots-vertical" size={22} color={c.link}/></Pressable>
           </View>
           {item.skipped ? <View style={s.skipped}><Text style={[s.caption, s.flex]}>Exercício pulado por enquanto. Marque uma série para voltar a fazê-lo.</Text></View> : null}
-          <View style={s.setsHead}><Text style={[s.columnLabel, s.setColumn]}>SÉRIE</Text><Text style={[s.columnLabel, s.valueColumn]}>KG</Text><Text style={[s.columnLabel, s.repsColumn]}>REPS</Text><View style={s.checkColumn}/></View>
-          {Array.from({ length: exercise.sets }, (_, set) => {
-            const checked = item.completedSets.includes(set), shown = shownValues(exercise, set), before = previousFor(exercise.id, set), isNext = set === nextSet;
-            const edit = (field: keyof Draft, text: string) => setDrafts(current => ({ ...current, [draftKey(exercise.id, set)]: { ...shown, [field]: field === 'load' ? formatDecimalInput(text, 4, 2) : formatIntegerInput(text, 3) } }));
-            return <View key={set} style={[s.setRow, checked && s.setRowDone, isNext && running && s.setRowNext]}>
-              <View style={s.setColumn}><Text style={s.setNumber}>{set + 1}</Text>{before ? <Text numberOfLines={1} accessibilityLabel={`Anterior: ${valuesText(before)}`} style={s.previous}>ant. {valuesText(before)}</Text> : null}</View>
-              <TextInput accessibilityLabel={`Carga da série ${set + 1}, em quilos`} editable={!disabled && open} value={shown.load} onChangeText={text => edit('load', text)} onEndEditing={() => commitDraft(exercise, set)} onBlur={() => commitDraft(exercise, set)} keyboardType="decimal-pad" placeholder="kg" placeholderTextColor={c.textMuted} selectTextOnFocus style={[s.input, s.valueColumn, checked && s.inputDone]}/>
-              <TextInput accessibilityLabel={`Repetições da série ${set + 1}`} editable={!disabled && open} value={shown.reps} onChangeText={text => edit('reps', text)} onEndEditing={() => commitDraft(exercise, set)} onBlur={() => commitDraft(exercise, set)} keyboardType="number-pad" placeholder={repsLabel(exercise.reps)} placeholderTextColor={c.textMuted} selectTextOnFocus style={[s.input, s.repsColumn, checked && s.inputDone]}/>
-              <Pressable accessibilityRole="checkbox" aria-checked={checked} aria-disabled={disabled || !running} accessibilityLabel={`Série ${set + 1} ${checked ? 'concluída' : 'pendente'}`} disabled={disabled || !running} onPress={() => toggleSet(set)} style={[s.check, checked && s.checkDone, (disabled || !running) && s.disabled]}><MaterialCommunityIcons name="check" size={22} color={checked ? c.onPrimary : c.textMuted}/></Pressable>
-            </View>;
-          })}
-          <Text accessibilityLiveRegion="polite" accessibilityLabel={`${item.completedSets.length} de ${exercise.sets} séries concluídas`} style={[s.caption, s.reserved]}>{p.status === 'paused' ? 'Treino pausado. Retome para marcar séries.' : nextSet === undefined ? 'Exercício concluído.' : `${item.completedSets.length} de ${exercise.sets} séries · ajuste kg e reps antes de marcar.`}</Text>
+          <View style={s.bubbles}>
+            {Array.from({ length: exercise.sets }, (_, set) => { const checked = item.completedSets.includes(set), isNext = set === nextSet && running;
+              return <Pressable key={set} accessibilityRole="checkbox" aria-checked={checked} aria-disabled={disabled || !running} accessibilityLabel={`Série ${set + 1} ${checked ? 'concluída' : 'pendente'}`} disabled={disabled || !running} onPress={() => toggleSet(set)} style={[s.bubble, isNext && s.bubbleNext, checked && s.bubbleDone, (disabled || !running) && !checked && s.disabled]}>
+                {checked ? <MaterialCommunityIcons name="check" size={24} color={c.onPrimary}/> : <Text style={[s.bubbleText, isNext && { color: c.link }]}>{set + 1}</Text>}
+              </Pressable>; })}
+          </View>
+          <View style={s.loadRow}>
+            <Text style={[s.heading, s.flex]}>Carga <Text style={s.caption}>{previousFor(exercise.id, 0)?.loadKg != null ? `· última vez ${formatMeasure(previousFor(exercise.id, 0)!.loadKg!, 'kg', 2)}` : '· opcional'}</Text></Text>
+            <TextInput accessibilityLabel={`Carga de ${exercise.name}, em quilos`} editable={!disabled && open} value={shownLoad(exercise)} onChangeText={text => setLoadDrafts(current => ({ ...current, [loadKey(exercise.id)]: formatDecimalInput(text, 4, 2) }))} onEndEditing={() => commitLoad(exercise)} onBlur={() => commitLoad(exercise)} keyboardType="decimal-pad" placeholder="—" placeholderTextColor={c.textMuted} selectTextOnFocus style={s.input}/>
+            <Text style={s.caption}>kg</Text>
+          </View>
+          <Text accessibilityLiveRegion="polite" accessibilityLabel={`${item.completedSets.length} de ${exercise.sets} séries concluídas`} style={[s.caption, s.reserved]}>{p.status === 'paused' ? 'Treino pausado. Retome para marcar séries.' : nextSet === undefined ? 'Exercício concluído.' : `${item.completedSets.length} de ${exercise.sets} séries · toque numa série para marcar ou desmarcar.`}</Text>
           {exercise.notes ? <Pressable accessibilityRole="button" accessibilityLabel="Ver orientações do exercício" onPress={() => setPanel('instructions')} style={s.instructions}><MaterialCommunityIcons name="information-outline" size={20} color={c.link}/><Text numberOfLines={2} style={[s.caption, s.flex]}>{exercise.notes}</Text><MaterialCommunityIcons name="chevron-right" size={20} color={c.link}/></Pressable> : null}
         </View>
         {upcoming ? <Text style={s.upcoming}>A seguir: <Text style={s.upcomingName}>{upcoming.name}</Text> · {upcoming.sets} × {repsLabel(upcoming.reps)}{upcoming.load != null ? ` · ${formatMeasure(upcoming.load, 'kg', 2)}` : ''}</Text> : <Text style={s.upcoming}>Este é o último exercício do treino.</Text>}
@@ -201,7 +213,7 @@ export default function WorkoutRunScreen() {
       {panel === 'image' && exercise?.imageUrl ? <Image source={{ uri: exercise.imageUrl }} contentFit="contain" style={{ height: 350, width: '100%' }}/> : null}
       {panel === 'exercises' && run && p ? run.exercises.map((e, i) => { const state = p.exercises.find(x => x.id === e.id)!; return <Pressable key={e.id} accessibilityRole="button" accessibilityLabel={`${i + 1}. ${e.name}`} aria-selected={i === p.currentIndex} disabled={disabled} onPress={() => { update(value => ({ ...value, currentIndex: i })); setPanel(null); }} style={[s.exerciseOption, i === p.currentIndex && s.exerciseOptionCurrent]}><View style={s.flex}><Text style={s.heading}>{i + 1}. {e.name}</Text><Text style={s.muted}>{state.skipped ? 'Pulado por enquanto' : `${state.completedSets.length} de ${e.sets} séries`}</Text></View><MaterialCommunityIcons name={state.completedSets.length === e.sets ? 'check-circle' : 'chevron-right'} size={22} color={c.link}/></Pressable>; }) : null}
       {panel === 'exercise' && exercise && item && p ? <>
-        {item.completedSets.length < exercise.sets ? <SheetAction icon="check-all" label="Concluir todas as séries" detail="Marca as séries restantes com os valores da tela." disabled={disabled || !running} onPress={completeExercise} c={c}/> : null}
+        {item.completedSets.length < exercise.sets ? <SheetAction icon="check-all" label="Concluir todas as séries" detail="Marca as séries que faltam neste exercício." disabled={disabled || !running} onPress={completeExercise} c={c}/> : null}
         {canUndoCompletion ? <SheetAction icon="undo-variant" label="Desfazer conclusão do exercício" detail="Volta às séries que estavam marcadas antes." disabled={disabled} onPress={undoCompletedExercise} c={c}/> : null}
         <SheetAction icon="timer-outline" label={`Iniciar descanso de ${exercise.restSeconds || 60} s`} disabled={disabled || !running} onPress={() => { setPanel(null); update(value => ({ ...value, restEndsAt: Date.now() + (exercise.restSeconds || 60) * 1000, restRemainingMs: null })); }} c={c}/>
         {!item.completedSets.length ? <SheetAction icon={item.skipped ? 'play-circle-outline' : 'skip-next-circle-outline'} label={item.skipped ? 'Voltar a fazer este exercício' : 'Pular por enquanto'} detail={item.skipped ? undefined : 'Você pode voltar a ele pela lista de exercícios.'} disabled={disabled || !running} onPress={() => { setPanel(null); update(value => ({ ...value, exercises: value.exercises.map(e => e.id === exercise.id ? { ...e, skipped: !e.skipped } : e) })); }} c={c}/> : null}
@@ -217,8 +229,8 @@ export default function WorkoutRunScreen() {
   </SafeAreaView>;
 }
 
-/** Workout name, live time and set progress, pinned under the header. */
-function SessionBar({ progress, label, detail, doneSets, totalSets, c }: { progress: WorkoutRunProgress; label: string; detail: string; doneSets: number; totalSets: number; c: AppPalette }) {
+/** Workout name, live time and exercise progress, pinned under the header. */
+function SessionBar({ progress, label, detail, done, total, c }: { progress: WorkoutRunProgress; label: string; detail: string; done: number; total: number; c: AppPalette }) {
   const s = styles(c), now = useNow(progress.status === 'running'), paused = progress.status === 'paused';
   const elapsed = formatWorkoutTime(workoutRunElapsed(progress, now));
   return <View style={s.sessionBar}>
@@ -228,8 +240,8 @@ function SessionBar({ progress, label, detail, doneSets, totalSets, c }: { progr
       <Text accessibilityLabel={`Tempo total do treino ${elapsed}${paused ? ', pausado' : ''}`} style={[s.sessionTime, paused && { color: c.warning }]}>{elapsed}</Text>
     </View>
     <View style={s.sessionRow}>
-      <View style={[s.track, s.flex]}><View style={[s.fill, { width: `${doneSets / Math.max(1, totalSets) * 100}%` }]}/></View>
-      <Text style={s.caption}>{doneSets} de {totalSets} séries</Text>
+      <View style={[s.track, s.flex]}><View style={[s.fill, { width: `${done / Math.max(1, total) * 100}%` }]}/></View>
+      <Text style={s.caption}>{done} de {total} exercícios</Text>
     </View>
   </View>;
 }
@@ -309,21 +321,24 @@ const styles = (c: AppPalette) => StyleSheet.create({
   pausedChip: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 8, paddingVertical: 3, borderRadius: Radius.pill, backgroundColor: c.warningSoft }, pausedText: { ...Type.caption, fontWeight: '800', color: c.warning },
   track: { height: 6, borderRadius: 3, backgroundColor: c.border, overflow: 'hidden' }, fill: { height: 6, backgroundColor: c.accent },
   problem: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12, borderRadius: Radius.lg, backgroundColor: c.dangerSoft },
-  navigation: { flexDirection: 'row', alignItems: 'center', gap: 8 }, selector: { flex: 1, minHeight: 44, borderRadius: Radius.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }, selectorText: { ...Type.body, fontWeight: '800', color: c.link },
-  exerciseCard: { padding: 14, borderWidth: 1, borderColor: c.border, borderRadius: Radius.xl, backgroundColor: c.surface, gap: 10 },
-  exerciseHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 }, thumb: { width: 56, height: 56, borderRadius: Radius.md, backgroundColor: c.surfaceSoft },
+  selectorText: { ...Type.body, fontWeight: '800', color: c.link },
+  stripHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  strip: { gap: 8, paddingVertical: 2 },
+  chip: { width: 60, alignItems: 'center', gap: 2, padding: 4, borderRadius: Radius.md, borderWidth: 2, borderColor: 'transparent' }, chipCurrent: { borderColor: c.primary, backgroundColor: c.surface },
+  chipBadge: { position: 'absolute', top: 0, right: 0, width: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: c.success }, chipBadgePartial: { backgroundColor: c.primary },
+  chipIndex: { ...Type.caption, fontWeight: '800', color: c.textMuted },
+  exerciseCard: { padding: 14, borderWidth: 1, borderColor: c.border, borderRadius: Radius.xl, backgroundColor: c.surface, gap: 12 },
+  exerciseHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
   exerciseName: { ...Type.title, fontWeight: '800', color: c.text }, prescription: { ...Type.label, color: c.textMuted, marginTop: 2 },
   // Two caption lines are always reserved so marking sets never moves the controls below.
   reserved: { minHeight: 32 },
   skipped: { padding: 10, borderRadius: Radius.md, backgroundColor: c.warningSoft },
-  setsHead: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 6 },
-  setRow: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 6, borderRadius: Radius.md, borderWidth: 1, borderColor: 'transparent' },
-  setRowDone: { backgroundColor: c.primarySoft }, setRowNext: { borderColor: c.primary },
-  setColumn: { width: 64 }, valueColumn: { flex: 1, minWidth: 56 }, repsColumn: { flex: 1, minWidth: 52 }, checkColumn: { width: 44 },
-  setNumber: { ...Type.body, fontWeight: '800', color: c.text }, previous: { ...Type.caption, color: c.textMuted, fontVariant: ['tabular-nums'] },
-  input: { minHeight: 44, borderWidth: 1, borderColor: c.fieldBorder, borderRadius: Radius.md, paddingHorizontal: 8, textAlign: 'center', ...Type.bodyLarge, fontWeight: '700', color: c.text, backgroundColor: c.surface, fontVariant: ['tabular-nums'] },
-  inputDone: { borderColor: c.border, backgroundColor: c.surface },
-  check: { width: 44, height: 44, borderRadius: Radius.md, borderWidth: 1, borderColor: c.fieldBorder, alignItems: 'center', justifyContent: 'center', backgroundColor: c.surface }, checkDone: { backgroundColor: c.success, borderColor: c.success },
+  bubbles: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  bubble: { width: 52, height: 52, borderRadius: 26, borderWidth: 2, borderColor: c.fieldBorder, alignItems: 'center', justifyContent: 'center', backgroundColor: c.surface },
+  bubbleNext: { borderColor: c.primary, backgroundColor: c.primarySoft }, bubbleDone: { borderColor: c.success, backgroundColor: c.success },
+  bubbleText: { ...Type.bodyLarge, fontWeight: '800', color: c.textMuted },
+  loadRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingTop: 10, borderTopWidth: 1, borderTopColor: c.border },
+  input: { width: 88, minHeight: 44, borderWidth: 1, borderColor: c.fieldBorder, borderRadius: Radius.md, paddingHorizontal: 8, textAlign: 'center', ...Type.bodyLarge, fontWeight: '700', color: c.text, backgroundColor: c.surface, fontVariant: ['tabular-nums'] },
   instructions: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: Radius.lg, padding: 10, backgroundColor: c.surfaceSoft },
   upcoming: { ...Type.label, color: c.textMuted, paddingHorizontal: 4 }, upcomingName: { fontWeight: '800', color: c.text },
   footer: { borderTopWidth: 1, borderColor: c.border, backgroundColor: c.surface, padding: 12, gap: 8 },

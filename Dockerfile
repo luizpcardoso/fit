@@ -21,6 +21,7 @@ COPY --from=build --chown=node:node /app/apps/api/package.json ./apps/api/packag
 COPY --from=build --chown=node:node /app/apps/api/src ./apps/api/src
 COPY --from=build --chown=node:node /app/apps/api/node_modules ./apps/api/node_modules
 COPY --from=build --chown=node:node /app/apps/mobile/certs ./apps/mobile/certs
+COPY --from=build --chown=node:node /app/apps/mobile/assets/images/plan-covers ./apps/mobile/assets/images/plan-covers
 COPY --from=build --chown=node:node /app/apps/web ./apps/web
 COPY --from=build --chown=node:node /app/packages/contracts ./packages/contracts
 RUN mkdir -p /var/lib/fit/media && chown -R node:node /var/lib/fit

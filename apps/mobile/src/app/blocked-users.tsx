@@ -6,7 +6,7 @@ import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from '
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '@/auth/auth-context';
 import { confirmAction, showToast } from '@/components/app-dialog';
-import { ScreenHeader } from '@/components/screen-header';
+import { FixedScreenHeader } from '@/components/screen-header';
 import { Radius, Type, type AppPalette } from '@/constants/theme';
 import { useAppTheme } from '@/theme/theme-provider';
 
@@ -34,12 +34,11 @@ export default function BlockedUsers() {
     finally { setBusy(''); }
   };
   return <SafeAreaView style={s.safe} edges={['top']}>
-    <FlatList
+    <FixedScreenHeader backLabel="Configurações" /><FlatList
       data={items ?? []}
       keyExtractor={item => item.id}
       contentContainerStyle={s.content}
       ListHeaderComponent={<View style={s.header}>
-        <ScreenHeader backLabel="Configurações" />
         <Text accessibilityRole="header" style={s.title}>Pessoas ocultadas</Text>
         <Text style={s.subtitle}>Você não vê publicações nem comentários dessas pessoas nos grupos. Elas não são avisadas.</Text>
         {error ? <View style={s.notice}>

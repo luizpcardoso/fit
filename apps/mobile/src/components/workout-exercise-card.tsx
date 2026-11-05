@@ -19,15 +19,13 @@ type Props = {
   error: string;
   onToggle(): void;
   onChange(change: Partial<WorkoutExerciseInput>): void;
-  onSave(): void;
-  onCancel(): void;
   onMove(direction: -1 | 1): void;
   onRemove(): void;
   onPreview(uri: string): void;
 };
 
-/** Saving here updates the plan draft only; persistence belongs to Save plan. */
-export function WorkoutExerciseCard({ exercise, index, count, imageUrl, draft, error, onToggle, onChange, onSave, onCancel, onMove, onRemove, onPreview }: Props) {
+/** Field edits update the plan draft immediately; persistence belongs to Save plan. */
+export function WorkoutExerciseCard({ exercise, index, count, imageUrl, draft, error, onToggle, onChange, onMove, onRemove, onPreview }: Props) {
   const { colors: c } = useAppTheme();
   const s = styles(c);
   const expanded = draft != null;
@@ -75,8 +73,6 @@ export function WorkoutExerciseCard({ exercise, index, count, imageUrl, draft, e
         <Pressable accessibilityRole="button" accessibilityLabel={`Remover ${exercise.name}`} onPress={onRemove} style={[s.tool, s.remove]}><MaterialCommunityIcons name="trash-can-outline" size={19} color={c.danger}/><Text style={s.danger}>Remover</Text></Pressable>
       </View>
       {error ? <Text accessibilityRole="alert" style={s.danger}>{error}</Text> : null}
-      <Pressable accessibilityRole="button" accessibilityLabel={`Salvar exercício ${exercise.name}`} onPress={onSave} style={s.save}><Text style={s.saveText}>Salvar exercício</Text></Pressable>
-      <Pressable accessibilityRole="button" accessibilityLabel={`Cancelar edição de ${exercise.name}`} onPress={onCancel} style={s.cancel}><Text style={s.cancelText}>Cancelar edição</Text></Pressable>
       <Text style={s.hint}>Este ajuste fica no rascunho até você salvar a ficha.</Text>
     </View> : null}
   </View>;
@@ -101,7 +97,4 @@ const styles = (c: AppPalette) => StyleSheet.create({
   tool: { minWidth: 44, minHeight: 44, borderRadius: 12, backgroundColor: c.surfaceSoft, justifyContent: 'center', alignItems: 'center' },
   remove: { marginLeft: 'auto', flexDirection: 'row', paddingHorizontal: 10, gap: 5 },
   disabled: { opacity: .35 }, danger: { color: c.danger, fontSize: 12, lineHeight: 18 },
-  save: { minHeight: 48, borderRadius: 12, backgroundColor: c.primary, alignItems: 'center', justifyContent: 'center' },
-  saveText: { color: c.onPrimary, fontWeight: '800', fontSize: 15 },
-  cancel: { minHeight: 44, alignItems: 'center', justifyContent: 'center' }, cancelText: { color: c.link, fontWeight: '700' },
 });

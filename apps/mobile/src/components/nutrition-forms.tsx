@@ -1,3 +1,7 @@
+import { MealCategoryPicker, MealWhenFields } from '@/components/meal-details-fields';
+import { formatNumber } from '@/utils/numbers';
+import { useMealWhen } from '@/hooks/use-meal-when';
+import { bodyValuesForEntry } from '@/utils/body-record';
 import { FormScrollView as ScrollView } from '@/components/form-scroll-view';
 import { FormInput as TextInput } from '@/components/form-input';
 import { BodyMeasurementGuide } from '@/components/body-measurement-guide';
@@ -8,6 +12,8 @@ import {
   dailyExpenditureInputSchema,
   foodInputSchema,
   mealInputSchema,
+  mealCategoryTime,
+  type MealCategory,
   type BodyMeasurement,
   type DailyExpenditure,
   type FavoriteMeal,
@@ -28,7 +34,6 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { formatRelativeDay } from "@/utils/dates";
 import {
   dateInputToIso,
   formatDateInput,
@@ -38,7 +43,6 @@ import {
   formatDecimalInput,
   formatDecimalValue,
   formatIntegerInput,
-  formatTimeInput,
   formatWeightInput,
   formatWeightValue,
 } from "@/utils/input-format";
@@ -213,6 +217,7 @@ function OptionCard<T extends string>({
     <Pressable
       accessibilityRole="radio"
       aria-checked={selected}
+      accessibilityLabel={label}
       onPress={() => onPress(value)}
       style={[s.option, selected && s.optionSelected]}
     >
@@ -399,10 +404,8 @@ export function MealForm({
 }) {
   const [dietOpen, setDietOpen] = useState(false);
   const [name, setName] = useState(initial?.name ?? "");
-  const [mealDate, setMealDate] = useState(
-    isoDateToInput(initial?.date ?? date),
-  );
-  const [time, setTime] = useState(initial?.time ?? new Date().toTimeString().slice(0, 5));
+  const [category, setCategory] = useState<MealCategory | null>(initial?.category ?? null);
+  const when = useMealWhen(initial?.date ?? date, initial?.time);
   const saveLock = useRef(false);
   const [foodSearch, setFoodSearch] = useState('');
   // One level of choice: quick (calories, macros optional), registered foods, or the diet.
@@ -412,7 +415,6 @@ export function MealForm({
   const [showMacros, setShowMacros] = useState(
     Boolean(initial && (initial.protein > 0 || initial.carbs > 0 || initial.fat > 0 || initial.fiber != null)),
   );
-  const [showWhen, setShowWhen] = useState(Boolean(initial));
   const [quantities, setQuantities] = useState<Record<string, string>>(() =>
     Object.fromEntries(
       (initial?.items ?? [])
@@ -448,12 +450,12 @@ export function MealForm({
   );
   const save = async () => {
     if (saveLock.current) return;
-    const isoDate = dateInputToIso(mealDate);
+    const { date: isoDate, time } = when.resolve();
     if (!isoDate) {
       setError("Informe uma data válida no formato DD/MM/AAAA.");
       return;
     }
-    if (!name.trim()) {
+    if (name.trim().length < 2) {
       setError("Informe o nome da refeição.");
       return;
     }
@@ -470,6 +472,7 @@ export function MealForm({
       entryMode === "items"
         ? {
             name,
+            category,
             date: isoDate,
             time,
             items: foods.flatMap((food) => {
@@ -481,6 +484,7 @@ export function MealForm({
           }
         : {
             name,
+            category,
             date: isoDate,
             time,
             directNutrition: {
@@ -509,8 +513,8 @@ export function MealForm({
     setError("");
     try {
       await onSave(parsed.data);
-    } catch {
-      setError("Não foi possível salvar a refeição. Verifique a conexão.");
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Não foi possível salvar a refeição neste aparelho.");
     } finally {
       saveLock.current = false;
       setBusy(false);
@@ -519,7 +523,7 @@ export function MealForm({
   if (dietOpen && onDietSave)
     return (
       <DietMealForm
-        date={dateInputToIso(mealDate) || date}
+        date={when.date || date}
         onClose={() => setDietOpen(false)}
         onSave={onDietSave}
       />
@@ -532,10 +536,10 @@ export function MealForm({
       onClose={onClose}
       onSave={() => void save()}
     >
-      <View accessibilityRole="radiogroup" accessibilityLabel="Como registrar" style={s.row}>
-        <Choice value="quick" current={entryMode} label="Rápida" onPress={() => setEntryMode("quick")} />
-        <Choice value="items" current={entryMode} label="Com alimentos" onPress={() => setEntryMode("items")} />
-        {!initial && onDietSave ? <Choice value="diet" current={entryMode} label="Refeição da dieta" onPress={() => setDietOpen(true)} /> : null}
+      <View accessibilityRole="radiogroup" accessibilityLabel="Como registrar" style={{ gap: 8 }}>
+        <OptionCard value="quick" current={entryMode} label="Informar calorias" description="Digite o nome e as calorias da refeição." onPress={() => setEntryMode("quick")} />
+        <OptionCard value="items" current={entryMode} label="Escolher alimentos" description="Selecione os alimentos e informe as porções. Calculamos os nutrientes." onPress={() => setEntryMode("items")} />
+        {!initial && onDietSave ? <OptionCard value="diet" current={entryMode} label="Usar minha dieta" description="Registre uma refeição do plano enviado pelo seu profissional." onPress={() => setDietOpen(true)} /> : null}
       </View>
       <Text style={s.helper}>
         {entryMode === "quick"
@@ -543,46 +547,14 @@ export function MealForm({
           : "Informe quanto comeu de alimentos já cadastrados; os nutrientes são calculados."}
       </Text>
       {dietState?.loading ? <Text style={s.helper}>Buscando dieta vinculada…</Text> : dietState?.error ? <Pressable accessibilityRole="button" onPress={dietState.retry} style={{minHeight:44,justifyContent:'center'}}><Text style={s.error}>Não foi possível consultar sua dieta. Tentar novamente</Text></Pressable> : null}
+      <MealCategoryPicker value={category} disabled={busy} onChange={value => { setCategory(value); const reference = mealCategoryTime(value); if (reference) when.suggest(reference); }}/>
       <Field
-        label="Nome"
+        label="Nome da refeição"
         value={name}
         onChange={setName}
-        placeholder="Ex.: Almoço"
+        placeholder="Ex.: Marmita congelada"
       />
-      {!initial ? <View style={[s.row, { flexWrap: 'wrap' }]}>{['Café da manhã', 'Almoço', 'Lanche', 'Jantar'].map(label => <Choice key={label} value={label} current={name} label={label} onPress={setName}/>)}</View> : null}
-      {showWhen ? (
-        <View style={s.row}>
-          <View style={s.grow}>
-            <Field
-              label="Data (DD/MM/AAAA)"
-              value={mealDate}
-              onChange={(value) => setMealDate(formatDateInput(value))}
-              placeholder="Ex.: 28/10/2026"
-              numberField
-              maxLength={10}
-            />
-          </View>
-          <View style={s.grow}>
-            <Field
-              label="Horário (HH:MM)"
-              value={time}
-              onChange={(value) => setTime(formatTimeInput(value))}
-              placeholder="Ex.: 12:30"
-              numberField
-              maxLength={5}
-            />
-          </View>
-        </View>
-      ) : (
-        <View style={s.whenRow}>
-          <Text style={[s.helper, s.grow]}>
-            {dateInputToIso(mealDate) ? formatRelativeDay(dateInputToIso(mealDate)!) : mealDate} às {time}
-          </Text>
-          <Pressable accessibilityRole="button" accessibilityLabel="Alterar data e horário" onPress={() => setShowWhen(true)} style={s.inlineLink}>
-            <Text style={s.link}>Alterar</Text>
-          </Pressable>
-        </View>
-      )}
+      <MealWhenFields value={when} category={category} disabled={busy}/>
       {entryMode === "items" ? (
         <View style={s.stack}>
           {foodState?.loading ? <ActivityIndicator accessibilityLabel="Carregando alimentos" color={c.link}/> : null}
@@ -620,8 +592,8 @@ export function MealForm({
                 <Text style={s.itemTitle}>Total calculado</Text>
                 <Text style={s.helper}>
                   {Math.round(preview.calories)} kcal · Proteínas{" "}
-                  {preview.protein.toFixed(1)} g · Carboidratos {preview.carbs.toFixed(1)}{" "}
-                  g · Gorduras {preview.fat.toFixed(1)} g
+                  {formatNumber(preview.protein)} g · Carboidratos {formatNumber(preview.carbs)}{" "}
+                  g · Gorduras {formatNumber(preview.fat)} g
                 </Text>
               </View>
             </>
@@ -965,11 +937,13 @@ const bodyMeasurementFields = measurementFields.slice(1);
 
 export function MeasurementForm({
   date,
+  entryMode,
   initial,
   onClose,
   onSave,
 }: {
   date: string;
+  entryMode?: "weight" | "measurements";
   initial: BodyMeasurement | null;
   onClose(): void;
   onSave(
@@ -1002,16 +976,9 @@ export function MeasurementForm({
   const [error, setError] = useState("");
   const s = styles(useAppTheme().colors);
   const visibleFields =
-    mode === "weight" ? measurementFields.slice(0, 1) : measurementFields;
+    entryMode === "measurements" ? bodyMeasurementFields : (entryMode === "weight" || mode === "weight") ? measurementFields.slice(0, 1) : measurementFields;
   const save = async () => {
-    const measurementValues = Object.fromEntries(
-      measurementFields.map(([key]) => [
-        key,
-        mode === "weight" && key !== "weightKg"
-          ? null
-          : optionalNumeric(values[key] ?? ""),
-      ]),
-    );
+    const measurementValues = bodyValuesForEntry(Object.fromEntries(measurementFields.map(([key]) => [key, optionalNumeric(values[key] ?? "")])), entryMode ?? mode);
     const isoDate = dateInputToIso(recordDate);
     const parsed = bodyMeasurementInputSchema.safeParse({
       date: isoDate ?? recordDate,
@@ -1020,7 +987,7 @@ export function MeasurementForm({
     });
     if (!parsed.success) {
       setError(
-        mode === "weight"
+        (entryMode === "weight" || (!entryMode && mode === "weight"))
           ? "Informe uma data válida e um peso positivo."
           : "Informe uma data válida e ao menos uma medida positiva.",
       );
@@ -1038,13 +1005,13 @@ export function MeasurementForm({
   };
   return (
     <FormModal
-      title={initial ? "Editar registro" : "Novo registro corporal"}
+      title={initial ? "Editar registro" : entryMode === "weight" ? "Registrar peso" : "Registrar medidas"}
       busy={busy}
       error={error}
       onClose={onClose}
       onSave={() => void save()}
     >
-      <Text style={s.label}>O que deseja registrar?</Text>
+      {!entryMode && !initial ? <><Text style={s.label}>O que deseja registrar?</Text>
       <View accessibilityRole="radiogroup" style={s.row}>
         <Choice
           value="weight"
@@ -1058,9 +1025,9 @@ export function MeasurementForm({
           label="Peso e medidas"
           onPress={setMode}
         />
-      </View>
+      </View></> : null}
       <Text style={s.helper}>
-        {mode === "weight"
+        {entryMode === "measurements" ? "Preencha apenas as medidas que fez. Não é necessário informar o peso." : (entryMode === "weight" || mode === "weight")
           ? "Uma opção rápida para acompanhar apenas a variação do peso."
           : "Preencha somente o que mediu. Peso e medidas são opcionais, mas é necessário informar pelo menos um valor."}
       </Text>
@@ -1072,7 +1039,7 @@ export function MeasurementForm({
         numberField
         maxLength={10}
       />
-      {mode === 'full' ? <BodyMeasurementGuide selected={selectedRegion} onSelect={setSelectedRegion}/> : null}
+      {entryMode === 'measurements' || (!entryMode && mode === 'full') ? <BodyMeasurementGuide selected={selectedRegion} onSelect={setSelectedRegion}/> : null}
       <View style={s.grid}>
         {visibleFields.map(([key, label, placeholder]) => (
           <Field
@@ -1117,11 +1084,11 @@ export function FavoriteForm({
   date: string;
   onClose(): void;
   onRename(name: string): Promise<void>;
-  onReuse(date: string, time: string, multiplier: number): Promise<void>;
+  onReuse(date: string, time: string, multiplier: number, category: MealCategory | null): Promise<void>;
 }) {
   const [name, setName] = useState(favorite.name);
-  const [useDate, setUseDate] = useState(isoDateToInput(date));
-  const [time, setTime] = useState("12:00");
+  const [category, setCategory] = useState<MealCategory | null>(favorite.category ?? null);
+  const when = useMealWhen(date, mealCategoryTime(favorite.category) ?? undefined, false);
   const [multiplier, setMultiplier] = useState("1");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -1142,7 +1109,7 @@ export function FavoriteForm({
     }
   };
   const reuse = async () => {
-    const isoDate = dateInputToIso(useDate);
+    const { date: isoDate, time } = when.resolve();
     const amount = numeric(multiplier);
     if (!isoDate || !/^([01]\d|2[0-3]):[0-5]\d$/.test(time) || !(amount > 0)) {
       setError(!isoDate ? "Informe uma data válida no formato DD/MM/AAAA." : !(amount > 0) ? "Informe quantas porções, um número maior que zero (ex.: 0,5 ou 2)." : "Informe um horário válido no formato HH:MM.");
@@ -1150,7 +1117,7 @@ export function FavoriteForm({
     }
     setBusy(true);
     try {
-      await onReuse(isoDate, time, amount);
+      await onReuse(isoDate, time, amount, category);
     } catch {
       setError("Não foi possível registrar a refeição. Confira a conexão e tente novamente.");
     } finally {
@@ -1191,28 +1158,8 @@ export function FavoriteForm({
             Ajuste a quantidade de porções; calorias e nutrientes acompanham
             na mesma proporção. A favorita e os registros anteriores não mudam.
           </Text>
-          <View style={s.row}>
-            <View style={s.grow}>
-              <Field
-                label="Data (DD/MM/AAAA)"
-                value={useDate}
-                onChange={(value) => setUseDate(formatDateInput(value))}
-                placeholder="Ex.: 28/10/2026"
-                numberField
-                maxLength={10}
-              />
-            </View>
-            <View style={s.grow}>
-              <Field
-                label="Horário (HH:MM)"
-                value={time}
-                onChange={(value) => setTime(formatTimeInput(value))}
-                placeholder="Ex.: 12:30"
-                numberField
-                maxLength={5}
-              />
-            </View>
-          </View>
+          <MealCategoryPicker value={category} disabled={busy} onChange={value => { setCategory(value); const reference = mealCategoryTime(value); if (reference) when.suggest(reference); }}/>
+          <MealWhenFields value={when} category={category} disabled={busy}/>
           <Field
             label="Porções"
             value={multiplier}
@@ -1269,7 +1216,7 @@ const styles = (c: AppPalette) =>
       paddingHorizontal: 13,
       paddingVertical: 11,
       borderRadius: 16,
-      borderWidth: 1,
+      borderWidth: 2,
       borderColor: c.fieldBorder,
       backgroundColor: c.surface,
     },

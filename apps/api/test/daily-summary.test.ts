@@ -13,6 +13,8 @@ test('resumo autentica, isola contas, valida a data e expõe somente agregados',
   let hasMeals = true;
   let mentalDone = false;
   let workoutDone = false;
+  let workoutCount = 1;
+  let workoutPlanned = true;
   const routine = async (userId: string) => {
     calls.push(userId);
     return { total: owners.has(userId) ? 2 : 0, consumed: owners.has(userId) ? 1 : 0, items: [{ supplement: { name: privateDetail } }] } as SupplementToday;
@@ -29,7 +31,7 @@ test('resumo autentica, isola contas, valida a data e expõe somente agregados',
     } },
     workouts: { getGoalSummary: async userId => {
       calls.push(userId);
-      return { schedule: owners.has(userId) ? [{ weekday: 6 }] : [], sessionsByDate: workoutDone ? { [date]: 1 } : {} } as unknown as WorkoutGoalSummary;
+      return { schedule: owners.has(userId) && workoutPlanned ? [{ weekday: 6 }] : [], sessionsByDate: owners.has(userId) && workoutDone ? { [date]: workoutCount } : {} } as unknown as WorkoutGoalSummary;
     } },
     nutrition: { summary: async userId => {
       calls.push(userId);
@@ -63,11 +65,18 @@ test('resumo autentica, isola contas, valida a data e expõe somente agregados',
   const response = await app.inject({ url, headers });
   assert.equal(response.statusCode, 200);
   assert.equal(response.headers['cache-control'], 'private, no-store');
-  assert.deepEqual(response.json().checks, { completed: 2, total: 7 });
+  assert.deepEqual(response.json().checks, { completed: 2, total: 6 });
+  assert.deepEqual(response.json().categories.find((item: {kind:string}) => item.kind === 'workout'), { kind: 'workout', completed: 0, total: 1 });
   assert.deepEqual(response.json().nutrition, { consumedCalories: 1650, targetCalories: 2100, balance: -650 });
   assert.equal(response.json().pending, 'checks');
   assert.equal(response.body.includes(privateDetail), false);
   assert.deepEqual(calls, Array(6).fill(owner.user.id));
+
+  workoutDone = true; workoutCount = 2; workoutPlanned = false;
+  const withWorkouts = (await app.inject({ url, headers })).json();
+  assert.deepEqual(withWorkouts.checks, response.json().checks, 'treinar não altera o numerador nem o denominador dos checks');
+  assert.deepEqual(withWorkouts.categories.find((item: {kind:string}) => item.kind === 'workout'), { kind: 'workout', completed: 2, total: 2 }, 'inclui treinos realizados fora de dias planejados');
+  workoutDone = false; workoutCount = 1; workoutPlanned = true;
 
   calls.length = 0;
   const others = await app.inject({ url, headers: { authorization: `Bearer ${other.accessToken}` } });
@@ -81,9 +90,25 @@ test('resumo autentica, isola contas, valida a data e expõe somente agregados',
 
   mentalDone = true; workoutDone = true; hasMeals = false;
   const emptyFood = (await app.inject({ url, headers })).json();
-  assert.deepEqual(emptyFood.checks, { completed: 4, total: 7 });
+  assert.deepEqual(emptyFood.checks, { completed: 3, total: 6 });
   assert.equal(emptyFood.nutrition.balance, null);
   assert.equal(emptyFood.nutrition.consumedCalories, 0);
-  await app.inject({ method: 'POST', url: '/auth/logout', payload: { refreshToken: owner.refreshToken } });
+  assert.equal((await app.inject({method:'PATCH',url:'/auth/me',payload:{countMentalCheckIn:false}})).statusCode,401);
+  assert.equal((await app.inject({method:'PATCH',url:'/auth/me',headers,payload:{countMentalCheckIn:'false'}})).statusCode,400);
+  const disabled = await app.inject({method:'PATCH',url:'/auth/me',headers,payload:{countMentalCheckIn:false}});
+  assert.equal(disabled.statusCode,200); assert.equal(disabled.json().countMentalCheckIn,false);
+  assert.deepEqual((await app.inject({url,headers})).json().checks,{completed:2,total:5});
+  assert.equal((await app.inject({url:'/auth/me',headers:{authorization:`Bearer ${other.accessToken}`}})).json().countMentalCheckIn === false,false);
+  const otherHeaders={authorization:`Bearer ${other.accessToken}`};
+  await app.inject({method:'PATCH',url:'/auth/me',headers:otherHeaders,payload:{countMentalCheckIn:false}});
+  calls.length=0;
+  const noChecks=(await app.inject({url,headers:otherHeaders})).json();
+  assert.deepEqual(noChecks.checks,{completed:0,total:0}); assert.equal(noChecks.pending,null);
+  assert.equal(calls.length,5); // Disabled check-in does not read private diary records.
+  await app.inject({method:'PATCH',url:'/auth/me',headers,payload:{countMentalCheckIn:true}});
+  assert.deepEqual((await app.inject({url,headers})).json().checks,{completed:3,total:6});
+  assert.equal('overdueMedications' in (await app.inject({url,headers})).json(),false);
+  assert.equal(typeof (await app.inject({url,headers:{...headers,'x-orami-summary-version':'2'}})).json().overdueMedications,'number');
+  await app.inject({ method: 'POST', url: '/auth/logout' , payload: { refreshToken: owner.refreshToken } });
   assert.equal((await app.inject({ url, headers })).statusCode, 401);
 });

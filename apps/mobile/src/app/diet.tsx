@@ -1,10 +1,11 @@
 import { useCallback, useState } from 'react';
+import { formatNumber } from '@/utils/numbers';
 import { router, useFocusEffect } from 'expo-router';
 import MaterialCommunityIcons from '@/components/icon';
 import { ActivityIndicator, Modal, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { DietView } from '@fit/contracts';
-import { useAuth } from '@/auth/auth-context';
+import { useMealSync } from '@/components/meal-sync-provider';
 import { useAppTheme } from '@/theme/theme-provider';
 import { DietMealForm, type DietSelection } from '@/components/diet-meal-form';
 import { DietExpiry, DietMealRows, DietOptionTabs, DietPlanTabs } from '@/components/diet-plan-view';
@@ -13,7 +14,7 @@ import { showToast } from '@/components/app-dialog';
 import { ScreenHeader } from '@/components/screen-header';
 import { localDate } from '@/utils/dates';
 export default function DietScreen() {
-  const { api } = useAuth(); const { colors: c } = useAppTheme();
+  const { api } = useMealSync(); const { colors: c } = useAppTheme();
   const [rows,setRows] = useState<DietView[]>([]);
   const [loading,setLoading] = useState(true), [refreshing,setRefreshing] = useState(false), [error,setError] = useState('');
   const [dietId,setDietId] = useState<string | null>(null), [mealIndex,setMealIndex] = useState<number | null>(null);
@@ -62,13 +63,13 @@ export default function DietScreen() {
           <Text style={{color:c.textMuted,fontSize:13}}>Escolha uma alternativa para esta refeição.</Text>
           <DietOptionTabs meal={meal} selected={optionIndex} onSelect={index => setSelectedOptions(current => ({...current,[diet.id]:{...current[diet.id],[mealIndex]:index}}))}/>
           {option.items.map((item,index) => <View key={index} style={{paddingVertical:12,gap:6,borderBottomWidth:1,borderColor:c.border}}><View style={{flexDirection:'row',gap:12,justifyContent:'space-between'}}><Text style={{flex:1,color:c.text,fontSize:16,fontWeight:'700'}}>{item.food.name}</Text><Text style={{color:c.link,fontWeight:'700'}}>{item.quantity} {item.food.servingUnit === 'unit' ? 'un' : item.food.servingUnit}</Text></View>{item.food.notes ? <Text style={{color:c.textMuted,lineHeight:20}}>{item.food.notes}</Text> : null}{item.substitutions ? <Text style={{color:c.textMuted,lineHeight:20}}>Substituições: {item.substitutions}</Text> : null}</View>)}
-          <Text style={{color:c.text,fontWeight:'800',lineHeight:20}}>{Math.round(option.macros.calories)} kcal · Proteínas {option.macros.protein.toFixed(1)} g · Carboidratos {option.macros.carbs.toFixed(1)} g · Gorduras {option.macros.fat.toFixed(1)} g</Text>
+          <Text style={{color:c.text,fontWeight:'800',lineHeight:20}}>{Math.round(option.macros.calories)} kcal · Proteínas {formatNumber(option.macros.protein)} g · Carboidratos {formatNumber(option.macros.carbs)} g · Gorduras {formatNumber(option.macros.fat)} g</Text>
           <DietExpiry diet={diet}/>
         </ScrollView>
         {diet.status === 'active' ? <View style={{padding:16,borderTopWidth:1,borderColor:c.border}}><Pressable accessibilityRole="button" onPress={() => {setSelection({assignmentId:diet.id,mealIndex,optionIndex});setMealIndex(null);}} style={{backgroundColor:c.primaryStrong,padding:16,borderRadius: 16,minHeight:48,alignItems:'center'}}><Text style={{color:c.onPrimary,fontWeight:'800'}}>Registrar esta opção no diário</Text></Pressable></View> : <Text style={{color:c.textMuted,padding:16}}>Dieta anterior disponível apenas para consulta.</Text>}
       </SafeAreaView>
     </Modal> : null}
-    {information && diet ? <InformationModal title="Orientações da dieta" paragraphs={[`Estimativa diária das opções selecionadas: ${Math.round(totals.calories)} kcal · Proteínas ${totals.protein.toFixed(1)} g · Carboidratos ${totals.carbs.toFixed(1)} g · Gorduras ${totals.fat.toFixed(1)} g.`,diet.objective || 'Sem objetivo adicional informado.',diet.notes || 'Sem orientações adicionais.',diet.expiresAt ? `Validade ${diet.expired ? 'encerrada em' : 'até'} ${new Date(diet.expiresAt).toLocaleDateString('pt-BR')}.` : 'Sem prazo definido.', 'As opções de uma refeição são alternativas. A estimativa diária soma uma opção por refeição; registrar consumo não altera a prescrição.']} onClose={() => setInformation(false)}/> : null}
-    {selection ? <DietMealForm date={localDate()} selection={selection} onClose={() => setSelection(null)} onSave={async input => {await api.recordDietMeal(input);setSelection(null);showToast('Refeição registrada na Alimentação.');}}/> : null}
+    {information && diet ? <InformationModal title="Orientações da dieta" paragraphs={[`Estimativa diária das opções selecionadas: ${Math.round(totals.calories)} kcal · Proteínas ${formatNumber(totals.protein)} g · Carboidratos ${formatNumber(totals.carbs)} g · Gorduras ${formatNumber(totals.fat)} g.`,diet.objective || 'Sem objetivo adicional informado.',diet.notes || 'Sem orientações adicionais.',diet.expiresAt ? `Validade ${diet.expired ? 'encerrada em' : 'até'} ${new Date(diet.expiresAt).toLocaleDateString('pt-BR')}.` : 'Sem prazo definido.', 'As opções de uma refeição são alternativas. A estimativa diária soma uma opção por refeição; registrar consumo não altera a prescrição.']} onClose={() => setInformation(false)}/> : null}
+    {selection ? <DietMealForm date={localDate()} selection={selection} onClose={() => setSelection(null)} onSave={async input => {await api.recordDietMeal(input);setSelection(null);showToast('Refeição salva neste aparelho. O envio acontece automaticamente.');}}/> : null}
   </SafeAreaView>;
 }

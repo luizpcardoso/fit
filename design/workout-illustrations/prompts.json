@@ -1,0 +1,104 @@
+{
+  "generatedWith": "built-in image_gen",
+  "canvas": {
+    "width": 512,
+    "height": 384,
+    "aspectRatio": "4:3",
+    "format": "WebP",
+    "alpha": true
+  },
+  "images": [
+    {
+      "id": "chest",
+      "label": "Peito",
+      "asset": "apps/mobile/assets/images/workout-groups/chest.webp",
+      "prompt": "Edit this original muscle-map master into one matching catalog asset. Keep EXACT two full-body mannequins, front left/back right, same proportions, pose, facial blankness, shorts, arrangement and 4:3 canvas. First reset all existing coral muscles to the same pearl gray as the body. Then apply coral highlighting only to the listed target areas. Preserve the approachable semi-cartoon anatomy illustration style, restrained muscle detail, clinical nonsexual anatomy. Keep all non-target muscles gray. Transparent background with CLEAN continuous alpha edges: remove all stray white haze, flecks, ghost outlines and any color outside the body silhouette. No labels, text, arrows, symbols, borders, shadows or watermark. Do not crop head or feet. TARGET: Only the left/front figure's pectoralis major chest muscles are coral. Back figure entirely gray. Deltoid shoulder caps, arms, abs and legs entirely gray.",
+      "reference": "back"
+    },
+    {
+      "id": "back",
+      "label": "Costas",
+      "asset": "apps/mobile/assets/images/workout-groups/back.webp",
+      "prompt": "Use case: stylized-concept. Asset type: original muscle-group thumbnail for the Orami fitness app, master illustration for a matching collection. Create a clean horizontal 4:3 illustration with TWO matching full-body anatomical training mannequins, front view on the left, back view on the right. Adult neutral faceless athletic mannequin, approachable semi-cartoon digital illustration, anatomically sensible proportions, relaxed standing pose, arms slightly away from torso, feet fully visible, no cropped head or feet. Soft pearl gray body, subtle charcoal outlines, simple non-gory muscle shapes, no bulging veins or exaggerated bodybuilding, matte charcoal fitted shorts in front; back is an anatomical mannequin with simplified gluteal shapes and no intimate detail. Highlight ONLY THE BACK MUSCLES on the back-view figure in muted warm coral-red: latissimus dorsi, trapezius, rhomboid area and spinal erector areas; shoulder caps, arms, glutes and legs remain pearl gray. The entire front-view figure remains gray. Target regions form precise solid color anatomical shapes with a few subtle fiber lines. Transparent background, no frame, no ground shadow, no text, no labels, no arrows, no symbols, no logos or watermark. Two figures equal height occupying 88% of canvas height, centered with generous clean margin. Sharp readable shapes suitable for a final small 512x384 WebP. Clinical fitness illustration inspired by muscle-group diagrams, original artwork rather than a copied infographic.",
+      "reference": null
+    },
+    {
+      "id": "legs",
+      "label": "Pernas",
+      "asset": "apps/mobile/assets/images/workout-groups/legs.webp",
+      "prompt": "Edit this original muscle-map master into one matching catalog asset. Keep EXACT two full-body mannequins, front left/back right, same proportions, pose, facial blankness, shorts, arrangement and 4:3 canvas. First reset all existing coral muscles to the same pearl gray as the body. Then apply coral highlighting only to the listed target areas. Preserve the approachable semi-cartoon anatomy illustration style, restrained muscle detail, clinical nonsexual anatomy. Keep all non-target muscles gray. Transparent background with CLEAN continuous alpha edges: remove all stray white haze, flecks, ghost outlines and any color outside the body silhouette. No labels, text, arrows, symbols, borders, shadows or watermark. Do not crop head or feet. TARGET: Highlight ONLY leg muscles on both figures, from below the hip/shorts to above the ankles: front quadriceps and lower-leg muscles, rear hamstrings and calves, in coral. Gluteal muscles remain gray. Torsos, arms, shoulders remain gray.",
+      "reference": "back"
+    },
+    {
+      "id": "shoulders",
+      "label": "Ombros",
+      "asset": "apps/mobile/assets/images/workout-groups/shoulders.webp",
+      "prompt": "Edit this original muscle-map master into one matching catalog asset. Keep EXACT two full-body mannequins, front left/back right, same proportions, pose, facial blankness, shorts, arrangement and 4:3 canvas. First reset all existing coral muscles to the same pearl gray as the body. Then apply coral highlighting only to the listed target areas. Preserve the approachable semi-cartoon anatomy illustration style, restrained muscle detail, clinical nonsexual anatomy. Keep all non-target muscles gray. Transparent background with CLEAN continuous alpha edges: remove all stray white haze, flecks, ghost outlines and any color outside the body silhouette. No labels, text, arrows, symbols, borders, shadows or watermark. Do not crop head or feet. TARGET: Highlight ONLY both shoulder deltoid caps on BOTH front and back figures in coral. The back trapezius, chest, arms below the deltoids and all other regions entirely gray.",
+      "reference": "back"
+    },
+    {
+      "id": "arms",
+      "label": "Braços",
+      "asset": "apps/mobile/assets/images/workout-groups/arms.webp",
+      "prompt": "Edit this original muscle-map master into one matching catalog asset. Keep EXACT two full-body mannequins, front left/back right, same proportions, pose, facial blankness, shorts, arrangement and 4:3 canvas. First reset all existing coral muscles to the same pearl gray as the body. Then apply coral highlighting only to the listed target areas. Preserve the approachable semi-cartoon anatomy illustration style, restrained muscle detail, clinical nonsexual anatomy. Keep all non-target muscles gray. Transparent background with CLEAN continuous alpha edges: remove all stray white haze, flecks, ghost outlines and any color outside the body silhouette. No labels, text, arrows, symbols, borders, shadows or watermark. Do not crop head or feet. TARGET: Highlight ONLY both arms from below the shoulder cap to the wrists: front biceps/forearms and rear triceps/forearms. The deltoid shoulder caps, hands and all torso/leg/gluteal regions stay entirely gray.",
+      "reference": "back"
+    },
+    {
+      "id": "core",
+      "label": "Abdômen",
+      "asset": "apps/mobile/assets/images/workout-groups/core.webp",
+      "prompt": "Edit this original muscle-map master into one matching catalog asset. Keep EXACT two full-body mannequins, front left/back right, same proportions, pose, facial blankness, shorts, arrangement and 4:3 canvas. First reset all existing coral muscles to the same pearl gray as the body. Then apply coral highlighting only to the listed target areas. Preserve the approachable semi-cartoon anatomy illustration style, restrained muscle detail, clinical nonsexual anatomy. Keep all non-target muscles gray. Transparent background with CLEAN continuous alpha edges: remove all stray white haze, flecks, ghost outlines and any color outside the body silhouette. No labels, text, arrows, symbols, borders, shadows or watermark. Do not crop head or feet. TARGET: Highlight ONLY the front abdominal rectus abdominis and both lateral oblique abdominal areas in coral, from below the ribs to the shorts waistband. Chest, arms, shoulders and legs remain gray; the entire rear figure remains gray.",
+      "reference": "back"
+    },
+    {
+      "id": "glutes",
+      "label": "Glúteos",
+      "asset": "apps/mobile/assets/images/workout-groups/glutes.webp",
+      "prompt": "Edit this original muscle-map master into one matching catalog asset. Keep EXACT two full-body mannequins, front left/back right, same proportions, pose, facial blankness, shorts, arrangement and 4:3 canvas. First reset all existing coral muscles to the same pearl gray as the body. Then apply coral highlighting only to the listed target areas. Preserve the approachable semi-cartoon anatomy illustration style, restrained muscle detail, clinical nonsexual anatomy. Keep all non-target muscles gray. Transparent background with CLEAN continuous alpha edges: remove all stray white haze, flecks, ghost outlines and any color outside the body silhouette. No labels, text, arrows, symbols, borders, shadows or watermark. Do not crop head or feet. TARGET: Highlight ONLY both gluteal muscles on the right/back figure in coral. Legs, back, arms and shoulders remain gray; the entire front figure remains gray. Simplified anatomical mannequin, no intimate detail.",
+      "reference": "back"
+    },
+    {
+      "id": "full-body",
+      "label": "Corpo inteiro",
+      "asset": "apps/mobile/assets/images/workout-groups/full-body.webp",
+      "prompt": "Edit this original muscle-map master into one matching catalog asset. Keep EXACT two full-body mannequins, front left/back right, same proportions, pose, facial blankness, shorts, arrangement and 4:3 canvas. First reset all existing coral muscles to the same pearl gray as the body. Then apply coral highlighting only to the listed target areas. Preserve the approachable semi-cartoon anatomy illustration style, restrained muscle detail, clinical nonsexual anatomy. Keep all non-target muscles gray. Transparent background with CLEAN continuous alpha edges: remove all stray white haze, flecks, ghost outlines and any color outside the body silhouette. No labels, text, arrows, symbols, borders, shadows or watermark. Do not crop head or feet. TARGET: Highlight ALL major visible training muscle groups on BOTH figures in coral: chest, shoulders, arms, abdominals, obliques, upper/lower back, gluteals, quadriceps, hamstrings, calves. Face, ears, hands, feet, joints and front charcoal shorts stay neutral gray/charcoal. This is a simplified whole-body muscle training map, no gore or sexual detail.",
+      "reference": "back"
+    },
+    {
+      "id": "back-shoulders",
+      "label": "Costas + ombros",
+      "asset": "apps/mobile/assets/images/workout-groups/back-shoulders.webp",
+      "prompt": "Edit this original muscle-map master into one matching catalog asset. Keep EXACT two full-body mannequins, front left/back right, same proportions, pose, facial blankness, shorts, arrangement and 4:3 canvas. First reset all existing coral muscles to the same pearl gray as the body. Then apply coral highlighting only to the listed target areas. Preserve the approachable semi-cartoon anatomy illustration style, restrained muscle detail, clinical nonsexual anatomy. Keep all non-target muscles gray. Transparent background with CLEAN continuous alpha edges: remove all stray white haze, flecks, ghost outlines and any color outside the body silhouette. No labels, text, arrows, symbols, borders, shadows or watermark. Do not crop head or feet. TARGET: Combine BACK + SHOULDERS. Coral back muscles only on the right/rear figure (trapezius, latissimus, rhomboid and spinal erector regions), PLUS the deltoid shoulder caps on BOTH figures. All chest, abdominal, arm, gluteal and leg muscles remain gray.",
+      "reference": "back"
+    },
+    {
+      "id": "chest-shoulders",
+      "label": "Peito + ombros",
+      "asset": "apps/mobile/assets/images/workout-groups/chest-shoulders.webp",
+      "prompt": "Edit this original muscle-map master into one matching catalog asset. Keep EXACT two full-body mannequins, front left/back right, same proportions, pose, facial blankness, shorts, arrangement and 4:3 canvas. First reset all existing coral muscles to the same pearl gray as the body. Then apply coral highlighting only to the listed target areas. Preserve the approachable semi-cartoon anatomy illustration style, restrained muscle detail, clinical nonsexual anatomy. Keep all non-target muscles gray. Transparent background with CLEAN continuous alpha edges: remove all stray white haze, flecks, ghost outlines and any color outside the body silhouette. No labels, text, arrows, symbols, borders, shadows or watermark. Do not crop head or feet. TARGET: Combine CHEST + SHOULDERS. Coral pectoral chest muscles on the left/front figure, PLUS deltoid shoulder caps on BOTH figures. Back muscles other than deltoids, arms, abdomen, glutes and legs remain gray.",
+      "reference": "back"
+    },
+    {
+      "id": "chest-triceps",
+      "label": "Peito + tríceps",
+      "asset": "apps/mobile/assets/images/workout-groups/chest-triceps.webp",
+      "prompt": "Edit this original muscle-map master into one matching catalog asset. Keep EXACT two full-body mannequins, front left/back right, same proportions, pose, facial blankness, shorts, arrangement and 4:3 canvas. First reset all existing coral muscles to the same pearl gray as the body. Then apply coral highlighting only to the listed target areas. Preserve the approachable semi-cartoon anatomy illustration style, restrained muscle detail, clinical nonsexual anatomy. Keep all non-target muscles gray. Transparent background with CLEAN continuous alpha edges: remove all stray white haze, flecks, ghost outlines and any color outside the body silhouette. No labels, text, arrows, symbols, borders, shadows or watermark. Do not crop head or feet. TARGET: Combine CHEST + TRICEPS. Coral pectoral chest muscles on the left/front figure, PLUS triceps muscles along the back of both upper arms on the right/rear figure. Biceps, forearms, shoulder caps, torso back, abdomen, glutes and legs remain gray. Keep triceps restricted between deltoid and elbow.",
+      "reference": "back"
+    },
+    {
+      "id": "back-biceps",
+      "label": "Costas + bíceps",
+      "asset": "apps/mobile/assets/images/workout-groups/back-biceps.webp",
+      "prompt": "Edit this original muscle-map master into one matching catalog asset. Keep EXACT two full-body mannequins, front left/back right, same proportions, pose, facial blankness, shorts, arrangement and 4:3 canvas. First reset all existing coral muscles to the same pearl gray as the body. Then apply coral highlighting only to the listed target areas. Preserve the approachable semi-cartoon anatomy illustration style, restrained muscle detail, clinical nonsexual anatomy. Keep all non-target muscles gray. Transparent background with CLEAN continuous alpha edges: remove all stray white haze, flecks, ghost outlines and any color outside the body silhouette. No labels, text, arrows, symbols, borders, shadows or watermark. Do not crop head or feet. TARGET: Combine BACK + BICEPS. Coral back muscles only on the right/rear figure (trapezius, latissimus, rhomboid and spinal erector regions), PLUS biceps bulges on both upper arms of the left/front figure. Shoulder caps, chest, forearms, triceps, abdomen, glutes and legs remain gray.",
+      "reference": "back"
+    },
+    {
+      "id": "legs-glutes",
+      "label": "Pernas + glúteos",
+      "asset": "apps/mobile/assets/images/workout-groups/legs-glutes.webp",
+      "prompt": "Edit this original muscle-map master into one matching catalog asset. Keep EXACT two full-body mannequins, front left/back right, same proportions, pose, facial blankness, shorts, arrangement and 4:3 canvas. First reset all existing coral muscles to the same pearl gray as the body. Then apply coral highlighting only to the listed target areas. Preserve the approachable semi-cartoon anatomy illustration style, restrained muscle detail, clinical nonsexual anatomy. Keep all non-target muscles gray. Transparent background with CLEAN continuous alpha edges: remove all stray white haze, flecks, ghost outlines and any color outside the body silhouette. No labels, text, arrows, symbols, borders, shadows or watermark. Do not crop head or feet. TARGET: Combine LEGS + GLUTES. Coral quadriceps and lower-leg muscles in front, rear hamstrings and calves, PLUS both gluteal muscles on the right/back figure. All torso, shoulder and arm muscles remain gray. Feet, knee caps and front charcoal shorts stay neutral.",
+      "reference": "back"
+    }
+  ]
+}
+

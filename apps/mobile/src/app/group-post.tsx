@@ -1,7 +1,7 @@
 import { FormScrollView as ScrollView } from '@/components/form-scroll-view';
 import { FormInput as TextInput } from '@/components/form-input';
 import { useCallback, useState } from "react";
-import {prepareMobilePhoto} from '@/utils/mobile-photo';
+import {groupPostFrameRatio,prepareMobilePhoto} from '@/utils/mobile-photo';
 import MaterialCommunityIcons from '@/components/icon';
 import {
   ActivityIndicator,
@@ -27,7 +27,7 @@ export default function GroupPost() {
   const [groups, setGroups] = useState<GroupDetails[]>([]);
   const [selected, setSelected] = useState<string[]>([]);
   const [text, setText] = useState("");
-  const [photo, setPhoto] = useState<string | null>(null);
+  const [photo, setPhoto] = useState<{dataUrl:string;aspectRatio:number} | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -78,7 +78,8 @@ export default function GroupPost() {
         base64: false,
       });
       if (!result.canceled && result.assets[0]) {
-        setPhoto((await prepareMobilePhoto(result.assets[0])).dataUrl);
+        const prepared=await prepareMobilePhoto(result.assets[0]);
+        setPhoto({dataUrl:prepared.dataUrl,aspectRatio:prepared.aspectRatio});
       }
     } catch {
       setError("Não foi possível processar esta foto. Tente outra imagem.");
@@ -91,7 +92,7 @@ export default function GroupPost() {
     try {
       await api.publishToGroups(selected, {
         text: text.trim() || null,
-        photoDataUrl: photo,
+        photoDataUrl: photo?.dataUrl ?? null,
       });
       const count = selected.length;
       setText("");
@@ -123,7 +124,7 @@ export default function GroupPost() {
           alignSelf: "center",
         }}
       >
-        <ScreenHeader backLabel="Grupos" onBack={back} />
+        <ScreenHeader backLabel="Social" onBack={back} />
         <Text
           accessibilityRole="header"
           style={{ ...Type.headline, fontWeight: "800", color: c.text }}
@@ -154,8 +155,8 @@ export default function GroupPost() {
         {photo ? (
           <>
             <Image
-              source={{ uri: photo }}
-              style={{ height: 250, borderRadius: 16 }}
+              source={{ uri: photo.dataUrl }}
+              style={{ width:'100%', aspectRatio:groupPostFrameRatio(photo.aspectRatio), borderRadius: 16, backgroundColor:c.surfaceSoft }}
               resizeMode="contain"
             />
             <Pressable accessibilityRole="button" disabled={busy} onPress={() => setPhoto(null)} style={{ minHeight: 44, flexDirection: "row", alignItems: "center", gap: 8, alignSelf: "flex-start" }}>
@@ -210,7 +211,7 @@ export default function GroupPost() {
         {!loading && !groups.length && !loadError ? (
           <Text style={{ color: c.textMuted }}>
             Você ainda não participa de grupos que permitem publicar. Crie um
-            grupo ou aceite um convite na aba Grupos.
+            grupo ou aceite um convite em Social → Meus grupos.
           </Text>
         ) : null}
         {groups.map((g) => (

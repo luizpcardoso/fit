@@ -1,9 +1,14 @@
+import { mealCategoryLabel } from '@fit/contracts';
+import { formatNumber } from '@/utils/numbers';
+import { useShowMore, ShowMore } from '@/components/load-more';
 import { DailyNutritionCard } from '@/components/daily-nutrition-card';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { showToast } from '@/components/app-dialog';
-import { ScreenHeader } from '@/components/screen-header';
+import { FixedScreenHeader } from '@/components/screen-header';
 import { formatRelativeDay, formatShortDate, formatSpokenDate, localDate, shiftDate } from '@/utils/dates';
-import { useAuth } from "@/auth/auth-context";
+import { useMealSync } from '@/components/meal-sync-provider';
+import { MealSyncStatus } from '@/components/meal-sync-status';
+import type { QueuedMeal } from '@/utils/meal-sync-core';
 import { FavoriteForm, FoodForm, MealForm } from "@/components/nutrition-forms";
 import { CardShadow, type AppPalette } from "@/constants/theme";
 import { useAppTheme } from "@/theme/theme-provider";
@@ -29,7 +34,7 @@ type Section = "meals" | "foods" | "favorites";
 export default function FoodTracking() {
   const { colors: c } = useAppTheme();
   const s = styles(c);
-  const { api } = useAuth();
+  const { api, entries, cachedSummary, refresh: refreshLocal } = useMealSync();
   const requestVersion = useRef(0);
   const [summary, setSummary] = useState<DailyNutritionSummary | null>(null);
   const [deleting, setDeleting] = useState<{ title: string; message: string; confirmLabel: string; done: string; action(): Promise<void> } | null>(null);
@@ -74,26 +79,28 @@ export default function FoodTracking() {
       return () => { ++requestVersion.current; };
     }, [load]),
   );
+  const daySummary = cachedSummary(date) ?? summary;
+  const visibleMeals = daySummary?.date === date ? daySummary.meals : meals;
   const confirmDelete = (title: string, message: string, confirmLabel: string, done: string, action: () => Promise<void>) => setDeleting({ title, message, confirmLabel, done, action });
   return (
     <SafeAreaView style={s.safe} edges={["top"]}>
-      <ScrollView
+      <FixedScreenHeader backLabel="Nutrição" /><ScrollView
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={() => {
               setRefreshing(true);
-              void load(true);
+              void refreshLocal().then(() => load(true));
             }}
           />
         }
         contentContainerStyle={s.content}
       >
-        <ScreenHeader backLabel="Nutrição" />
+        <MealSyncStatus/>
         <View>
-          <Text accessibilityRole="header" style={s.heading}>
+          <View style={{flexDirection:'row',alignItems:'center',gap:12}}><Text accessibilityRole="header" style={[s.heading,{flex:1}]}>
             Alimentação
-          </Text>
+          </Text><Pressable accessibilityRole="button" accessibilityLabel="Atualizar alimentação" disabled={refreshing} onPress={() => {setRefreshing(true);void refreshLocal().then(() => load(true));}} style={{minWidth:44,minHeight:44,alignItems:'center',justifyContent:'center'}}><MaterialCommunityIcons name="refresh" size={22} color={c.link}/></Pressable></View>
           <Text style={s.subheading}>Registre o que comeu e acompanhe o consumo diário</Text>
         </View>
         <View accessibilityRole="tablist" style={s.tabs}>
@@ -153,7 +160,7 @@ export default function FoodTracking() {
             </Pressable>
           </View>
         ) : null}
-        {section === 'meals' ? <DailyNutritionCard summary={summary?.date === date ? summary : null} loading={loading} error={error} onRefresh={() => void load(true)} onRegister={() => setMealForm(null)}/> : <Text style={s.muted}>{section === 'foods' ? 'Cadastre porções de alimentos para reutilizá-las nas refeições.' : 'Use uma refeição salva novamente, ajustando data, horário e quantidade.'}</Text>}
+        {section === 'meals' ? <DailyNutritionCard summary={daySummary?.date === date ? daySummary : null} loading={loading} error={error} onRefresh={() => void load(true)} onRegister={() => setMealForm(null)}/> : <Text style={s.muted}>{section === 'foods' ? 'Cadastre porções de alimentos para reutilizá-las nas refeições.' : 'Use uma refeição salva novamente, ajustando data, horário e quantidade.'}</Text>}
         {error && section !== 'meals' ? (
           <View accessibilityRole="alert" style={s.errorBox}>
             <Text style={s.error}>{error}</Text>
@@ -166,7 +173,8 @@ export default function FoodTracking() {
           <ActivityIndicator color={c.link} style={s.loading} />
         ) : error ? null : section === "meals" ? (
           <Meals
-            meals={meals}
+            meals={visibleMeals}
+            queued={entries}
             onNew={() => setMealForm(null)}
             onEdit={setMealForm}
             onFavorite={async (meal) => {
@@ -234,7 +242,7 @@ export default function FoodTracking() {
             setMealForm(undefined);
             if (input.date === date) await load(true);
             else setDate(input.date);
-            showToast("Refeição da dieta registrada.");
+            showToast("Refeição salva neste aparelho.");
           }}
           date={date}
           foods={foods}
@@ -244,7 +252,7 @@ export default function FoodTracking() {
             if (mealForm) await api.updateMeal(mealForm.id, input);
             else await api.createMeal(input);
             setMealForm(undefined);
-            showToast(mealForm ? 'Refeição atualizada.' : 'Refeição registrada.');
+            showToast(mealForm ? 'Refeição atualizada.' : 'Refeição salva neste aparelho.');
             if (input.date === date) await load(true);
             else setDate(input.date);
           }}
@@ -261,16 +269,17 @@ export default function FoodTracking() {
             showToast("Nome da favorita salvo.");
             await load(true);
           }}
-          onReuse={async (nextDate, time, multiplier) => {
+          onReuse={async (nextDate, time, multiplier, category) => {
             await api.reuseFavoriteMeal(
               favoriteForm.id,
               nextDate,
               time,
               multiplier,
+              category,
             );
             setFavoriteForm(null);
             setSection("meals");
-            showToast('Refeição registrada.');
+            showToast('Refeição salva neste aparelho.');
             if (nextDate === date) await load(true); else setDate(nextDate);
           }}
         />
@@ -282,12 +291,14 @@ export default function FoodTracking() {
 
 function Meals({
   meals,
+  queued,
   onNew,
   onEdit,
   onFavorite,
   onDelete,
 }: {
   meals: Meal[];
+  queued: QueuedMeal[];
   onNew(): void;
   onEdit(item: Meal): void;
   onFavorite(item: Meal): Promise<void>;
@@ -301,21 +312,23 @@ function Meals({
 
       </View>
       {meals.length ? (
-        [...meals].sort((a, b) => a.time.localeCompare(b.time) || a.id.localeCompare(b.id)).map((meal) => (
+        [...meals].sort((a, b) => a.time.localeCompare(b.time) || a.id.localeCompare(b.id)).map((meal) => { const pending = queued.find(e => e.request.id === meal.id); return (
           <View key={meal.id} style={s.card}>
+            {pending ? <Text style={[s.muted, {minHeight:20}]}>{pending.error ? 'Pendente · precisa de revisão' : 'Salvo neste aparelho · envio pendente'}</Text> : null}
+            {meal.category ? <Text style={s.muted}>{mealCategoryLabel(meal.category)}</Text> : null}
             <Text style={s.cardTitle}>
               {meal.time} · {meal.name}
             </Text>
             <Text style={s.muted}>
-              {kcal(meal.calories)} · Proteínas {meal.protein.toFixed(1)} g · Carboidratos{" "}
-              {meal.carbs.toFixed(1)} g · Gorduras {meal.fat.toFixed(1)} g
+              {kcal(meal.calories)} · Proteínas {formatNumber(meal.protein)} g · Carboidratos{" "}
+              {formatNumber(meal.carbs)} g · Gorduras {formatNumber(meal.fat)} g
             </Text>
             {meal.items.map(item=><Text key={item.id} style={s.muted}>{item.foodName} · {item.quantity.toLocaleString('pt-BR')} {item.servingUnit==='unit'?'un':item.servingUnit}</Text>)}
             <View style={s.actions}>
-              <Pressable accessibilityRole="button" accessibilityLabel={`Favoritar ${meal.name}`} onPress={() => void onFavorite(meal)} style={s.action}>
+              <Pressable accessibilityRole="button" accessibilityLabel={`Favoritar ${meal.name}`} disabled={!!pending} aria-disabled={!!pending} onPress={() => void onFavorite(meal)} style={s.action}>
                 <Text style={s.link}>Favoritar</Text>
               </Pressable>
-              <Pressable accessibilityRole="button" accessibilityLabel={`Editar ${meal.name}`} onPress={() => onEdit(meal)} style={s.action}>
+              <Pressable accessibilityRole="button" accessibilityLabel={`Editar ${meal.name}`} disabled={pending?.attempted === true} aria-disabled={pending?.attempted === true} onPress={() => onEdit(meal)} style={s.action}>
                 <Text style={s.link}>Editar</Text>
               </Pressable>
               <Pressable accessibilityRole="button" accessibilityLabel={`Excluir ${meal.name}`} onPress={() => onDelete(meal)} style={s.action}>
@@ -323,7 +336,7 @@ function Meals({
               </Pressable>
             </View>
           </View>
-        ))
+        ); })
       ) : (
         <Empty
           title="Nenhuma refeição"
@@ -346,6 +359,7 @@ function Foods({
   onEdit(item: Food): void;
   onDelete(item: Food): void;
 }) {
+  const shownFoods = useShowMore(foods, 30);
   const s = styles(useAppTheme().colors);
   return (
     <View style={s.stack}>
@@ -356,7 +370,7 @@ function Foods({
         </Pressable>
       </View>
       {foods.length ? (
-        foods.map((food) => (
+        <>{shownFoods.visible.map((food) => (
           <View key={food.id} style={s.card}>
             <Text style={s.cardTitle}>
               {food.name}
@@ -379,7 +393,7 @@ function Foods({
               </Pressable>
             </View>
           </View>
-        ))
+        ))}<ShowMore shown={shownFoods.visible.length} total={shownFoods.total} onPress={shownFoods.more} noun="alimentos"/></>
       ) : (
         <Empty
           title="Nenhum alimento"
@@ -409,8 +423,8 @@ function Favorites({
           <View key={item.id} style={s.card}>
             <Text style={s.cardTitle}>{item.name}</Text>
             <Text style={s.muted}>
-              {kcal(item.calories)} · Proteínas {item.protein.toFixed(1)} g · Carboidratos{" "}
-              {item.carbs.toFixed(1)} g · Gorduras {item.fat.toFixed(1)} g
+              {kcal(item.calories)} · Proteínas {formatNumber(item.protein)} g · Carboidratos{" "}
+              {formatNumber(item.carbs)} g · Gorduras {formatNumber(item.fat)} g
             </Text>
             <View style={s.actions}>
               <Pressable accessibilityRole="button" accessibilityLabel={`Usar ou renomear ${item.name}`} onPress={() => onOpen(item)} style={s.action}>

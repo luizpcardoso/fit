@@ -20,6 +20,10 @@ Os contêineres reiniciam automaticamente com o Docker. O proxy encaminha o site
 
 Credenciais privadas: `deploy/runtime.env`, `~/.config/fit/cloudflare.env` e, enquanto o fallback existir, `~/.config/fit/ngrok-web.env` no servidor. Não versionar nem compartilhar esses arquivos. O token do túnel deve permanecer com permissão `600`.
 
+## Monitoramento
+
+Prometheus, Grafana e exporters rodam no projeto Compose separado `fit_monitoring` em `~/apps/monitoring`, todos em loopback; Grafana na tailnet em `https://luiz.tail508df9.ts.net/grafana/`. O proxy público grava em `deploy/data/nginx-metrics/access.log` um registro mínimo por request (status, método, bytes, tempos, área da rota e domínio; sem IP, caminho ou query string) lido pelo exporter. Ao criar uma nova área de rota na API, incluí-la no `map $uri $fit_route` de `public.nginx.conf` e na lista do exporter.
+
 ## Dados
 
 Banco ativo MySQL 9.7.4 LTS no volume `fit_server_mysql_data_lts`; imagens em `deploy/data/media`. O volume anterior `fit_server_mysql_data` foi preservado para recuperação da migração de 30/10/2026 e não é o banco em uso. A migração inicial foi preservada em `deploy/backups/initial` no servidor e em `~/.local/share/fit/deployment-backups` no computador de desenvolvimento. Sete tabelas foram conferidas após a importação. Não reimportar a cópia inicial sobre o banco em uso. Não executar `docker compose down -v`.
@@ -34,9 +38,9 @@ Na raiz do repositório de desenvolvimento, com Java e Android SDK instalados:
 FIT_API_URL=https://orami.com.br node scripts/build-android-release.mjs
 ```
 
-Saída: `artifacts/android/fit-0.1.0.apk`. A chave de assinatura e suas credenciais ficam em `~/.local/share/fit/android-signing` no computador de desenvolvimento. Preservar uma cópia privada: atualizações precisam da mesma chave. Incrementar `android.versionCode` para futuras versões.
+Na versão 1.05, a saída é `artifacts/android/orami-1.0.5-android.apk`. A chave de assinatura e suas credenciais ficam em `~/.local/share/fit/android-signing` no computador de desenvolvimento. Preservar uma cópia privada: atualizações precisam da mesma chave. Incrementar `android.versionCode` para futuras versões e seguir `docs/versioning.md`.
 
-Após validar a assinatura e o endereço no bundle, enviar o APK para `downloads/fit.apk.pending` no servidor e renomear para `downloads/fit.apk`. Publicar também `downloads/fit.apk.sha256`. O botão da home aponta para `/downloads/fit.apk`. Não hospedar chaves, credenciais ou backups nessa pasta.
+Após validar a assinatura e o endereço no bundle, preparar os metadados usando `scripts/prepare-android-download.mjs` (ver `docs/versioning.md`). Enviar o APK versionado para um `.pending` no servidor e ativar por renomeação; só então publicar `downloads/release.json` atomicamente. Manter cópia compatível em `downloads/fit.apk` e checksum `downloads/fit.apk.sha256`. A home exibe versão e tamanho reais pelo manifesto e baixa `/downloads/orami-<SemVer>-android.apk`. Não hospedar chaves, credenciais ou backups nessa pasta.
 
 Para atualizar o site/API no servidor após sincronizar o código:
 
@@ -46,6 +50,8 @@ docker compose --env-file deploy/runtime.env -f compose.server.yaml up -d api
 ```
 
 Verificar `/health`, login e download após cada publicação.
+
+Se um arquivo de configuração montado no contêiner for substituído por sincronização (novo inode), recriar o serviço `web` com `up -d --no-deps --force-recreate web`; apenas `nginx -s reload` pode continuar usando o arquivo montado anteriormente.
 
 ## Atualizações automáticas do Android (versão 0.2.0 em diante)
 

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { workoutCoverIdSchema } from "./workout-cover.js";
 import { dietOptionName, MAX_DIET_OPTIONS } from "./diet.js";
 const name = z.string().trim().min(2).max(120),
   notes = z.string().trim().max(2000);
@@ -89,6 +90,7 @@ const portalContentBaseSchema = z.discriminatedUnion("kind", [
     scope: z.enum(["global", "private"]),
     name: z.string().trim().min(2).max(80),
     data: z.strictObject({
+      coverId: workoutCoverIdSchema.nullable().optional(),
       validityDays: z.number().int().min(1).max(365).nullable(),
       divisions: z
         .array(

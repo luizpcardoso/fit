@@ -1,81 +1,50 @@
-# Fit — instruções do projeto
+# Orami — instruções do projeto
 
-## Direção do produto
+App de saúde e fitness; monorepo npm. Produto, docs, erros e testes em pt-BR.
+Trabalhe pela raiz deste repositório (`fit/`), que fica dentro da pasta de trabalho homônima.
 
-Fit é um aplicativo de treinos, exercícios, metas, acompanhamento de progresso e interação entre usuários.
+## Leitura econômica
 
-## Regra principal de desenvolvimento
+- Leia o `AGENTS.md` da área editada; consulte apenas docs e trechos relacionados à tarefa. Não carregue todo `docs/` nem releia regras já disponíveis na sessão.
+- Este arquivo concentra regras gerais; os arquivos por área contêm somente complementos. `CLAUDE.md` é uma entrada alternativa, sem contexto duplicado.
+- Intenção de produto/backlog: `docs/PROJECT_CONTEXT.md`. Implementação: código + doc do módulo. Registre divergências; não trate roadmap ou validação antiga como entrega atual.
+- Atualize a fonte correspondente quando decisões mudarem; mantenha contextos com estado final, limites e comandos úteis, sem diário de execução, cópias de código ou contagens de testes que envelhecem.
 
-Toda nova tela ou funcionalidade de produto deve começar pela experiência no aplicativo e ser entregue de ponta a ponta:
+## Entrega e decisões
 
-1. Definir o objetivo do usuário, o fluxo e os estados da tela.
-2. Fazer perguntas antes de implementar quando requisitos, permissões, privacidade ou comportamento estiverem ambíguos.
-3. Implementar ou ajustar a interface do aplicativo, incluindo carregamento, vazio, erro e sucesso.
-4. Definir o contrato de entrada e saída exigido pela tela.
-5. Implementar o endpoint correspondente na API com autenticação, autorização e validação.
-6. Integrar o aplicativo ao endpoint sem colocar regras de negócio ou segredos no cliente.
-7. Validar o fluxo completo com testes do app, da API e dos controles de acesso.
+- Comece pelo objetivo, fluxo e estados da tela; entregue interface → contrato → API → integração real e testes. Trate carregamento, vazio, erro, falta de conexão e sucesso quando aplicáveis. Mocks não concluem uma funcionalidade.
+- Mudanças visuais, textos, navegação estática e refatorações não exigem endpoints artificiais. Evite APIs, campos e abstrações especulativas; implemente apenas a fatia solicitada.
+- Pergunte antes de decisões sensíveis/irreversíveis ainda não autorizadas: permissões/visibilidade, exclusão/retenção/recuperação, pagamentos, uso de saúde/localização/fotos/contatos, serviços externos/custos/lock-in ou interpretações que alterem o fluxo principal. Resolva detalhes reversíveis pelos padrões existentes.
+- Mudanças pequenas e verificáveis; atualize docs e `.env.example` quando necessário.
 
-Uma funcionalidade de produto visível no app não está concluída com dados simulados ou somente com a interface: o contrato, o endpoint e a integração também devem ser entregues na mesma mudança. Alterações exclusivamente visuais, textos, navegação estática ou refatorações não exigem a criação de endpoints artificiais.
+## Segurança e conclusão
 
-Não criar endpoints especulativos que ainda não sejam necessários para uma experiência do aplicativo. Não implementar primeiro uma API genérica para depois procurar onde usá-la no app.
+- API é autoridade de negócio e autorização por recurso; derive identidade da sessão, nunca de `userId`/papel enviados pelo cliente. Menor privilégio, acesso negado por padrão, dados de saúde privados e compartilhamento explícito.
+- Valide entrada/saída, formatos, limites, paginação e uploads; use SQL parametrizado/ORM, proteção contra abuso e erros sem SQL/stack traces/detalhes internos. Não exponha modelos do banco nos contratos.
+- Nunca inclua segredos no cliente/`EXPO_PUBLIC_*`, Git ou logs; não registre tokens, senhas ou conteúdo de saúde. Tokens nativos em armazenamento seguro; limpe dados privados no logout. Não desative TLS/certificados nem force correções destrutivas de dependências sem revisão/testes.
+- Antes de concluir funcionalidade, consulte `docs/security.md` e `docs/feature-checklist.md`. Verifique fluxo integrado, privacidade, acesso autorizado/não autenticado/de outra conta/sem papel e payload inválido; rode testes relevantes, typecheck e lint aplicáveis. Não declare verificações não executadas.
+- Integrações MySQL/E2E usam banco isolado com `test` no nome; nunca execute `docker compose down -v` no servidor. Não versione `.env`, `deploy/runtime.env`, `deploy/data/`, APK/OTA ou keystores; assinaturas ficam fora do repo.
 
-## Perguntas obrigatórias
+## Mapa e comandos
 
-Antes de tomar uma decisão irreversível ou sensível, perguntar ao usuário quando não estiver explícito:
+`apps/mobile` (Expo), `apps/api` (Fastify/MySQL), `apps/web` (portal/home), `packages/contracts` (Zod público), `packages/api-client` (HTTP tipado); `design/palette.json` é a fonte de cores.
 
-- quem pode visualizar, criar, editar ou excluir o recurso;
-- se dados, metas, treinos ou progresso são privados, compartilhados ou públicos;
-- qual deve ser o comportamento de exclusão, retenção e recuperação de dados;
-- se a ação envolve pagamentos, saúde, localização, fotos, contatos ou outros dados sensíveis;
-- se uma integração externa, custo recorrente ou serviço com lock-in será introduzido;
-- se houver mais de uma interpretação capaz de alterar o fluxo principal da tela.
+- Desenvolvimento: `npm run api`, `npm run mobile`, `npm run mobile:web`, `npm run mobile:android`.
+- Validação: `npm run typecheck` (regenera tema), `npm test`, `npm run lint --workspace=@fit/mobile`.
+- SQL: `RUN_DB_TESTS=1 npm test` (integrações opcionais). Teste isolado: `node --import tsx --test apps/api/test/<arquivo>.test.ts`.
+- E2E: `npm run test:e2e` (app); `npm run test:e2e --workspace=@fit/web` (portal, fontes em memória).
+- Tema: edite `design/palette.json`, rode `npm run theme` e versione os gerados mobile/web/`app.json`. Não edite gerados manualmente.
+- Ambiente: exemplos em `apps/api/.env.example` e `apps/mobile/.env.example`; dispositivo físico precisa de URL acessível para a API.
 
-Não interromper por detalhes reversíveis que possam ser resolvidos com os padrões já documentados.
+## Contexto por tarefa
 
-## Organização
-
-- `apps/mobile`: aplicativo React Native com Expo.
-- `apps/api`: API do produto, adicionada conforme as telas exigirem backend.
-- `packages/contracts`: contratos e validações compartilhados.
-- `packages/api-client`: cliente tipado da API.
-- `docs`: decisões de produto e arquitetura.
-
-## Princípios
-
-- Abrir e trabalhar sempre pela raiz do repositório.
-- Manter cada mudança pequena, verificável e orientada a uma entrega do aplicativo.
-- Não compartilhar modelos internos do banco com o aplicativo.
-- Nunca versionar segredos ou arquivos `.env` reais.
-- Atualizar a documentação quando uma decisão estrutural mudar.
-
-## Segurança obrigatória
-
-- Tratar todo dado vindo do aplicativo como não confiável; validar novamente na API.
-- Manter a API como autoridade para regras de negócio, permissões e propriedade dos recursos.
-- Exigir autenticação nos endpoints privados e autorização por recurso, não apenas por rota.
-- Aplicar menor privilégio e negar acesso por padrão.
-- Nunca enviar chaves privadas, credenciais administrativas ou segredos para o bundle do aplicativo.
-- Não registrar tokens, senhas, dados de saúde ou informações pessoais desnecessárias em logs.
-- Usar armazenamento seguro do sistema para credenciais no dispositivo; não usar armazenamento simples para tokens sensíveis.
-- Retornar erros seguros ao cliente, sem stack traces, SQL ou detalhes internos.
-- Usar consultas parametrizadas/ORM e validar tipos, limites, formatos e tamanho dos payloads.
-- Projetar rate limiting e proteção contra abuso para autenticação, compartilhamento e endpoints públicos.
-- Não desabilitar TLS, validação de certificado ou controles de segurança para contornar problemas locais.
-- Não aplicar correções automáticas destrutivas de dependências sem revisar impacto e executar testes.
-- Incluir testes de acesso não autenticado, acesso a recurso de outro usuário e payload inválido em funcionalidades protegidas.
-
-Consultar `docs/security.md` e `docs/feature-checklist.md` antes de considerar uma funcionalidade concluída.
-
-## Critério de conclusão
-
-Uma funcionalidade só pode ser declarada pronta quando:
-
-- a experiência no app está implementada e acessível;
-- contrato e endpoint estão implementados;
-- app e API estão integrados, sem depender de mocks no fluxo final;
-- estados de carregamento, vazio, erro e sucesso foram tratados quando aplicáveis;
-- autenticação, autorização, validação e privacidade foram revisadas;
-- testes relevantes e verificações de tipo/lint passam;
-- documentação e exemplos de ambiente foram atualizados sem incluir segredos.
-
+| Tema | Ler quando relacionado |
+| --- | --- |
+| Treinos/metas | `docs/workouts.md`; treino semanal seg–dom, doses diárias |
+| Corpo/alimentação | `docs/nutrition.md`; peso e medidas independentes, preservar registros mistos antigos |
+| Lembretes/resumo | `docs/notifications.md`, `docs/daily-summary-notification.md`; preferências/agendas isoladas por conta |
+| Portal | `docs/portal-workspace-context.md` primeiro; `docs/portal.md` para regras detalhadas |
+| Telemetria/métricas/retenção | `docs/observability-context.md`; 30 dias de eventos / 12 meses de agregados, sem saúde ou identificação pessoal no painel |
+| Outros módulos | `docs/{authentication,groups,supplements,cardio,injectables,mental-wellbeing,feedback}.md` conforme a área |
+| UX/desempenho/marca | `docs/{navigation,mobile-performance,brand}.md` conforme a mudança |
+| Operação/release | `deploy/README.md`, `docs/versioning.md`; alteração nativa exige APK, JS compatível pode usar OTA |

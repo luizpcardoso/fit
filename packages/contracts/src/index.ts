@@ -1,4 +1,11 @@
+import { workoutCoverIdSchema, type WorkoutCoverId } from './workout-cover.js';
+export * from './workout-cover.js';
 import { z } from 'zod';
+import { dietMealInputSchema } from './diet.js';
+import { mealCategorySchema, type MealCategory } from './meal-category.js';
+export * from './meal-category.js';
+import { workoutIllustrationIdSchema, type WorkoutIllustrationId } from './workout-illustration.js';
+export * from './workout-illustration.js';
 
 export const emailSchema = z.string().trim().email('Informe um e-mail válido.').max(254).transform((value) => value.toLowerCase());
 export const passwordSchema = z.string().min(8, 'A senha deve ter pelo menos 8 caracteres.').max(72, 'A senha deve ter no máximo 72 caracteres.');
@@ -21,6 +28,7 @@ export const estimationSexSchema = z.enum(['female', 'male']);
 export const activityLevelSchema = z.enum(['sedentary', 'light', 'moderate', 'active', 'very_active']);
 export const primaryGoalSchema = z.enum(['lose_weight', 'maintain', 'gain_muscle', 'performance']);
 export const updateProfileSchema = z.strictObject({
+  countMentalCheckIn: z.boolean().optional(),
   birthDate: z.string().date().nullable().optional(),
   gender: genderSchema.nullable().optional(),
   estimationSex: estimationSexSchema.nullable().optional(),
@@ -37,6 +45,7 @@ export const updateSocialProfileSchema = z.strictObject({
 }).refine(value => Object.keys(value).length > 0, 'Informe ao menos um campo.');
 
 export const publicUserSchema = z.object({
+  countMentalCheckIn: z.boolean().optional(),
   id: z.string(),
   email: z.string(),
   phone: z.string(),
@@ -94,6 +103,9 @@ export const groupReportReasonSchema = z.enum(['harassment', 'offensive', 'spam'
 export const groupPostingModeSchema = z.enum(['all_members', 'admins_only']);
 export const groupUserSchema = z.object({ id: z.string().uuid(), username: z.string().nullable(), displayName: z.string(), avatarUrl: z.string().nullable() });
 export const createGroupSchema = z.strictObject({ name: z.string().trim().min(2).max(80), description: z.string().trim().max(500).nullable().optional(), avatarUrl: z.string().url().max(500).nullable().optional() });
+export const groupMediaSchema = z.strictObject({
+  photoDataUrl: z.string().max(14_000_000).regex(/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/).nullable(),
+});
 export const updateGroupSchema = z.strictObject({
   name: z.string().trim().min(2).max(80).optional(), description: z.string().trim().max(500).nullable().optional(), avatarUrl: z.string().url().max(500).nullable().optional(),
   postingMode: groupPostingModeSchema.optional(), commentsEnabled: z.boolean().optional(), active: z.boolean().optional(),
@@ -126,16 +138,16 @@ export type CreateGroupPostInput = z.infer<typeof createGroupPostSchema>;
 export type UpdateGroupPostInput = z.infer<typeof updateGroupPostSchema>;
 export type CreateGroupCommentInput = z.infer<typeof createGroupCommentSchema>;
 export type GroupUser = z.infer<typeof groupUserSchema>;
-export type GroupSummary = { id:string;name:string;description:string|null;avatarUrl:string|null;role:GroupRole;memberCount:number;unseenCount:number;active:boolean;createdAt:string };
-export type GroupDetails = GroupSummary & { postingMode:'all_members'|'admins_only';commentsEnabled:boolean;eventSettings:GroupEventSettings;sharePreferences:GroupSharePreferences;joinedAt:string };
+export type GroupSummary = { id:string;name:string;description:string|null;avatarUrl:string|null;coverUrl?:string|null;role:GroupRole;memberCount:number;unseenCount:number;active:boolean;createdAt:string };
+export type GroupDetails = GroupSummary & { coverUrl:string|null;postingMode:'all_members'|'admins_only';commentsEnabled:boolean;eventSettings:GroupEventSettings;sharePreferences:GroupSharePreferences;joinedAt:string };
 export type GroupMember = { user:GroupUser;role:GroupRole;joinedAt:string };
 export type GroupInvite = { id:string;group:{id:string;name:string;avatarUrl:string|null};invitedBy:GroupUser;status:'pending'|'accepted'|'declined'|'cancelled'|'expired';createdAt:string;expiresAt:string };
 export type GroupReactionCount = { reaction:GroupReaction;count:number;reactedByMe:boolean };
-export type GroupPost = { id:string;groupId:string;author:GroupUser;kind:'manual'|'event'|'announcement';eventType:GroupEventType|null;text:string|null;photoUrl:string|null;commentsEnabled:boolean;reactionCounts:GroupReactionCount[];commentCount:number;createdAt:string;updatedAt:string;edited:boolean };
+export type GroupPost = { id:string;groupId:string;author:GroupUser;kind:'manual'|'event'|'announcement';eventType:GroupEventType|null;text:string|null;photoUrl:string|null;photoAspectRatio?:number|null;commentsEnabled:boolean;reactionCounts:GroupReactionCount[];commentCount:number;createdAt:string;updatedAt:string;edited:boolean };
 export type GroupComment = { id:string;postId:string;author:GroupUser;text:string;createdAt:string;updatedAt:string;edited:boolean;removed:boolean };
 export type GroupNotification = { id:string;type:'invite'|'comment'|'role_changed'|'removed'|'report_resolved';title:string;message:string;groupId:string|null;postId:string|null;readAt:string|null;createdAt:string };
 export type GroupReport = { id:string;targetType:'post'|'comment';targetId:string;reason:GroupReportReason;details:string|null;status:'pending'|'dismissed'|'content_removed';reporter:GroupUser;createdAt:string;resolvedAt:string|null };
-export type GroupDashboard = { totalUnseen:number;pendingInvites:number;notificationsUnread:number };
+export type GroupDashboard = { postsUnseen?:number;totalUnseen:number;pendingInvites:number;notificationsUnread:number };
 
 export const workoutExerciseInputSchema = z.strictObject({
   name: z.string().trim().min(2).max(100),
@@ -152,12 +164,12 @@ export const workoutExerciseInputSchema = z.strictObject({
   restSeconds: z.number().int().min(0).max(3600).nullable().optional(),
   notes: z.string().trim().max(500).nullable().optional(),
 });
-export const workoutDivisionInputSchema = z.strictObject({ name: z.string().trim().min(2).max(80), exercises: z.array(workoutExerciseInputSchema).min(1).max(50) });
+export const workoutDivisionInputSchema = z.strictObject({ name: z.string().trim().min(2).max(80), illustrationId: workoutIllustrationIdSchema.nullable().optional(), exercises: z.array(workoutExerciseInputSchema).min(1).max(50) });
 export const validityDaysSchema = z.number().int().min(1).max(365);
 export const renewWorkoutPlanSchema = z.strictObject({ days: validityDaysSchema });
-export const createWorkoutPlanSchema = z.strictObject({ requestId: z.string().uuid().optional(), validityDays: validityDaysSchema.nullable().optional(), name: z.string().trim().min(2).max(80), divisions: z.array(workoutDivisionInputSchema).min(1).max(5) });
+export const createWorkoutPlanSchema = z.strictObject({ coverId: workoutCoverIdSchema.nullable().optional(), requestId: z.string().uuid().optional(), sourceSuggestionId: z.string().uuid().optional(), validityDays: validityDaysSchema.nullable().optional(), name: z.string().trim().min(2).max(80), divisions: z.array(workoutDivisionInputSchema).min(1).max(5) });
 /** Editing reuses the creation rules. Known ids keep the same plan rows so completed sessions still point to them. */
-export const updateWorkoutPlanSchema = createWorkoutPlanSchema.omit({ requestId: true }).extend({ divisions: z.array(workoutDivisionInputSchema.extend({ id: z.string().uuid().optional(), exercises: z.array(workoutExerciseInputSchema.extend({ id: z.string().uuid().optional() })).min(1).max(50) })).min(1).max(5) });
+export const updateWorkoutPlanSchema = createWorkoutPlanSchema.omit({ requestId: true, sourceSuggestionId: true }).extend({ divisions: z.array(workoutDivisionInputSchema.extend({ id: z.string().uuid().optional(), exercises: z.array(workoutExerciseInputSchema.extend({ id: z.string().uuid().optional() })).min(1).max(50) })).min(1).max(5) });
 export const workoutPlanReadOnlyCode = 'PROFESSIONAL_PLAN_READ_ONLY';
 export const completeWorkoutSchema = z.strictObject({ divisionId: z.string().uuid(), performedOn: z.string().date(), completedExerciseIds: z.array(z.string().uuid()).max(50).optional(), shareAutomatically: z.boolean().optional() });
 export const updateWorkoutSessionSchema = z.strictObject({ performedOn: z.string().date().optional(), status: z.enum(['completed', 'cancelled']).optional(), completedExerciseIds: z.array(z.string().uuid()).max(50).optional() }).refine((value) => Object.keys(value).length > 0);
@@ -168,13 +180,13 @@ export type UpdateWorkoutPlanInput = z.infer<typeof updateWorkoutPlanSchema>;
 export type CompleteWorkoutInput = z.infer<typeof completeWorkoutSchema>;
 export type UpdateWorkoutSessionInput = z.infer<typeof updateWorkoutSessionSchema>;
 export type WorkoutExercise = WorkoutExerciseInput & { id: string; source: 'catalog' | 'custom'; imageUrl: string | null };
-export type WorkoutDivision = { id: string; label: string; name: string; position: number; completedSessions: number; exercises: WorkoutExercise[] };
+export type WorkoutDivision = { id: string; label: string; name: string; illustrationId?: WorkoutIllustrationId | null; position: number; completedSessions: number; exercises: WorkoutExercise[] };
 /** origin 'professional': sent by a professional, read-only for the student (absent means own plan). */
-export type WorkoutPlan = { id: string; name: string; origin?: 'own' | 'professional'; isActive: boolean; status: 'available' | 'archived'; validUntil: string | null; isExpired: boolean; completedSessions: number; divisions: WorkoutDivision[]; createdAt: string; updatedAt: string };
-export type WorkoutSession = { id: string; planId: string | null; divisionId: string | null; planDeleted: boolean; planName: string; divisionName: string; divisionLabel: string; performedOn: string; status: 'completed' | 'cancelled'; completionMode: 'quick' | 'detailed'; completedExerciseIds: string[]; createdAt: string; updatedAt: string };
+export type WorkoutPlan = { id: string; coverId?: WorkoutCoverId | null; name: string; origin?: 'own' | 'professional'; isActive: boolean; status: 'available' | 'archived'; validUntil: string | null; isExpired: boolean; completedSessions: number; divisions: WorkoutDivision[]; createdAt: string; updatedAt: string };
+export type WorkoutSession = { execution?: { runId: string; completedExercises: number; totalExercises: number; completedSets: number }; id: string; planId: string | null; divisionId: string | null; planDeleted: boolean; planName: string; divisionName: string; divisionLabel: string; performedOn: string; status: 'completed' | 'cancelled'; completionMode: 'quick' | 'detailed'; completedExerciseIds: string[]; createdAt: string; updatedAt: string };
 export type ExerciseCategory = 'strength'|'cardio'|'mobility'|'flexibility'|'functional';
 export type CatalogExercise = { id: string; name: string; category: ExerciseCategory | null; equipment: string | null; primaryMuscle: string | null; imageUrl: string | null };
-export type SuggestedWorkoutPlan = { id:string; name:string; audience:'female'|'male'|'unisex'; goal:string; level:'adaptation'|'beginner'|'intermediate'; description:string; reference:string; divisions:{id:string;name:string;position:number;exercises:{id:string;catalogExerciseId:string;name:string;category:ExerciseCategory|null;equipment:string|null;primaryMuscle:string|null;imageUrl:string|null;sets:number;reps:string;restSeconds:number|null;position:number}[]}[] };
+export type SuggestedWorkoutPlan = { id:string;coverId?:WorkoutCoverId|null; name:string; audience:'female'|'male'|'unisex'; goal:string; level:'adaptation'|'beginner'|'intermediate'; description:string; reference:string; divisions:{id:string;name:string;position:number;exercises:{id:string;catalogExerciseId:string;name:string;category:ExerciseCategory|null;equipment:string|null;primaryMuscle:string|null;imageUrl:string|null;sets:number;reps:string;restSeconds:number|null;position:number}[]}[] };
 
 export const workoutGoalModeSchema = z.enum(['flexible', 'planned']);
 export const workoutGoalScheduleItemSchema = z.strictObject({
@@ -244,20 +256,28 @@ export const foodInputSchema = nutritionValuesSchema.extend({
 export const updateFoodSchema = foodInputSchema.partial().refine(value => Object.keys(value).length > 0, 'Informe ao menos um campo.');
 export const mealItemInputSchema = z.strictObject({ foodId: z.string().uuid(), quantity: z.number().positive().max(100000) });
 export const mealInputSchema = z.strictObject({
-  name: z.string().trim().min(2).max(120), date: localDateSchema, time: localTimeSchema,
+  name: z.string().trim().min(2).max(120), category: mealCategorySchema.nullable().optional(), date: localDateSchema, time: localTimeSchema,
   items: z.array(mealItemInputSchema).min(1).max(100).optional(), directNutrition: nutritionValuesSchema.optional(),
 }).superRefine((value, context) => { if (Boolean(value.items) === Boolean(value.directNutrition)) context.addIssue({ code: 'custom', message: 'Informe alimentos ou os totais diretos da refeição.' }); });
 export const updateMealSchema = mealInputSchema;
 export const favoriteUpdateSchema = z.strictObject({ name: z.string().trim().min(2).max(120) });
-export const reuseFavoriteSchema = z.strictObject({ date: localDateSchema, time: localTimeSchema, multiplier: z.number().positive().max(100).default(1) });
+export const reuseFavoriteSchema = z.strictObject({ date: localDateSchema, time: localTimeSchema, category: mealCategorySchema.nullable().optional(), multiplier: z.number().positive().max(100).default(1) });
 export type NutritionValues = z.infer<typeof nutritionValuesSchema>;
 export type FoodInput = z.infer<typeof foodInputSchema>;
 export type UpdateFoodInput = z.infer<typeof updateFoodSchema>;
 export type Food = FoodInput & { id: string; createdAt: string; updatedAt: string };
 export type MealItem = NutritionValues & { id: string; foodId: string | null; foodName: string; servingAmount: number; servingUnit: FoodInput['servingUnit']; quantity: number };
 export type MealInput = z.infer<typeof mealInputSchema>;
-export type Meal = NutritionValues & { id: string; name: string; date: string; time: string; mode: 'items' | 'direct'; items: MealItem[]; createdAt: string; updatedAt: string };
-export type FavoriteMeal = NutritionValues & { id: string; name: string; mode: 'items' | 'direct'; items: MealItem[]; createdAt: string; updatedAt: string };
+export type Meal = NutritionValues & { id: string; syncId?: string; name: string; category?: MealCategory | null; date: string; time: string; mode: 'items' | 'direct'; items: MealItem[]; createdAt: string; updatedAt: string };
+export type FavoriteMeal = NutritionValues & { id: string; name: string; category?: MealCategory | null; mode: 'items' | 'direct'; items: MealItem[]; createdAt: string; updatedAt: string };
+export const mealSyncEntrySchema = z.discriminatedUnion('kind', [
+  z.strictObject({ id: z.uuid(), cancelled: z.boolean().optional(), kind: z.literal('meal'), input: mealInputSchema }),
+  z.strictObject({ id: z.uuid(), cancelled: z.boolean().optional(), kind: z.literal('diet'), input: dietMealInputSchema }),
+  z.strictObject({ id: z.uuid(), cancelled: z.boolean().optional(), kind: z.literal('favorite'), favoriteId: z.uuid(), input: reuseFavoriteSchema }),
+]);
+export const mealSyncBatchSchema = z.strictObject({ entries: z.array(mealSyncEntrySchema).min(1).max(25) }).refine(value => new Set(value.entries.map(entry => entry.id)).size === value.entries.length, 'Solicitações duplicadas no lote.');
+export type MealSyncEntry = z.infer<typeof mealSyncEntrySchema>;
+export type MealSyncResult = { id: string; status: 'saved'; meal: Meal | null } | { id: string; status: 'rejected'; code: string; message: string };
 
 export const activityFactorSchema = z.enum(['sedentary', 'light', 'moderate', 'active', 'very_active']);
 export const manualExpenditureSchema = z.strictObject({ date: localDateSchema, mode: z.literal('manual'), totalCalories: z.number().positive().max(30000), source: z.string().trim().max(120).nullable().optional() });
@@ -289,6 +309,9 @@ export const bodyMeasurementInputSchema = z.strictObject({
 }).refine(value => Object.entries(value).some(([key, item]) => key !== 'date' && key !== 'notes' && item != null), 'Informe ao menos uma medida.');
 export type BodyMeasurementInput = z.infer<typeof bodyMeasurementInputSchema>;
 export type BodyMeasurement = BodyMeasurementInput & { id: string; createdAt: string; updatedAt: string };
+/** One weight in the evolution chart. */
+export type WeightPoint = { date: string; weightKg: number };
+export type BodyMeasurementPage = import("./pagination.js").Page<BodyMeasurement> & { latest: BodyMeasurement[]; latestWeights?: BodyMeasurement[] };
 
 export const cardioActivitySchema = z.enum(['walking', 'running', 'cycling', 'stairs', 'spinning']);
 export const cardioIntensitySchema = z.enum(['light', 'moderate', 'intense']);
@@ -385,7 +408,7 @@ export type HomeShortcuts = z.infer<typeof homeShortcutsInputSchema>;
 
 export const userJsonSchema = {
   type: 'object', required: ['id', 'email', 'phone', 'firstName', 'lastName', 'birthDate', 'gender', 'estimationSex', 'heightCm', 'activityLevel', 'primaryGoal', 'username', 'displayName', 'avatarUrl'], additionalProperties: false,
-  properties: { id: { type: 'string' }, email: { type: 'string', format: 'email' }, phone: { type: 'string' }, firstName: { type: 'string' }, lastName: { type: 'string' }, birthDate: { type: ['string', 'null'], format: 'date' }, gender: { type: ['string', 'null'] }, estimationSex: { type: ['string', 'null'], enum: ['female', 'male', null] }, heightCm: { type: ['integer', 'null'] }, activityLevel: { type: ['string', 'null'] }, primaryGoal: { type: ['string', 'null'] }, username: { type: ['string','null'] }, displayName: { type: ['string','null'] }, avatarUrl: { type: ['string','null'] } },
+  properties: { countMentalCheckIn: { type: 'boolean' }, id: { type: 'string' }, email: { type: 'string', format: 'email' }, phone: { type: 'string' }, firstName: { type: 'string' }, lastName: { type: 'string' }, birthDate: { type: ['string', 'null'], format: 'date' }, gender: { type: ['string', 'null'] }, estimationSex: { type: ['string', 'null'], enum: ['female', 'male', null] }, heightCm: { type: ['integer', 'null'] }, activityLevel: { type: ['string', 'null'] }, primaryGoal: { type: ['string', 'null'] }, username: { type: ['string','null'] }, displayName: { type: ['string','null'] }, avatarUrl: { type: ['string','null'] } },
 } as const;
 export const authJsonSchema = {
   type: 'object', required: ['user', 'accessToken', 'refreshToken', 'expiresIn'], additionalProperties: false,
@@ -403,3 +426,17 @@ export * from './pagination.js';
 
 export * from './nutrition-goal.js';
 export * from './daily-summary.js';
+
+export type ProfessionalNotification = { id: string; title: string; message: string; readAt: string | null; createdAt: string };
+export type ProfessionalNotifications = { items: ProfessionalNotification[]; unreadCount: number };
+
+export * from './reminder-agenda.js';
+export * from './observability.js';
+
+/** Feed privado agregado; o destino e o papel pertencem ao grupo de cada post. */
+export type SocialPost = GroupPost & { group: { id:string; name:string; role:GroupRole; active:boolean } };
+export type SocialFeedPage = {items:SocialPost[];nextCursor:string|null};
+
+export const socialFeedQuerySchema = z.strictObject({before:z.string().max(100).refine(value=>/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{6}\|[a-f0-9-]{36}$/.test(value)||z.string().datetime().safeParse(value).success).optional()});
+
+export * from './workout-run.js';

@@ -1,19 +1,22 @@
+import { WorkoutNotificationPreference } from '@/components/workout-notification-preference';
+import {RoutineReminderSettings} from '@/components/routine-reminder-settings';
 import MaterialCommunityIcons from '@/components/icon';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ScreenHeader } from '@/components/screen-header';
+import { FixedScreenHeader } from '@/components/screen-header';
 import { ThemeSettings } from '@/components/theme-settings';
 import { DailySummarySettings } from '@/components/daily-summary-settings';
 import { Radius, Type, type AppPalette } from '@/constants/theme';
 import { useAppTheme } from '@/theme/theme-provider';
 import { setHomePreference, useHomePreferences } from '@/utils/home-preferences';
+import Constants from 'expo-constants';
 
 export default function Settings() {
   const { colors: c } = useAppTheme();
   const s = styles(c);
-  const { showEnergyBalance } = useHomePreferences();
+  const { showEnergyBalance, showShortcuts } = useHomePreferences();
   const [error, setError] = useState('');
   const toggleEnergy = async (value: boolean) => {
     setError('');
@@ -21,14 +24,15 @@ export default function Settings() {
     catch { setError('Não foi possível salvar esta preferência. Tente novamente.'); }
   };
   return <SafeAreaView style={s.safe} edges={['top']}>
-    <ScrollView contentContainerStyle={s.content}>
-      <ScreenHeader backLabel="Início" showHome={false} />
+    <FixedScreenHeader backLabel="Início" showHome={false} /><ScrollView contentContainerStyle={s.content}>
       <View>
         <Text accessibilityRole="header" style={s.title}>Configurações</Text>
         <Text style={s.subtitle}>Preferências deste aparelho</Text>
       </View>
       <ThemeSettings />
+      <RoutineReminderSettings />
       <DailySummarySettings />
+      <View style={s.section}><Text accessibilityRole="header" style={s.sectionTitle}>Treino em andamento</Text><WorkoutNotificationPreference/></View>
       <View style={s.section}>
         <Text accessibilityRole="header" style={s.sectionTitle}>Tela inicial</Text>
         <View style={s.card}>
@@ -40,7 +44,15 @@ export default function Settings() {
             <Switch accessibilityLabel="Mostrar balanço calórico no Início" accessibilityLabelledBy="energy-toggle-label" value={showEnergyBalance} onValueChange={value => void toggleEnergy(value)}
               trackColor={{ false: c.controlTrackOff, true: c.primary }} thumbColor={c.controlThumb} ios_backgroundColor={c.controlTrackOff} />
           </View>
-          <Text style={s.detail}>Preferência salva neste aparelho.</Text>
+          <View style={s.row}>
+            <View style={s.copy}>
+              <Text nativeID="shortcuts-toggle-label" style={s.label}>Mostrar atalhos</Text>
+              <Text style={s.detail}>Exibe “Meus atalhos” no Início. As mesmas áreas continuam na barra de abas.</Text>
+            </View>
+            <Switch accessibilityLabel="Mostrar atalhos no Início" accessibilityLabelledBy="shortcuts-toggle-label" value={showShortcuts} onValueChange={value => void setHomePreference('showShortcuts', value).catch(() => setError('Não foi possível salvar esta preferência. Tente novamente.'))}
+              trackColor={{ false: c.controlTrackOff, true: c.primary }} thumbColor={c.controlThumb} ios_backgroundColor={c.controlTrackOff} />
+          </View>
+          <Text style={s.detail}>Preferências salvas neste aparelho.</Text>
           {error ? <Text accessibilityRole="alert" style={s.error}>{error}</Text> : null}
         </View>
       </View>
@@ -54,6 +66,19 @@ export default function Settings() {
           </View>
           <MaterialCommunityIcons name="chevron-right" size={20} color={c.textMuted} />
         </Pressable>
+      </View>
+      <View style={s.section}>
+        <Text accessibilityRole="header" style={s.sectionTitle}>Sobre o app</Text>
+        <View style={s.card}>
+          <View style={s.row}>
+            <MaterialCommunityIcons name="information-outline" size={22} color={c.link}/>
+            <View style={s.copy}>
+              <Text style={s.label}>Versão {String(Constants.expoConfig?.extra?.releaseName??Constants.expoConfig?.version??'')}</Text>
+              <Text selectable style={s.detail}>Versão técnica {Constants.expoConfig?.version??'—'} · build {Constants.nativeBuildVersion??Constants.expoConfig?.android?.versionCode??'—'}</Text>
+            </View>
+          </View>
+          <Text style={s.detail}>O número desta tela identifica o APK instalado. Correções compatíveis podem ser recebidas automaticamente.</Text>
+        </View>
       </View>
     </ScrollView>
   </SafeAreaView>;

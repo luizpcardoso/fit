@@ -1,8 +1,11 @@
 import { useAuth } from '@/auth/auth-context';
+import { setHomePreference } from '@/utils/home-preferences';
+import { showToast } from '@/components/app-dialog';
 import { CardShadow, Scrim, type AppPalette } from '@/constants/theme';
 import { useAppTheme } from '@/theme/theme-provider';
 import MaterialCommunityIcons from '@/components/icon';
-import type { HomeShortcut } from '@fit/contracts';
+import { isWorkoutRunOpen, type HomeShortcut } from '@fit/contracts';
+import { useWorkoutRun } from '@/components/workout-run-provider';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -23,10 +26,10 @@ const fallback:HomeShortcut[]=['workout','meal','cardio','weight','mental'];
 const openShortcut=(key:HomeShortcut)=>{if(key==='mental')router.push('/mental-wellbeing');else if(key==='workout')router.push('/workout-run');else if(key==='meal')router.push('/food-tracking');else if(key==='cardio')router.push({pathname:'/workouts',params:{section:'cardio'}});else if(key==='weight')router.push('/body-measurements');else if(key==='injectable')router.push('/injectables');else router.push({pathname:'/health-routine',params:{kind:key==='medication'?'medication':'supplement'}})};
 
 export function HomeShortcuts(){
-  const{colors:c}=useAppTheme();const s=styles(c);const{api}=useAuth();const[items,setItems]=useState<HomeShortcut[]>(fallback);const[loading,setLoading]=useState(true);const[editing,setEditing]=useState(false);const[error,setError]=useState('');
+  const{colors:c}=useAppTheme();const s=styles(c);const{api}=useAuth();const[items,setItems]=useState<HomeShortcut[]>(fallback);const[loading,setLoading]=useState(true);const[editing,setEditing]=useState(false);const[error,setError]=useState('');const{run}=useWorkoutRun();const openRun=run&&isWorkoutRunOpen(run.progress)?run:null;
   const load=useCallback(async()=>{try{setItems((await api.getHomeShortcuts()).items);setError('')}catch{setError('Não foi possível carregar seus atalhos.')}finally{setLoading(false)}},[api]);useFocusEffect(useCallback(()=>{void load()},[load]));
-  return <View style={s.section}><View style={s.heading}><View style={s.flex}><Text style={s.sectionTitle}>Meus atalhos</Text><Text style={s.sectionSubtitle}>Acesso rápido ao que você mais usa</Text></View><Pressable accessibilityRole="button" onPress={()=>setEditing(true)} style={s.edit}><MaterialCommunityIcons name="pencil-outline" size={16} color={c.link}/><Text style={s.editText}>Editar</Text></Pressable></View>
-    {loading?<ActivityIndicator color={c.link}/>:<View style={s.shortcutGrid}>{items.map(key=>{const item=shortcutOptions.find(option=>option.key===key)!;return <Pressable accessibilityRole="button" key={key} onPress={()=>openShortcut(key)} style={({pressed})=>[s.shortcut,CardShadow,pressed&&s.pressed]}><View style={s.shortcutIcon}><MaterialCommunityIcons name={item.icon} size={22} color={c.link}/></View><Text style={s.shortcutLabel}>{item.label}</Text><MaterialCommunityIcons name="arrow-top-right" size={15} color={c.textMuted}/></Pressable>})}</View>}
+  return <View style={s.section}><View style={s.heading}><View style={s.flex}><Text style={s.sectionTitle}>Meus atalhos</Text><Text style={s.sectionSubtitle}>Acesso rápido ao que você mais usa</Text></View><Pressable accessibilityRole="button" onPress={()=>setEditing(true)} style={s.edit}><MaterialCommunityIcons name="pencil-outline" size={16} color={c.link}/><Text style={s.editText}>Editar</Text></Pressable><Pressable accessibilityRole="button" accessibilityLabel="Ocultar atalhos do Início" onPress={()=>void setHomePreference('showShortcuts',false).then(()=>showToast('Atalhos ocultos do Início. Você pode reativar em Configurações.','info')).catch(()=>showToast('Não foi possível ocultar agora.','error'))} style={s.edit}><Text style={s.editText}>Ocultar</Text></Pressable></View>
+    {loading?<ActivityIndicator color={c.link}/>:<View style={s.shortcutGrid}>{items.map(key=>{const item=shortcutOptions.find(option=>option.key===key)!;return <Pressable accessibilityRole="button" key={key} onPress={()=>openShortcut(key)} style={({pressed})=>[s.shortcut,CardShadow,pressed&&s.pressed]}><View style={s.shortcutIcon}><MaterialCommunityIcons name={item.icon} size={22} color={c.link}/></View><Text style={s.shortcutLabel}>{key==='workout'&&openRun?`Continuar treino ${openRun.divisionLabel}`:item.label}</Text><MaterialCommunityIcons name="arrow-top-right" size={15} color={c.textMuted}/></Pressable>})}</View>}
     {error?<Text style={s.error}>{error}</Text>:null}{editing?<ShortcutEditor initial={items} onClose={()=>setEditing(false)} onSave={async next=>{const saved=await api.saveHomeShortcuts({items:next});setItems(saved.items);setEditing(false)}}/>:null}
   </View>;
 }

@@ -1,14 +1,17 @@
+import { defaultWorkoutCover, pageWindow, type Page, type PageQuery, type WorkoutCoverId } from '@fit/contracts';
+import { WorkoutRunRepository } from './workout-run-repository.js';
 import { planValidity, validityDeadline, validitySqlValue } from './workout-validity.js';
 import { randomUUID } from 'node:crypto';
 import { QueryTypes, Sequelize, type Transaction } from 'sequelize';
-import type { CatalogExercise, CompleteWorkoutInput, CreateWorkoutPlanInput, SuggestedWorkoutPlan, UpdateWorkoutPlanInput, UpdateWorkoutSessionInput, WorkoutGoalInput, WorkoutGoalPlanDay, WorkoutGoalSummary, WorkoutPlan, WorkoutSession } from '@fit/contracts';
+import type { CatalogExercise, CompleteWorkoutInput, CreateWorkoutPlanInput, SuggestedWorkoutPlan, UpdateWorkoutPlanInput, UpdateWorkoutSessionInput, WorkoutGoalInput, WorkoutGoalPlanDay, WorkoutGoalSummary, WorkoutIllustrationId, WorkoutPlan, WorkoutSession } from '@fit/contracts';
 
-type PlanRow = { valid_until: Date | null; id: string; name: string; is_active: number; status: 'available'|'archived'; created_at: Date; updated_at: Date };
-type DivisionRow = { id: string; plan_id: string; label: string; name: string; position: number };
+type PlanRow = { cover_id: WorkoutCoverId|null; valid_until: Date | null; id: string; name: string; is_active: number; status: 'available'|'archived'; created_at: Date; updated_at: Date };
+type DivisionRow = { id: string; plan_id: string; label: string; name: string; illustration_id: WorkoutIllustrationId | null; position: number };
 type ExerciseRow = { id: string; division_id: string; exercise_id: string|null; exercise_name: string; source: 'catalog'|'custom'; image_url: string|null; position: number; sets: number; reps: string; load_value: string|null; rest_seconds: number|null; notes: string|null };
 type SessionRow = { id: string; plan_id: string|null; division_id: string|null; plan_name: string; division_name: string; division_label: string; performed_on: string; status: 'completed'|'cancelled'; completion_mode: 'quick'|'detailed'; completed_exercise_ids: string[]|string; created_at: Date; updated_at: Date };
 type GoalRow = { weekly_target: number; mode: 'flexible'|'planned'; schedule: unknown };
 
+const sessionSelect='SELECT id,plan_id,division_id,plan_name,division_name,division_label,performed_on,status,completion_mode,completed_exercise_ids,created_at,updated_at FROM workout_sessions WHERE user_id=?';
 const featuredCatalogNames = [
   'Supino reto com barra', 'Supino inclinado com barra', 'Supino reto com halteres', 'Supino máquina',
   'Agachamento livre', 'Agachamento Smith', 'Leg press 45 graus', 'Hack squat', 'Cadeira extensora',
@@ -22,6 +25,7 @@ const featuredCatalogNames = [
 
 export class WorkoutRepository {
   constructor(private readonly db: Sequelize) {}
+  get runs() { return new WorkoutRunRepository(this.db, this); }
   async listCatalog(search = ''): Promise<CatalogExercise[]> {
     const term = search.trim();
     if (!term) {
@@ -32,15 +36,15 @@ export class WorkoutRepository {
         return exercise ? [exercise] : [];
       });
     }
-    return this.db.query<CatalogExercise>("SELECT id,name,category,equipment,primary_muscle primaryMuscle,CASE WHEN image_url IS NULL THEN NULL ELSE CONCAT('/media/exercises/',image_url) END imageUrl FROM exercises WHERE source='catalog' AND name LIKE ? ORDER BY name LIMIT 60", { replacements: [`%${term}%`], type: QueryTypes.SELECT });
+    return this.db.query<CatalogExercise>("SELECT id,name,category,equipment,primary_muscle primaryMuscle,CASE WHEN image_url IS NULL THEN NULL ELSE CONCAT('/media/exercises/',image_url) END imageUrl FROM exercises WHERE source='catalog' AND (name COLLATE utf8mb4_unicode_ci LIKE ? OR primary_muscle COLLATE utf8mb4_unicode_ci LIKE ? OR equipment COLLATE utf8mb4_unicode_ci LIKE ?) ORDER BY CASE WHEN name COLLATE utf8mb4_unicode_ci LIKE ? THEN 0 ELSE 1 END,name LIMIT 60", { replacements: Array(4).fill(`%${term.replace(/[\\%_]/g, '\\$&')}%`), type: QueryTypes.SELECT });
   }
   async listSuggestedPlans(): Promise<SuggestedWorkoutPlan[]> {
-    const plans=await this.db.query<{id:string;name:string;audience:'female'|'male'|'unisex';goal:string;level:'adaptation'|'beginner'|'intermediate';description:string;reference:string}>('SELECT id,name,audience,goal,level,description,reference FROM suggested_workout_plans ORDER BY level,name',{type:QueryTypes.SELECT});
+    const plans=await this.db.query<{id:string;name:string;audience:'female'|'male'|'unisex';goal:string;level:'adaptation'|'beginner'|'intermediate';description:string;reference:string;coverId:WorkoutCoverId|null}>('SELECT id,name,audience,goal,level,description,reference,cover_id coverId FROM suggested_workout_plans ORDER BY level,name',{type:QueryTypes.SELECT});
     const divisions=await this.db.query<{id:string;plan_id:string;name:string;position:number}>('SELECT id,plan_id,name,position FROM suggested_workout_divisions ORDER BY position',{type:QueryTypes.SELECT});
     const exercises=await this.db.query<{id:string;division_id:string;catalogExerciseId:string;name:string;category:CatalogExercise['category'];equipment:string|null;primaryMuscle:string|null;imageUrl:string|null;sets:number;reps:string;rest_seconds:number|null;position:number}>("SELECT swe.id,swe.division_id,e.id catalogExerciseId,e.name,e.category,e.equipment,e.primary_muscle primaryMuscle,CASE WHEN e.image_url IS NULL THEN NULL ELSE CONCAT('/media/exercises/',e.image_url) END imageUrl,swe.sets,swe.reps,swe.rest_seconds,swe.position FROM suggested_workout_exercises swe JOIN exercises e ON e.id=swe.exercise_id ORDER BY swe.position",{type:QueryTypes.SELECT});
     return plans.map(plan=>({...plan,divisions:divisions.filter(division=>division.plan_id===plan.id).map(division=>({id:division.id,name:division.name,position:division.position,exercises:exercises.filter(exercise=>exercise.division_id===division.id).map(exercise=>({id:exercise.id,catalogExerciseId:exercise.catalogExerciseId,name:exercise.name,category:exercise.category,equipment:exercise.equipment,primaryMuscle:exercise.primaryMuscle,imageUrl:exercise.imageUrl,sets:exercise.sets,reps:exercise.reps,restSeconds:exercise.rest_seconds,position:exercise.position}))}))}));
   }
-  async createPlan(userId: string, input: CreateWorkoutPlanInput, existingTransaction?: Transaction, allowedExerciseOwnerId = userId): Promise<string | 'limit'> {
+  async createPlan(userId: string, input: CreateWorkoutPlanInput, existingTransaction?: Transaction, allowedExerciseOwnerId = userId, assignedCover?: WorkoutCoverId|null): Promise<string | 'limit'> {
     const create = async (transaction: Transaction) => {
       // Serialize creation per owner, including retries whose first response was lost.
       await this.db.query('SELECT id FROM users WHERE id=? FOR UPDATE', { replacements: [userId], type: QueryTypes.SELECT, transaction });
@@ -48,33 +52,40 @@ export class WorkoutRepository {
         const existing = await this.db.query<{ id: string }>('SELECT id FROM workout_plans WHERE user_id=? AND request_id=?', { replacements: [userId, input.requestId], type: QueryTypes.SELECT, transaction });
         if (existing.length) return existing[0].id;
       }
+      let coverId = assignedCover === undefined ? input.coverId : assignedCover;
+      if (input.sourceSuggestionId) {
+        const [source] = await this.db.query<{cover_id:WorkoutCoverId|null}>('SELECT cover_id FROM suggested_workout_plans WHERE id=?', { replacements:[input.sourceSuggestionId], type:QueryTypes.SELECT, transaction });
+        if (!source) return 'missing_suggestion';
+        if (coverId === undefined) coverId = source.cover_id;
+      }
+      if (coverId === undefined) coverId = defaultWorkoutCover(input.name);
       const id = randomUUID();
       const [{ count: availableCount }] = await this.db.query<{count:number}>('SELECT COUNT(*) count FROM workout_plans WHERE user_id=? AND status=\'available\' FOR UPDATE', { replacements: [userId], type: QueryTypes.SELECT, transaction });
       if (Number(availableCount) >= 3) return 'limit';
       const [{ count: activeCount }] = await this.db.query<{count:number}>('SELECT COUNT(*) count FROM workout_plans WHERE user_id=? AND is_active=1', { replacements: [userId], type: QueryTypes.SELECT, transaction });
       const imageByExercise = await this.exerciseImages(input.divisions.flatMap((division) => division.exercises), userId, allowedExerciseOwnerId, transaction);
-      await this.db.query('INSERT INTO workout_plans (id,user_id,request_id,name,is_active,status,valid_until,created_at,updated_at) VALUES (?,?,?,?,?,\'available\',?,NOW(),NOW())', { replacements: [id,userId,input.requestId ?? null,input.name,activeCount === 0,validitySqlValue(validityDeadline(input.validityDays))], type: QueryTypes.INSERT, transaction });
+      await this.db.query('INSERT INTO workout_plans (id,user_id,request_id,name,cover_id,is_active,status,valid_until,created_at,updated_at) VALUES (?,?,?,?,?,?,\'available\',?,NOW(),NOW())', { replacements: [id,userId,input.requestId ?? null,input.name,coverId,activeCount === 0,validitySqlValue(validityDeadline(input.validityDays))], type: QueryTypes.INSERT, transaction });
       for (const [divisionIndex, division] of input.divisions.entries()) {
         const divisionId = randomUUID(); const label = String.fromCharCode(65 + divisionIndex);
-        await this.db.query('INSERT INTO workout_divisions (id,plan_id,label,name,position,created_at,updated_at) VALUES (?,?,?,?,?,NOW(),NOW())', { replacements: [divisionId,id,label,division.name,divisionIndex], type: QueryTypes.INSERT, transaction });
+        await this.db.query('INSERT INTO workout_divisions (id,plan_id,label,name,illustration_id,position,created_at,updated_at) VALUES (?,?,?,?,?,?,NOW(),NOW())', { replacements: [divisionId,id,label,division.name,division.illustrationId ?? null,divisionIndex], type: QueryTypes.INSERT, transaction });
         for (const [exerciseIndex, exercise] of division.exercises.entries()) await this.insertPlanExercise(userId, divisionId, exercise, exerciseIndex, imageByExercise, transaction);
       }
       return id;
     };
     return existingTransaction ? create(existingTransaction) : this.db.transaction(create);
   }
-  async listPlans(userId: string): Promise<WorkoutPlan[]> { const rows = await this.db.query<PlanRow>('SELECT id,name,is_active,status,valid_until,created_at,updated_at FROM workout_plans WHERE user_id=? ORDER BY is_active DESC,updated_at DESC', { replacements:[userId], type:QueryTypes.SELECT }); return Promise.all(rows.map((row)=>this.hydrate(row))); }
-  async getPlan(userId: string, id: string): Promise<WorkoutPlan|null> { const rows=await this.db.query<PlanRow>('SELECT id,name,is_active,status,valid_until,created_at,updated_at FROM workout_plans WHERE id=? AND user_id=? LIMIT 1',{replacements:[id,userId],type:QueryTypes.SELECT}); return rows[0]?this.hydrate(rows[0]):null; }
+  async listPlans(userId: string): Promise<WorkoutPlan[]> { const rows = await this.db.query<PlanRow>('SELECT id,name,cover_id,is_active,status,valid_until,created_at,updated_at FROM workout_plans WHERE user_id=? ORDER BY is_active DESC,updated_at DESC', { replacements:[userId], type:QueryTypes.SELECT }); return Promise.all(rows.map((row)=>this.hydrate(row))); }
+  async getPlan(userId: string, id: string): Promise<WorkoutPlan|null> { const rows=await this.db.query<PlanRow>('SELECT id,name,cover_id,is_active,status,valid_until,created_at,updated_at FROM workout_plans WHERE id=? AND user_id=? LIMIT 1',{replacements:[id,userId],type:QueryTypes.SELECT}); return rows[0]?this.hydrate(rows[0]):null; }
   private async hydrate(row: PlanRow, transaction?: Transaction): Promise<WorkoutPlan> {
-    const divisions=await this.db.query<DivisionRow>('SELECT id,plan_id,label,name,position FROM workout_divisions WHERE plan_id=? ORDER BY position',{replacements:[row.id],type:QueryTypes.SELECT,transaction});
+    const divisions=await this.db.query<DivisionRow>('SELECT id,plan_id,label,name,illustration_id,position FROM workout_divisions WHERE plan_id=? ORDER BY position',{replacements:[row.id],type:QueryTypes.SELECT,transaction});
     const exercises=await this.db.query<ExerciseRow>('SELECT wpe.* FROM workout_plan_exercises wpe JOIN workout_divisions wd ON wd.id=wpe.division_id WHERE wd.plan_id=? ORDER BY wpe.position',{replacements:[row.id],type:QueryTypes.SELECT,transaction});
     const counts=await this.db.query<{division_id:string;total:number}>('SELECT division_id,COUNT(*) total FROM workout_sessions WHERE plan_id=? AND status=\'completed\' GROUP BY division_id',{replacements:[row.id],type:QueryTypes.SELECT,transaction}); const byDivision=new Map(counts.map(item=>[item.division_id,Number(item.total)])); const completedSessions=counts.reduce((total,item)=>total+Number(item.total),0);
     const [assignment]=await this.db.query<{id:string}>('SELECT id FROM professional_assignments WHERE workout_plan_id=? LIMIT 1',{replacements:[row.id],type:QueryTypes.SELECT,transaction});
-    return {...planValidity(row.valid_until),id:row.id,name:row.name,origin:assignment?'professional':'own',isActive:Boolean(row.is_active),status:row.status,completedSessions,createdAt:new Date(row.created_at).toISOString(),updatedAt:new Date(row.updated_at).toISOString(),divisions:divisions.map((d)=>({id:d.id,label:d.label,name:d.name,position:d.position,completedSessions:byDivision.get(d.id)??0,exercises:exercises.filter((e)=>e.division_id===d.id).map((e)=>({id:e.id,name:e.exercise_name,catalogExerciseId:e.exercise_id,source:e.source,imageUrl:e.image_url?`/media/exercises/${e.image_url}`:null,sets:e.sets,reps:e.reps,load:e.load_value===null?null:Number(e.load_value),restSeconds:e.rest_seconds,notes:e.notes}))}))};
+    return {...planValidity(row.valid_until),id:row.id,name:row.name,coverId:row.cover_id,origin:assignment?'professional':'own',isActive:Boolean(row.is_active),status:row.status,completedSessions,createdAt:new Date(row.created_at).toISOString(),updatedAt:new Date(row.updated_at).toISOString(),divisions:divisions.map((d)=>({id:d.id,label:d.label,name:d.name,illustrationId:d.illustration_id,position:d.position,completedSessions:byDivision.get(d.id)??0,exercises:exercises.filter((e)=>e.division_id===d.id).map((e)=>({id:e.id,name:e.exercise_name,catalogExerciseId:e.exercise_id,source:e.source,imageUrl:e.image_url?`/media/exercises/${e.image_url}`:null,sets:e.sets,reps:e.reps,load:e.load_value===null?null:Number(e.load_value),restSeconds:e.rest_seconds,notes:e.notes}))}))};
   }
   async renew(userId: string, id: string, days: number): Promise<WorkoutPlan | null> {
     return this.db.transaction(async transaction => {
-      const [plan] = await this.db.query<PlanRow>('SELECT id,name,is_active,status,valid_until,created_at,updated_at FROM workout_plans WHERE id=? AND user_id=? FOR UPDATE', { replacements: [id, userId], type: QueryTypes.SELECT, transaction });
+      const [plan] = await this.db.query<PlanRow>('SELECT id,name,cover_id,is_active,status,valid_until,created_at,updated_at FROM workout_plans WHERE id=? AND user_id=? FOR UPDATE', { replacements: [id, userId], type: QueryTypes.SELECT, transaction });
       if (!plan) return null;
       const now = new Date();
       const deadline = validityDeadline(days, now);
@@ -89,13 +100,13 @@ export class WorkoutRepository {
    */
   async updatePlan(userId: string, id: string, input: UpdateWorkoutPlanInput): Promise<WorkoutPlan | 'not_found' | 'professional'> {
     return this.db.transaction(async transaction => {
-      const [plan] = await this.db.query<PlanRow>('SELECT id,name,is_active,status,valid_until,created_at,updated_at FROM workout_plans WHERE id=? AND user_id=? FOR UPDATE', { replacements: [id, userId], type: QueryTypes.SELECT, transaction });
+      const [plan] = await this.db.query<PlanRow>('SELECT id,name,cover_id,is_active,status,valid_until,created_at,updated_at FROM workout_plans WHERE id=? AND user_id=? FOR UPDATE', { replacements: [id, userId], type: QueryTypes.SELECT, transaction });
       if (!plan) return 'not_found';
       const [assignment] = await this.db.query<{ id: string }>('SELECT id FROM professional_assignments WHERE workout_plan_id=? AND student_id=? LIMIT 1', { replacements: [id, userId], type: QueryTypes.SELECT, transaction });
       if (assignment) return 'professional';
       const now = new Date();
       const validUntil = input.validityDays === undefined ? plan.valid_until : validityDeadline(input.validityDays, now);
-      await this.db.query('UPDATE workout_plans SET name=?,valid_until=?,updated_at=? WHERE id=? AND user_id=?', { replacements: [input.name, validitySqlValue(validUntil), validitySqlValue(now), id, userId], type: QueryTypes.UPDATE, transaction });
+      await this.db.query('UPDATE workout_plans SET name=?,cover_id=?,valid_until=?,updated_at=? WHERE id=? AND user_id=?', { replacements: [input.name, input.coverId === undefined ? plan.cover_id : input.coverId, validitySqlValue(validUntil), validitySqlValue(now), id, userId], type: QueryTypes.UPDATE, transaction });
       const existingDivisions = await this.db.query<{ id: string }>('SELECT id FROM workout_divisions WHERE plan_id=?', { replacements: [id], type: QueryTypes.SELECT, transaction });
       const existingExercises = await this.db.query<{ id: string; exercise_id: string | null; exercise_name: string }>('SELECT wpe.id,wpe.exercise_id,wpe.exercise_name FROM workout_plan_exercises wpe JOIN workout_divisions wd ON wd.id=wpe.division_id WHERE wd.plan_id=?', { replacements: [id], type: QueryTypes.SELECT, transaction });
       const divisionIds = new Set(existingDivisions.map(item => item.id)); const exerciseById = new Map(existingExercises.map(item => [item.id, item]));
@@ -112,8 +123,15 @@ export class WorkoutRepository {
       const imageByExercise = await this.exerciseImages(resolved.flatMap(division => division.exercises.filter(exercise => !exercise.id)), userId, userId, transaction);
       for (const [divisionIndex, division] of resolved.entries()) {
         const label = String.fromCharCode(65 + divisionIndex); let divisionId = division.id;
-        if (divisionId) await this.db.query('UPDATE workout_divisions SET label=?,name=?,position=?,updated_at=NOW() WHERE id=?', { replacements: [label, division.name, divisionIndex, divisionId], type: QueryTypes.UPDATE, transaction });
-        else { divisionId = randomUUID(); await this.db.query('INSERT INTO workout_divisions (id,plan_id,label,name,position,created_at,updated_at) VALUES (?,?,?,?,?,NOW(),NOW())', { replacements: [divisionId, id, label, division.name, divisionIndex], type: QueryTypes.INSERT, transaction }); }
+        if (divisionId) {
+          // Older clients omit this field: preserve artwork instead of clearing it.
+          const illustration = division.illustrationId === undefined ? '' : ',illustration_id=?';
+          const values = [label, division.name, divisionIndex, ...(division.illustrationId === undefined ? [] : [division.illustrationId]), divisionId];
+          await this.db.query(`UPDATE workout_divisions SET label=?,name=?,position=?${illustration},updated_at=NOW() WHERE id=?`, { replacements: values, type: QueryTypes.UPDATE, transaction });
+        } else {
+          divisionId = randomUUID();
+          await this.db.query('INSERT INTO workout_divisions (id,plan_id,label,name,illustration_id,position,created_at,updated_at) VALUES (?,?,?,?,?,?,NOW(),NOW())', { replacements: [divisionId, id, label, division.name, division.illustrationId ?? null, divisionIndex], type: QueryTypes.INSERT, transaction });
+        }
         for (const [exerciseIndex, exercise] of division.exercises.entries()) {
           if (exercise.id) await this.db.query('UPDATE workout_plan_exercises SET division_id=?,position=?,sets=?,reps=?,load_value=?,rest_seconds=?,notes=?,updated_at=NOW() WHERE id=?', { replacements: [divisionId, exerciseIndex, exercise.sets, exercise.reps, exercise.load ?? null, exercise.restSeconds ?? null, exercise.notes ?? null, exercise.id], type: QueryTypes.UPDATE, transaction });
           else await this.insertPlanExercise(userId, divisionId, exercise, exerciseIndex, imageByExercise, transaction);
@@ -122,7 +140,7 @@ export class WorkoutRepository {
       // Removed last, after kept exercises moved out; sessions keep their snapshot and lose only the link.
       const removedDivisions = [...divisionIds].filter(item => !keptDivisions.has(item));
       if (removedDivisions.length) await this.db.query('DELETE FROM workout_divisions WHERE id IN (?) AND plan_id=?', { replacements: [removedDivisions, id], type: QueryTypes.DELETE, transaction });
-      const [updated] = await this.db.query<PlanRow>('SELECT id,name,is_active,status,valid_until,created_at,updated_at FROM workout_plans WHERE id=?', { replacements: [id], type: QueryTypes.SELECT, transaction });
+      const [updated] = await this.db.query<PlanRow>('SELECT id,name,cover_id,is_active,status,valid_until,created_at,updated_at FROM workout_plans WHERE id=?', { replacements: [id], type: QueryTypes.SELECT, transaction });
       return this.hydrate(updated, transaction);
     });
   }
@@ -144,7 +162,20 @@ export class WorkoutRepository {
   async setArchived(userId:string,id:string,archived:boolean):Promise<boolean>{return this.db.transaction(async transaction=>{const [plan]=await this.db.query<{id:string}>('SELECT id FROM workout_plans WHERE id=? AND user_id=? FOR UPDATE',{replacements:[id,userId],type:QueryTypes.SELECT,transaction});if(!plan)return false;await this.db.query('UPDATE workout_plans SET status=?,is_active=0,updated_at=NOW() WHERE id=?',{replacements:[archived?'archived':'available',id],type:QueryTypes.UPDATE,transaction});return true;});}
   async deletePlan(userId:string,id:string):Promise<boolean>{return this.db.transaction(async transaction=>{const [plan]=await this.db.query<{id:string}>('SELECT id FROM workout_plans WHERE id=? AND user_id=? FOR UPDATE',{replacements:[id,userId],type:QueryTypes.SELECT,transaction});if(!plan)return false;await this.db.query('DELETE FROM workout_plans WHERE id=?',{replacements:[id],type:QueryTypes.DELETE,transaction});return true;});}
   async complete(userId:string,input:CompleteWorkoutInput):Promise<string|null>{const rows=await this.db.query<{division_id:string;division_name:string;division_label:string;plan_id:string;plan_name:string}>('SELECT d.id division_id,d.name division_name,d.label division_label,p.id plan_id,p.name plan_name FROM workout_divisions d JOIN workout_plans p ON p.id=d.plan_id WHERE d.id=? AND p.user_id=? LIMIT 1',{replacements:[input.divisionId,userId],type:QueryTypes.SELECT});const item=rows[0];if(!item)return null;const id=randomUUID();const ids=input.completedExerciseIds??[];await this.db.query('INSERT INTO workout_sessions (id,user_id,plan_id,division_id,plan_name,division_name,division_label,performed_on,status,completion_mode,completed_exercise_ids,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,\'completed\',?,?,NOW(),NOW())',{replacements:[id,userId,item.plan_id,item.division_id,item.plan_name,item.division_name,item.division_label,input.performedOn,ids.length?'detailed':'quick',JSON.stringify(ids)],type:QueryTypes.INSERT});return id;}
-  async listSessions(userId:string):Promise<WorkoutSession[]>{const rows=await this.db.query<SessionRow>('SELECT id,plan_id,division_id,plan_name,division_name,division_label,performed_on,status,completion_mode,completed_exercise_ids,created_at,updated_at FROM workout_sessions WHERE user_id=? ORDER BY performed_on DESC,created_at DESC LIMIT 100',{replacements:[userId],type:QueryTypes.SELECT});return rows.map(mapSession);}
+  async listSessions(userId:string):Promise<WorkoutSession[]>{const rows=await this.db.query<SessionRow>(`${sessionSelect} ORDER BY performed_on DESC,created_at DESC,id DESC LIMIT 100`,{replacements:[userId],type:QueryTypes.SELECT});return this.withExecution(userId,rows.map(mapSession));}
+  /** Full history, newest first; ties keep a stable order so pages never repeat or skip a session. */
+  async sessionsPage(userId:string,query:PageQuery):Promise<Page<WorkoutSession>>{return this.db.transaction(async transaction=>{const [count]=await this.db.query<{total:number}>('SELECT COUNT(*) total FROM workout_sessions WHERE user_id=?',{replacements:[userId],type:QueryTypes.SELECT,transaction});const {offset,...page}=pageWindow(Number(count.total),query);const rows=await this.db.query<SessionRow>(`${sessionSelect} ORDER BY performed_on DESC,created_at DESC,id DESC LIMIT ? OFFSET ?`,{replacements:[userId,page.pageSize,offset],type:QueryTypes.SELECT,transaction});return {...page,items:await this.withExecution(userId,rows.map(mapSession))};});}
+  private async withExecution(userId:string,sessions:WorkoutSession[]):Promise<WorkoutSession[]>{
+    if (!sessions.length) return sessions;
+    const runs = await this.db.query<{ id: string; history_session_id: string; snapshot: string | { exercises: { id: string; sets: number }[] }; progress: string | import('@fit/contracts').WorkoutRunProgress }>('SELECT id,history_session_id,snapshot,progress FROM workout_runs WHERE user_id=? AND history_session_id IN (?)', { replacements: [userId, sessions.map(item => item.id)], type: QueryTypes.SELECT });
+    for (const run of runs) {
+      const snapshot = typeof run.snapshot === 'string' ? JSON.parse(run.snapshot) : run.snapshot;
+      const progress = typeof run.progress === 'string' ? JSON.parse(run.progress) as import('@fit/contracts').WorkoutRunProgress : run.progress;
+      const session = sessions.find(item => item.id === run.history_session_id)!;
+      session.execution = { runId: run.id, completedExercises: snapshot.exercises.filter((e: { id: string; sets: number }) => progress.exercises.find(p => p.id === e.id)?.completedSets.length === e.sets).length, totalExercises: snapshot.exercises.length, completedSets: progress.exercises.reduce((sum, e) => sum + e.completedSets.length, 0) };
+    }
+    return sessions;
+  }
   async getGoalSummary(userId: string, date: string): Promise<WorkoutGoalSummary> {
     const [stored] = await this.db.query<GoalRow>('SELECT weekly_target,mode,schedule FROM workout_goals WHERE user_id=? LIMIT 1', { replacements: [userId], type: QueryTypes.SELECT });
     const configured = Boolean(stored); const weeklyTarget = stored?.weekly_target ?? 3; const mode = stored?.mode ?? 'flexible';

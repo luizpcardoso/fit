@@ -17,9 +17,9 @@ export interface AuthRepository {
   canAuthenticate(userId: string): Promise<boolean>;
 }
 
-type UserRow = { id: string; email: string; phone: string; first_name: string; last_name: string; birth_date: string | null; gender: PublicUser['gender']; estimation_sex: PublicUser['estimationSex']; height_cm: number | null; activity_level: PublicUser['activityLevel']; primary_goal: PublicUser['primaryGoal']; username:string|null;display_name:string|null;avatar_url:string|null;password_hash: string };
-const mapUser = (row: UserRow): UserRecord => ({ id: row.id, email: row.email, phone: row.phone, firstName: row.first_name, lastName: row.last_name, birthDate: row.birth_date, gender: row.gender, estimationSex: row.estimation_sex, heightCm: row.height_cm, activityLevel: row.activity_level, primaryGoal: row.primary_goal,username:row.username,displayName:row.display_name,avatarUrl:row.avatar_url,passwordHash: row.password_hash });
-const userColumns = 'id,email,phone,first_name,last_name,birth_date,gender,estimation_sex,height_cm,activity_level,primary_goal,username,display_name,avatar_url,password_hash';
+type UserRow = { count_mental_check_in: boolean; id: string; email: string; phone: string; first_name: string; last_name: string; birth_date: string | null; gender: PublicUser['gender']; estimation_sex: PublicUser['estimationSex']; height_cm: number | null; activity_level: PublicUser['activityLevel']; primary_goal: PublicUser['primaryGoal']; username:string|null;display_name:string|null;avatar_url:string|null;password_hash: string };
+const mapUser = (row: UserRow): UserRecord => ({ countMentalCheckIn: Boolean(row.count_mental_check_in), id: row.id, email: row.email, phone: row.phone, firstName: row.first_name, lastName: row.last_name, birthDate: row.birth_date, gender: row.gender, estimationSex: row.estimation_sex, heightCm: row.height_cm, activityLevel: row.activity_level, primaryGoal: row.primary_goal,username:row.username,displayName:row.display_name,avatarUrl:row.avatar_url,passwordHash: row.password_hash });
+const userColumns = 'count_mental_check_in,id,email,phone,first_name,last_name,birth_date,gender,estimation_sex,height_cm,activity_level,primary_goal,username,display_name,avatar_url,password_hash';
 
 export class SequelizeAuthRepository implements AuthRepository {
   constructor(private readonly sequelize: Sequelize) {}
@@ -45,6 +45,7 @@ export class SequelizeAuthRepository implements AuthRepository {
   }
   async updateProfile(id: string, input: UpdateProfileInput): Promise<PublicUser | null> {
     const fields: Array<[string, unknown]> = [];
+    if ('countMentalCheckIn' in input) fields.push(['count_mental_check_in', input.countMentalCheckIn]);
     if ('birthDate' in input) fields.push(['birth_date', input.birthDate]);
     if ('gender' in input) fields.push(['gender', input.gender]);
     if ('estimationSex' in input) fields.push(['estimation_sex', input.estimationSex]);

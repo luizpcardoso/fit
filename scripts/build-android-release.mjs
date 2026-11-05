@@ -55,7 +55,7 @@ await run('./gradlew', [':app:assembleRelease', '--no-daemon', '--max-workers=2'
 const outputDir = resolve(root, 'artifacts/android');
 await mkdir(outputDir, { recursive: true });
 const config = JSON.parse(await readFile(resolve(mobile, 'app.json'), 'utf8'));
-const output = resolve(outputDir, `fit-${config.expo.version}.apk`);
+const output = resolve(outputDir, `orami-${config.expo.version}-android.apk`);
 await copyFile(resolve(mobile, 'android/app/build/outputs/apk/release/app-release.apk'), output);
 console.log(`APK gerado: ${output}`);
 console.log(`API: ${apiUrl}`);

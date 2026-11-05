@@ -1,0 +1,1 @@
+{"platforms": ["android"], "android": {"modules": ["fit.modules.dailysummary.DailySummaryModule", "fit.modules.dailysummary.WorkoutModule"]}}

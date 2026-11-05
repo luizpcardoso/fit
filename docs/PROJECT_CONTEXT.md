@@ -1,215 +1,57 @@
-# PROJECT_CONTEXT — Super App de Saúde e Fitness
+# Orami — contexto de produto
 
-> Documento vivo de contexto de produto para planejamento, implementação e uso pelo Codex.
-> Atualizado em 2026-10-31. Nome definitivo do produto: **Orami**.
-> Assinatura: **Seu cuidado, no seu ritmo.**
+Nome confirmado: **Orami**. Assinatura: **Seu cuidado, no seu ritmo.**
+Este arquivo guarda intenção e decisões; regras de desenvolvimento em `AGENTS.md`,
+implementação e limites nos docs de módulo. Estado revisado em 02/11/2026;
+implementado no repositório não significa publicado.
 
-## 1. Visão do produto
+## Direção e estado
 
-Construir inicialmente um aplicativo mobile **fitness social** para amigos e grupos registrarem treinos, compartilharem evolução, participarem de desafios e se motivarem. A visão de longo prazo é evoluir para um **super app de saúde, fitness e bem-estar**, reunindo treino, alimentação, acompanhamento corporal, medicamentos, suplementação, compromissos e relacionamento com profissionais.
+Saúde, fitness e bem-estar com metas individuais justas, múltiplos grupos independentes
+e dados pessoais privados. Entregar fatias pequenas, sem implementar o roadmap automaticamente.
 
-**Princípios:**
-- Metas personalizadas e justas: avaliar o cumprimento do plano individual, não exigir presença diária.
-- Experiência social com **múltiplos grupos independentes**.
-- Dados pessoais de saúde privados por padrão, compartilhados apenas com autorização específica.
-- Construir um MVP enxuto sem impedir a expansão modular futura.
-- Diferenciar claramente **decisão confirmada**, **proposta técnica** e **ideia futura**.
+Já há código de autenticação/perfil, treinos/metas, grupos/feed, medicamentos/suplementos,
+alimentação/dietas/gasto energético, peso/medidas, cardio, injetáveis, bem-estar mental,
+portal profissional, lembretes locais e observabilidade. Regras e limitações ficam,
+respectivamente, em `authentication.md`, `workouts.md`, `groups.md`, `supplements.md`,
+`nutrition.md`, `cardio.md`, `injectables.md`, `mental-wellbeing.md`, `portal.md`,
+`notifications.md` e `observability-context.md` (todos em `docs/`).
 
-## 2. Escopo e prioridades
+## Metas e Home — decisões
 
-### MVP — núcleo do produto (direção atual)
+- Meta configurável de treinos e dias planejados; semana de segunda a domingo.
+- Dia planejado sem treino gera atraso, não reprovação antecipada. Treinos em outros dias da mesma semana compensam; total ≥ alvo cumpre a meta. Semana insuficiente só falha após encerrar.
+- Exemplo: meta 3 em seg/ter/qua, realizados sex/sáb/dom → cumprida. Streak principal desejado: semanas consecutivas cumpridas, sem exigir presença diária.
+- Preservar histórico/snapshot semanal é requisito desejado; o app ainda não tem snapshots completos de metas por semana (`portal.md`). Não presumir essa garantia ao alterar metas.
+- Regras já confirmadas para sessões: marcação como realizada, várias no mesmo dia contam, retroativos e correções permitidos; `cancelled` não conta. Detalhes em `workouts.md`.
+- Treinos têm contagem própria, separada dos checks/check-in da rotina. Iniciar, pausar, finalizar ou cancelar treino não altera o total de checks; a Home apresenta o treino na meta semanal e o resumo de notificações informa os treinos realizados hoje separadamente, inclusive fora dos dias planejados.
+- Home resume treino **semanal**, medicamentos/suplementos **diários** por tomadas previstas (não quantidade de produtos), alimentação e alertas. Não confundir períodos nem inventar dados ausentes; linguagem sem punição/recomendação de dose.
+- Horários, alterações de metas em semana aberta e exceções devem seguir o módulo existente; decisões ainda ausentes precisam ser esclarecidas na tarefa correspondente.
 
-1. Autenticação, cadastro e perfil de usuário.
-2. Treinos: ficha/plano, registro de exercícios, séries, repetições, carga, finalização de treino e check-in.
-3. Metas semanais **configuráveis**, progresso e alertas na Home.
-4. Grupos de treinamento privados, convites, participação simultânea em vários grupos e alternância fácil de grupo ativo.
-5. Feed **separado por grupo** com eventos automáticos de treino, publicações manuais de texto/foto, curtidas e comentários.
-6. Progresso dos membros, desafios e ranking por grupo, respeitando metas individuais.
-7. Home com cards de treino semanal, medicamentos do dia, suplementação do dia e alertas; os módulos completos de medicamentos/suplementos podem ser implementados por fases.
-8. Notificações relevantes e controles básicos de privacidade.
+## Grupos e privacidade — decisões
 
-**A avaliar na priorização do MVP:** registro básico de peso e medidas corporais. É desejável antecipá-lo se couber no cronograma.
+- Múltiplos grupos privados com convites, membros/papéis e conteúdo isolado; Social agrega os posts em um feed único, identificado por grupo; destino da publicação explícito e troca de grupo acessível.
+- Treino pertence ao usuário, sem cópia por grupo. Compartilhar depende de autorização específica por grupo; não replicar conteúdo automaticamente para todos.
+- Feed: eventos de treino conforme preferências, texto/foto, reações, comentários, notificações e moderação. Fronteiras de acesso/retenção em `groups.md`.
+- Dados de saúde fora de feed, logs, analytics e notificações sem consentimento. Acompanhamento profissional exige tipo + capacidade individual + vínculo ativo + consentimento granular, revogável e auditável; administração não concede acesso clínico automático.
+- Modelos e prescrições preservam autoria/histórico; atualizar modelo não reescreve material atribuído. Não há prontuário/diagnóstico; respeitar competências profissionais.
+- Peso e medidas são registros independentes, preservando mistos legados. Lembretes locais opcionais e isolados por conta; não equivalem a push remoto.
 
-### Roadmap futuro — não implementar automaticamente no MVP
+## Identidade
 
-- Gestão alimentar: refeições, alimentos, dietas, calorias e macronutrientes.
-- Gestão de medicamentos: tratamentos cadastrados, tomadas previstas/realizadas, horários, histórico e lembretes.
-- Suplementação: suplementos, doses previstas/realizadas e lembretes.
-- Acompanhamento corporal avançado: composição corporal, fotos de evolução e comparações.
-- Agenda genérica de compromissos, incluindo consultas, exames, reuniões e avaliações, com lembretes.
-- Portal/perfil profissional: personal trainer, coach e, respeitadas as habilitações, nutricionista e outros profissionais.
-- Relação profissional–aluno/paciente: prescrição/atribuição de planos dentro das competências legais, acompanhamento de treinos, adesão, dietas e evolução, com permissões explícitas.
-- Personalização dos cards da Home; possíveis integrações externas.
+Ocean Fit, símbolo Onda, linguagem acolhedora e sem estética hospitalar/agressiva.
+Fonte única de cores: `design/palette.json`; marca em `brand.md`.
+App usa fonte do sistema e tema Claro/Escuro/Sistema local; web usa Inter/Manrope.
+Não substitua a identidade durante reformulações de layout.
 
-## 3. Identidade visual — Orami (confirmada)
+## Backlog — depende de pedido/priorização
 
-Estética moderna, limpa, ativa e acolhedora, associada ao cuidado cotidiano; evitar aparência hospitalar ou academia agressiva. O símbolo ("Onda") é um disco em degradê com um batimento que termina numa onda calma; a paleta é a Ocean Fit. Diretrizes completas em `docs/brand.md`.
+- Fórum, desafios/rankings justos entre metas diferentes; evolução dos filtros do feed agregado existente.
+- Composição corporal avançada, fotos privadas de evolução e comparações.
+- Agenda genérica (consultas, exames, reuniões, avaliações, compromissos pessoais), categorias extensíveis e lembretes; não confundir com a agenda atual de rotina.
+- Integrações externas e expansão das competências profissionais conforme consentimento/habilitação.
+- Definir escopo/ordem das próximas releases, política de mudança da meta semanal e exceções como lesão/férias quando solicitadas.
 
-| Token | Valor |
-| --- | --- |
-| brand.primary | `#0891B2` |
-| primary (ação) | `#0B7E9C` |
-| primaryStrong / text.light | `#16404B` |
-| secondary | `#67E8F9` |
-| accent | `#14B8A6` |
-| background.light | `#F2FAFC` |
-| background.dark | `#101D27` |
-| surface.light | `#FFFFFF` |
-
-Adotar tokens semânticos, contraste acessível, cards arredondados, ícones simples e gráficos legíveis. A interface usa a tipografia nativa do sistema no app e Inter/Manrope na web.
-
-Temas claro e escuro implementados com a paleta Orami. Em Perfil → Configurações → Aparência, o usuário escolhe Claro, Escuro ou Sistema (padrão). A preferência é local ao aparelho/navegador, persiste entre aberturas e não depende da conta ou da API. Telas de autenticação, navegação, treinos, saúde, formulários e modais usam o tema selecionado. Cores semânticas complementares de aviso, erro e sucesso variam por tema para manter legibilidade; a identidade original não deve ser substituída por outra paleta em reformulações de layout.
-
-## 4. Home / Dashboard (confirmado conceitualmente)
-
-A tela inicial deve apresentar, de forma clara:
-
-- **Meta semanal de treinos:** por exemplo, `1/3`, barra de progresso, dias planejados e status.
-- **Alertas de treino:** por exemplo, “Você está com 1 treino atrasado nesta semana”, sem tratar a semana como perdida antes de terminar.
-- **Medicamentos:** card diário `0/5` = zero tomadas registradas de cinco previstas para hoje.
-- **Suplementação:** card diário `1/3` = uma dose registrada de três previstas para hoje.
-- **Próximos compromissos:** card reservado na visão do produto; módulo genérico de agenda é futuro.
-- Acesso às configurações de metas por painel próprio.
-- Navegação para treinos, grupos, feed e perfil; disposição exata ainda sujeita a UX.
-
-**Importante:** metas de treino são **semanais**; contadores de medicamentos e suplementos são **diários**. Não confundir quantidade de produtos com quantidade de tomadas/doses previstas. Estados vazios devem existir quando o usuário não cadastrar medicamentos ou suplementos.
-
-## 5. Regras de negócio — Meta semanal flexível (confirmadas)
-
-### Configuração
-
-- Usuário escolhe a **quantidade-alvo de treinos por semana** (ex.: 3 ou 6).
-- Usuário seleciona **dias planejados** (ex.: segunda, quarta e quinta).
-- Ciclo padrão: **segunda-feira a domingo**; parametrização futura pode ser avaliada.
-- Haverá **painel de configurações** dedicado.
-- Inicialmente a meta é configurada pelo próprio usuário; no futuro, coach autorizado poderá configurá-la ou sugeri-la, com regras de permissão.
-- Preservar histórico/snapshot das metas por semana; mudar a meta atual não deve reescrever resultados de semanas anteriores.
-
-### Atrasos, compensação e conclusão
-
-1. Um dia planejado sem treino concluído gera **alerta de atraso**, não reprovação imediata.
-2. Treinos feitos em outros dias da **mesma semana** contam para a meta semanal, mesmo fora do planejamento.
-3. Exemplo: meta 3 treinos planejados para seg/ter/qua; usuário não treina nesses dias, mas treina sex/sáb/dom. **Meta semanal cumprida**.
-4. A meta é considerada atingida quando o número de sessões válidas concluídas na semana for **maior ou igual ao alvo**.
-5. A semana só é considerada **não cumprida após seu encerramento**, se o total for inferior ao alvo.
-6. Na segunda-feira inicia novo ciclo, mantendo histórico do anterior.
-7. Sequência/streak principal: **semanas consecutivas com meta atingida**, não dias consecutivos de academia.
-8. Notificações devem informar quantos treinos faltam e quais dias planejados estão atrasados, sem linguagem punitiva.
-
-**Detalhes a definir antes de codificar:** fuso horário do usuário, edição de metas durante a semana, o que conta como sessão válida, duplicidade de check-ins, treinos lançados retroativamente e exceções (pausa/lesão/férias).
-
-## 6. Grupos de treinamento e isolamento de contexto (confirmado)
-
-**Estado atual:** grupos privados, convites no aplicativo, papéis de dono/administrador/moderador/membro, feed isolado, preferências de compartilhamento, posts com uma foto, reações, comentários, notificações e moderação estão implementados. Fórum, desafios e rankings continuam no backlog. As regras técnicas estão em `docs/groups.md`.
-
-Um mesmo usuário pode participar de **vários grupos simultaneamente**, como:
-- Grupo dos amigos;
-- Grupo do trabalho;
-- Grupo de alunos do Coach X.
-
-Cada grupo deve ter **seus próprios** membros, administradores, feed, desafios, rankings e contexto. A interface deve ter **seletor visível para trocar o grupo ativo** rapidamente.
-
-- Grupos privados por padrão, com convites.
-- Relação usuário–grupo **muitos-para-muitos**, com papel de membro/administrador.
-- Acesso a conteúdo de grupo exige participação/permissão.
-- A ação de publicar deve indicar claramente o **grupo de destino**.
-- Nunca replicar automaticamente conteúdo pessoal em todos os grupos.
-- O treino é um registro **do usuário**, não uma cópia por grupo; ele escolhe se e onde compartilhá-lo.
-- Rankings e desafios são específicos do grupo e devem considerar que pessoas podem ter metas semanais diferentes.
-- Feed geral agregando grupos é **ideia a avaliar**, não substitui feeds isolados.
-
-## 7. Feed social (confirmado como experimento central do MVP)
-
-### Tipos de conteúdo
-
-- **Eventos automáticos:** treino concluído, meta semanal atingida, conquista/marco; publicação condicionada às preferências de compartilhamento.
-- **Posts manuais:** texto, foto ou combinação dos dois.
-- **Interações:** curtidas e comentários.
-
-Requisitos:
-- Publicações vinculadas a um grupo específico e autor.
-- Feed de cada grupo independente.
-- Controles de visibilidade e exclusão/edição conforme regras a definir.
-- Eventos automáticos devem referenciar o evento original, evitando duplicação de dados de treino.
-- Planejar moderação/denúncia e proteção contra abuso antes de escala.
-
-## 8. Acompanhamento corporal (desejado; fase a definir)
-
-- Histórico de **peso** com data, metas e gráficos.
-- **Medidas corporais:** cintura, abdômen, quadril, tórax, braços, coxas e panturrilhas; permitir lados quando fizer sentido.
-- **Composição corporal:** percentual de gordura, massa gorda e massa magra estimadas, com método de avaliação.
-- **Fotos de evolução:** histórico e comparação, privadas por padrão.
-- Compartilhamento seletivo com profissional autorizado.
-
-Possíveis entidades conceituais: `body_measurements`, `body_composition`, `progress_photos`, `body_goals`. **Não é schema Prisma final**.
-
-## 9. Saúde, alimentação e profissionais (visão futura)
-
-### Medicamentos e suplementos
-
-- Implementado: cadastro privado, edição/pausa, frequência e horários, tomadas diárias, resumo real na Home e modal compartilhado acionado por `+`. Saúde possui alternância de categorias, lista compacta, busca e filtros. Persistência compartilhada com discriminador `kind`; ver `docs/supplements.md`. Lembretes push e consulta histórica permanecem futuros.
-
-- Cadastro de itens, posologia/planejamento, horários, lembretes, tomadas/doses concluídas e histórico.
-- Cards na Home refletem adesão **do dia**, não recomendam dosagem nem substituem prescrição médica.
-- Diferenciar medicamentos de suplementos no domínio, ainda que compartilhem componentes de UX.
-
-### Alimentação
-
-- Registro de refeições/alimentos, metas de calorias e macros, dietas e acompanhamento de adesão.
-- Profissional habilitado poderá acompanhar o plano alimentar mediante consentimento.
-
-### Profissionais
-
-- Possíveis papéis: usuário comum, personal, coach, nutricionista, outros profissionais e administrador.
-- Um usuário pode ser aluno de um profissional e membro de vários grupos ao mesmo tempo.
-- Profissional acompanha alunos, treinos, dietas e evolução **apenas no escopo autorizado**.
-- Permissões granulares, revogáveis e auditáveis; respeitar LGPD e competências profissionais.
-- Evitar criar apps separados para aluno/profissional sem necessidade; preferir plataforma com papéis/permissões.
-
-## 10. Agenda e compromissos (backlog futuro)
-
-Módulo **genérico**, não apenas consultas:
-- Título, descrição, data, horário, local, tipo/categoria e status.
-- Exemplos de tipos: consulta, exame, reunião, avaliação física, sessão com personal, compromisso pessoal.
-- Tipos extensíveis; lembretes e notificações configuráveis.
-- Próximos compromissos na Home; histórico de realizados/cancelados.
-- Preferir entidade genérica de compromisso + categoria, em vez de estruturas isoladas por tipo.
-
-## 11. Stack e fluxo de desenvolvimento (planejados, sujeitos a validação)
-
-- **Mobile:** React Native + Expo + TypeScript; foco inicial Android.
-- **API atual:** Fastify + TypeScript.
-- **Persistência atual:** MySQL + Sequelize, com migrations automáticas e caminho previsto para banco gerenciado em nuvem.
-- **Infra local:** Docker Compose; Redis apenas se houver necessidade real.
-- **Desenvolvimento:** Ubuntu, OpenAI Codex CLI, Git/GitHub.
-- **Operação remota desejada:** usar celular para acessar máquina Ubuntu por SSH/Tailscale, manter sessões tmux, dar instruções ao Codex e testar app com Expo Go.
-- Para desenvolvimento remoto, avaliar Expo tunnel e acessibilidade da API na rede privada; não expor SSH publicamente nem colocar segredos em variáveis `EXPO_PUBLIC_*`.
-- Hospedagem inicial pode ser local; arquitetura deve permitir migração posterior.
-
-## 12. Diretrizes para implementação pelo Codex
-
-1. **Não implementar todo o roadmap** por conta própria; executar apenas a fatia solicitada.
-2. Preservar separação entre **dados pessoais** (treinos, medidas, saúde) e **dados de grupo** (feed, ranking, desafios).
-3. Aplicar autorização no backend, não apenas esconder conteúdo na interface.
-4. Garantir que contadores e metas tenham regras de período explícitas.
-5. Manter datas em formato consistente, considerar fuso horário e ciclos semanais.
-6. Projetar entidades para expansão, mas evitar abstrações e microserviços prematuros.
-7. Criar migrações, testes de regras de meta semanal e isolamento de grupo.
-8. Evitar expor dados sensíveis de saúde em feed, logs, analytics e notificações sem consentimento.
-9. Em caso de ambiguidade de produto, pedir decisão em vez de presumir.
-
-## 13. Decisões em aberto
-
-- Nome comercial do aplicativo.
-- Escopo exato da primeira release e ordem das telas.
-- Política de alterações de metas durante semana em andamento.
-- Quais eventos sociais são compartilhados por padrão (recomendação: opt-in).
-- Critérios de ranking justos entre metas diferentes.
-- UX final do seletor de grupos; a navegação inferior inicial foi definida como Início, Treinos, Grupos, Saúde e Perfil.
-- Regras de notificações, lembretes e permissões de coach.
-- Inclusão de peso/medidas já no MVP.
-- Implantação e estratégia de autenticação.
-
----
-
-**Origem:** decisões e ideias fornecidas pelo idealizador em conversa de planejamento. Este documento registra intenção de produto, não significa que funcionalidades já estejam implementadas.
+Stack/mapa/comandos em `AGENTS.md` e arquivos de cada área; operação em
+`deploy/README.md`, versão/publicação em `versioning.md`. Não carregar esses documentos
+para tarefas que não dependam deles.

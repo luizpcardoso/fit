@@ -1,5 +1,5 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
-import { nutritionGoalInputSchema, pageQuerySchema, bodyMeasurementInputSchema, dailyExpenditureInputSchema, favoriteUpdateSchema, foodInputSchema, localDateSchema, mealInputSchema, reuseFavoriteSchema, updateFoodSchema } from '@fit/contracts';
+import { mealSyncBatchSchema, nutritionGoalInputSchema, pageQuerySchema, bodyMeasurementInputSchema, dailyExpenditureInputSchema, favoriteUpdateSchema, foodInputSchema, localDateSchema, mealInputSchema, reuseFavoriteSchema, updateFoodSchema } from '@fit/contracts';
 import { z } from 'zod';
 import {dietMealInputSchema} from '@fit/contracts';
 import type { NutritionRepository } from './nutrition-repository.js';
@@ -7,10 +7,12 @@ import type { NutritionRepository } from './nutrition-repository.js';
 const idParams = z.strictObject({ id: z.string().uuid() });
 const dateParams = z.strictObject({ date: localDateSchema });
 const dateQuery = z.strictObject({ date: localDateSchema });
+const weightTrendQuery = z.strictObject({ from: localDateSchema });
 
 export async function registerNutritionRoutes(app: FastifyInstance, repo: NutritionRepository, secure: (request: FastifyRequest, reply: FastifyReply) => Promise<unknown>) {
   const base = { preHandler: secure, schema: { security: [{ bearerAuth: [] }], tags: ['Nutrição e corpo'] } };
   const notFound = (reply: FastifyReply, message = 'Registro não encontrado.') => reply.code(404).send({ code: 'NOT_FOUND', message });
+  app.post('/nutrition/meal-sync', { ...base, bodyLimit: 512 * 1024 }, request => repo.syncMeals(request.user.sub, mealSyncBatchSchema.parse(request.body).entries));
   app.get('/nutrition/diets',base,request=>repo.listDiets(request.user.sub));
   app.post('/nutrition/diet-meals',base,async(request,reply)=>{
     const result=await repo.recordDietMeal(request.user.sub,dietMealInputSchema.parse(request.body));
@@ -34,7 +36,7 @@ export async function registerNutritionRoutes(app: FastifyInstance, repo: Nutrit
   app.get('/nutrition/favorites', { ...base, schema: { ...base.schema, summary: 'Lista refeições favoritas' } }, request => repo.listFavorites(request.user.sub));
   app.patch('/nutrition/favorites/:id', { ...base, schema: { ...base.schema, summary: 'Renomeia uma favorita sem alterar refeições passadas' } }, async (request, reply) => await repo.renameFavorite(request.user.sub, idParams.parse(request.params).id, favoriteUpdateSchema.parse(request.body).name) ? reply.code(204).send() : notFound(reply, 'Favorita não encontrada.'));
   app.delete('/nutrition/favorites/:id', { ...base, schema: { ...base.schema, summary: 'Exclui uma favorita' } }, async (request, reply) => await repo.deleteFavorite(request.user.sub, idParams.parse(request.params).id) ? reply.code(204).send() : notFound(reply, 'Favorita não encontrada.'));
-  app.post('/nutrition/favorites/:id/use', { ...base, schema: { ...base.schema, summary: 'Reutiliza uma favorita com ajuste proporcional' } }, async (request, reply) => { const input = reuseFavoriteSchema.parse(request.body); const id = await repo.reuseFavorite(request.user.sub, idParams.parse(request.params).id, input.date, input.time, input.multiplier); return id ? reply.code(201).send({ id }) : notFound(reply, 'Favorita não encontrada.'); });
+  app.post('/nutrition/favorites/:id/use', { ...base, schema: { ...base.schema, summary: 'Reutiliza uma favorita com ajuste proporcional' } }, async (request, reply) => { const input = reuseFavoriteSchema.parse(request.body); const id = await repo.reuseFavorite(request.user.sub, idParams.parse(request.params).id, input.date, input.time, input.multiplier, input.category); return id ? reply.code(201).send({ id }) : notFound(reply, 'Favorita não encontrada.'); });
 
   app.get('/nutrition/expenditures/:date', { ...base, schema: { ...base.schema, summary: 'Obtém o gasto efetivo da data' } }, request => repo.getExpenditure(request.user.sub, dateParams.parse(request.params).date));
   app.put('/nutrition/expenditures', { ...base, schema: { ...base.schema, summary: 'Cria ou substitui o gasto efetivo da data' } }, async (request, reply) => { try { return await repo.saveExpenditure(request.user.sub, dailyExpenditureInputSchema.parse(request.body)); } catch (error) { if (error instanceof RangeError) return reply.code(400).send({ code: 'INVALID_INPUT', message: error.message }); throw error; } });
@@ -44,6 +46,7 @@ export async function registerNutritionRoutes(app: FastifyInstance, repo: Nutrit
 
   app.get('/body-measurements', { ...base, schema: { ...base.schema, summary: 'Lista o histórico corporal' } }, request => repo.listMeasurements(request.user.sub));
   app.get('/body-measurements/page', base, request => repo.measurementsPage(request.user.sub, pageQuerySchema.parse(request.query)));
+  app.get('/body-measurements/weights', { ...base, schema: { ...base.schema, summary: 'Lista pesos a partir de uma data para o gráfico de evolução' } }, request => repo.weightsSince(request.user.sub, weightTrendQuery.parse(request.query).from));
   app.post('/body-measurements', { ...base, schema: { ...base.schema, summary: 'Registra medidas corporais' } }, async (request, reply) => reply.code(201).send({ id: await repo.createMeasurement(request.user.sub, bodyMeasurementInputSchema.parse(request.body)) }));
   app.put('/body-measurements/:id', { ...base, schema: { ...base.schema, summary: 'Substitui um registro corporal' } }, async (request, reply) => await repo.updateMeasurement(request.user.sub, idParams.parse(request.params).id, bodyMeasurementInputSchema.parse(request.body)) ? reply.code(204).send() : notFound(reply, 'Medida não encontrada.'));
   app.delete('/body-measurements/:id', { ...base, schema: { ...base.schema, summary: 'Exclui um registro corporal' } }, async (request, reply) => await repo.deleteMeasurement(request.user.sub, idParams.parse(request.params).id) ? reply.code(204).send() : notFound(reply, 'Medida não encontrada.'));

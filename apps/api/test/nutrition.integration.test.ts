@@ -41,6 +41,14 @@ test('MySQL: nutrição persiste, isola usuários e preserva snapshots', { skip:
     await app.inject({method:'PUT',url:'/nutrition/expenditures',headers:owner,payload:{date,mode:'estimated',gender:'male',birthDate:'1990-10-28',heightCm:180,weightKg:80,activityLevel:'sedentary',exerciseCalories:300}});await app.inject({method:'PUT',url:'/nutrition/expenditures',headers:owner,payload:{date,mode:'manual',totalCalories:2400,source:'Relógio'}});summary=(await app.inject({method:'GET',url:`/nutrition/summary?date=${date}`,headers:owner})).json();assert.equal(summary.expenditure.mode,'manual');assert.equal(summary.expenditure.totalCalories,2400);assert.equal(summary.balance,-2205);assert.equal(summary.energyEstimate.totalCalories,2400);assert.equal(summary.energyEstimate.source,'recorded');
     assert.equal((await app.inject({method:'POST',url:'/body-measurements',headers:owner,payload:{date,weightKg:80}})).statusCode,201);
     assert.equal((await app.inject({method:'POST',url:'/body-measurements',headers:owner,payload:{date,weightKg:-1}})).statusCode,400);
+    const measurementOnly = await app.inject({method:'POST',url:'/body-measurements',headers:owner,payload:{date:'2026-10-30',waistCm:85}});
+    assert.equal(measurementOnly.statusCode,201);
+    await repo.createMeasurement(users[1],{date:'2026-10-31',weightKg:50});
+    const bodyPage=(await app.inject({method:'GET',url:'/body-measurements/page?page=1&pageSize=5',headers:owner})).json();
+    assert.equal(bodyPage.latest[0].weightKg,null);
+    assert.deepEqual(bodyPage.latestWeights.map((item:{weightKg:number})=>item.weightKg),[120,80]);
+    assert.equal(bodyPage.latestWeights.some((item:{weightKg:number})=>item.weightKg===50),false);
+
     assert.equal((await app.inject({method:'DELETE',url:`/nutrition/foods/${foodId}`,headers:owner})).statusCode,204);summary=await new NutritionRepository(db).summary(users[0],date);assert.equal(summary.consumed?.calories,195);assert.equal(summary.meals[0].items[0].foodId,null);
     assert.equal((await app.inject({method:'DELETE',url:`/nutrition/foods/${foodId}`,headers:owner})).statusCode,404);
     assert.equal((await app.inject({method:'DELETE',url:`/nutrition/expenditures/${date}`,headers:owner})).statusCode,204);

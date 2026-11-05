@@ -80,7 +80,7 @@ function TodaySummary() {
 
 const styles = (c: AppPalette) => StyleSheet.create({
   safe: { flex: 1, backgroundColor: c.background },
-  content: { padding: 20, paddingBottom: 115, gap: 18, maxWidth: 720, width: '100%', alignSelf: 'center' },
+  content: { padding: 20, paddingBottom: 24, gap: 18, maxWidth: 720, width: '100%', alignSelf: 'center' },
   header: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   flex: { flex: 1, minWidth: 0 },
   title: { fontSize: 30, fontWeight: '800', letterSpacing: -.7, color: c.text },

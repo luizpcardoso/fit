@@ -34,6 +34,14 @@ export function ScreenHeader({ backLabel = 'Voltar', onBack, showHome = true, ri
   </View>;
 }
 
+/** ScreenHeader pinned above a scrolling screen, so back and Início stay reachable on long content. */
+export function FixedScreenHeader(props: Parameters<typeof ScreenHeader>[0]) {
+  const { colors: c } = useAppTheme();
+  return <View style={{ backgroundColor: c.background, borderBottomWidth: 1, borderBottomColor: c.border, paddingHorizontal: 16, paddingVertical: 4 }}>
+    <View style={{ maxWidth: 680, width: '100%', alignSelf: 'center' }}><ScreenHeader {...props} /></View>
+  </View>;
+}
+
 const createStyles = (c: AppPalette) => StyleSheet.create({
   bar: { minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   back: { minHeight: 44, flexDirection: 'row', alignItems: 'center', paddingRight: 12, marginLeft: -6, borderRadius: Radius.md, flexShrink: 1 },

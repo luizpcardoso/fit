@@ -203,10 +203,10 @@ test(
       const exercise = await call(
         "POST",
         "/portal/content",
-        login.accessToken,
+        admin.accessToken,
         {
           kind: "exercise",
-          scope: "private",
+          scope: "global",
           name: "Exercício com imagem",
           data: {
             category: "strength",
@@ -245,12 +245,14 @@ test(
             imagePayload,
           )
         ).statusCode,
-        404,
+        403,
       );
+      assert.equal((await call("PUT", `/portal/content/${exerciseId}/image`, login.accessToken, imagePayload)).statusCode, 403);
+      assert.equal((await call("PUT", `/portal/content/${exerciseId}/image`, login.accessToken, { imageDataUrl: null })).statusCode, 403);
       const uploadedImage = await call(
         "PUT",
         `/portal/content/${exerciseId}/image`,
-        login.accessToken,
+        admin.accessToken,
         imagePayload,
       );
       assert.equal(uploadedImage.statusCode, 200, uploadedImage.body);
@@ -275,7 +277,7 @@ test(
           await call(
             "DELETE",
             `/portal/content/${exerciseId}`,
-            login.accessToken,
+            admin.accessToken,
           )
         ).statusCode,
         204,
@@ -308,6 +310,21 @@ test(
       ).json();
       assert.equal(invitations.length, 1);
       const relation = invitations[0];
+      assert.equal((await call('GET','/me/notifications')).statusCode,401);
+      assert.equal((await call('GET','/me/notifications',other.accessToken)).json().unreadCount,0);
+      const noticeResponse = await call('GET','/me/notifications',student.accessToken);
+      assert.equal(noticeResponse.headers['cache-control'],'private, no-store');
+      const notice = noticeResponse.json();
+      assert.equal(notice.unreadCount,1); assert.equal(notice.items[0].id,relation.id);
+      assert.equal((await call('PATCH',`/me/notifications/${relation.id}/read`)).statusCode,401);
+      assert.equal((await call('PATCH',`/me/notifications/${relation.id}/read`,other.accessToken)).statusCode,404);
+      assert.equal((await call('PATCH','/me/notifications/invalid/read',student.accessToken)).statusCode,400);
+      assert.equal((await call('PATCH',`/me/notifications/${relation.id}/read`,student.accessToken)).statusCode,200);
+      const read = (await call('GET','/me/notifications',student.accessToken)).json();
+      assert.equal(read.unreadCount,0); assert.ok(read.items[0].readAt);
+      await call('PATCH',`/me/notifications/${relation.id}/read`,student.accessToken);
+      assert.equal((await call('GET','/me/notifications',student.accessToken)).json().items[0].readAt,read.items[0].readAt);
+
       assert.equal(
         (
           await call(
@@ -393,6 +410,33 @@ test(
           .statusCode,
         403,
       );
+      // Scope is applied before the 200-row boundary and never grants another owner's private data.
+      const globalModel = await call("POST", "/portal/content", admin.accessToken, { ...model, scope: "global", name: "Modelo global de teste" });
+      assert.equal(globalModel.statusCode, 201, globalModel.body);
+      const privateModels = await call("GET", "/portal/content?kind=workout&scope=private&offset=0", login.accessToken);
+      assert.equal(privateModels.statusCode, 200);
+      assert.ok(privateModels.json().some((row: any) => row.id === templateId));
+      assert.ok(privateModels.json().every((row: any) => row.scope === "private" && row.ownerId === professional.id));
+      const globalModels = (await call("GET", "/portal/content?kind=workout&scope=global", login.accessToken)).json();
+      assert.ok(globalModels.some((row: any) => row.id === globalModel.json().id));
+      assert.ok(globalModels.every((row: any) => row.scope === "global"));
+      assert.deepEqual((await call("GET", "/portal/content?kind=workout&scope=private&offset=200", login.accessToken)).json(), []);
+      assert.equal((await call("GET", "/portal/content?kind=workout&scope=other", login.accessToken)).statusCode, 400);
+      assert.equal((await call("GET", "/portal/relationships?offset=-1", login.accessToken)).statusCode, 400);
+      assert.equal((await call("GET", "/portal/relationships?offset=0")).statusCode, 401);
+      assert.equal((await call("GET", "/portal/groups?offset=-1", admin.accessToken)).statusCode, 400);
+      // A directory with more than 200 links is retrieved fully, without duplicate page boundaries.
+      const extraLinks = Array.from({ length: 201 }, () => randomUUID());
+      await db.query(`INSERT INTO professional_relationships (id,professional_id,invited_email,status,capabilities,expires_at,created_at,updated_at) VALUES ${extraLinks.map(() => "(?,?,?,'ended',JSON_ARRAY(),UTC_TIMESTAMP(),UTC_TIMESTAMP(),UTC_TIMESTAMP())").join(",")}`, {
+        replacements: extraLinks.flatMap(id => [id, professional.id, `portal-${id}@example.com`]),
+      });
+      const firstPage = (await call("GET", "/portal/relationships?offset=0", login.accessToken)).json();
+      const secondPage = (await call("GET", "/portal/relationships?offset=200", login.accessToken)).json();
+      assert.equal(firstPage.length, 200);
+      assert.equal(secondPage.length, 2);
+      assert.equal(new Set([...firstPage, ...secondPage].map((row: any) => row.id)).size, 202);
+      assert.ok([...firstPage, ...secondPage].every((row: any) => row.professionalId === professional.id));
+      assert.deepEqual((await call("GET", "/portal/relationships?offset=0", admin.accessToken)).json(), []);
       const assignmentInput = {
         contentId: templateId,
         relationshipId: relation.id,
@@ -616,6 +660,17 @@ test(
         ).statusCode,
         403,
       );
+      assert.equal((await call("GET", "/portal/groups?offset=0", login.accessToken)).statusCode, 403);
+      await db.query("UPDATE professional_types SET capabilities=JSON_ARRAY_APPEND(capabilities,'$','groups.manage') WHERE id=?", { replacements: [typeId] });
+      await db.query("UPDATE portal_accounts SET capabilities=JSON_ARRAY_APPEND(capabilities,'$','groups.manage') WHERE user_id=?", { replacements: [professional.id] });
+      const ownedGroup = await call("POST", "/portal/groups", login.accessToken, { name: "Grupo do profissional", description: "Teste de isolamento" });
+      assert.equal(ownedGroup.statusCode, 200, ownedGroup.body);
+      const manageableGroups = (await call("GET", "/portal/groups?offset=0", login.accessToken)).json();
+      assert.equal(manageableGroups.length, 1);
+      assert.equal(manageableGroups[0].id, ownedGroup.json().id);
+      assert.equal(manageableGroups[0].ownerId, professional.id);
+      assert.deepEqual((await call("GET", "/portal/groups?offset=200", login.accessToken)).json(), []);
+      assert.equal((await call("GET", `/portal/groups/${groupId}/members`, login.accessToken)).statusCode, 403);
       const suspended = await call(
         "PATCH",
         `/portal/professionals/${professional.id}`,

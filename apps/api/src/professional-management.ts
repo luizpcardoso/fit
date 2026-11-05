@@ -9,6 +9,7 @@ import {
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import {
+  portalListQuerySchema,
   activateProfessionalSchema,
   changePortalPasswordSchema,
   consentInputSchema,
@@ -148,11 +149,11 @@ export class ProfessionalManagement {
     });
     return { id, email: input.email, temporaryPassword, expiresInHours: 48 };
   }
-  async relationships(actor: string, student: boolean) {
+  async relationships(actor: string, student: boolean, offset = 0) {
     const rows = await this.db.query<any>(
-      `SELECT r.id,r.professional_id professionalId,CONCAT(p.first_name,' ',p.last_name) professionalName,r.student_id studentId,CASE WHEN r.status='active' THEN CONCAT(s.first_name,' ',s.last_name) ELSE NULL END studentName,r.status,r.capabilities,r.expires_at expiresAt,r.created_at createdAt FROM professional_relationships r JOIN users p ON p.id=r.professional_id LEFT JOIN users s ON s.id=r.student_id WHERE ${student ? "(r.student_id=? OR (r.invited_email=(SELECT email FROM users WHERE id=?) AND r.status='pending'))" : "r.professional_id=?"} ORDER BY r.created_at DESC LIMIT 200`,
+      `SELECT r.id,r.professional_id professionalId,CONCAT(p.first_name,' ',p.last_name) professionalName,r.student_id studentId,CASE WHEN r.status='active' THEN CONCAT(s.first_name,' ',s.last_name) ELSE NULL END studentName,r.status,r.capabilities,r.expires_at expiresAt,r.created_at createdAt FROM professional_relationships r JOIN users p ON p.id=r.professional_id LEFT JOIN users s ON s.id=r.student_id WHERE ${student ? "(r.student_id=? OR (r.invited_email=(SELECT email FROM users WHERE id=?) AND r.status='pending'))" : "r.professional_id=?"} ORDER BY r.created_at DESC,r.id DESC LIMIT 200 OFFSET ?`,
       {
-        replacements: student ? [actor, actor] : [actor],
+        replacements: student ? [actor, actor, offset] : [actor, offset],
         type: QueryTypes.SELECT,
       },
     );
@@ -165,6 +166,23 @@ export class ProfessionalManagement {
           ? "expired"
           : row.status,
     }));
+  }
+  async notifications(actor: string) {
+    const ownership = "(r.student_id=? OR (r.student_id IS NULL AND r.invited_email=(SELECT email FROM users WHERE id=?)))";
+    const items = await this.db.query<import('@fit/contracts').ProfessionalNotification>(
+      `SELECT r.id,CONCAT('Convite de ',p.first_name,' ',p.last_name) title,'Abra para consultar o convite e gerenciar suas permissões.' message,r.notification_read_at readAt,r.created_at createdAt FROM professional_relationships r JOIN users p ON p.id=r.professional_id WHERE ${ownership} ORDER BY r.created_at DESC,r.id DESC LIMIT 200`,
+      {replacements:[actor,actor],type:QueryTypes.SELECT},
+    );
+    const [count] = await this.db.query<{total:number}>(`SELECT COUNT(*) total FROM professional_relationships r WHERE ${ownership} AND r.notification_read_at IS NULL`,{replacements:[actor,actor],type:QueryTypes.SELECT});
+    return {items,unreadCount:Number(count.total)};
+  }
+  async readNotification(actor: string, id: string) {
+    return this.db.transaction(async transaction => {
+      const [owned] = await this.db.query('SELECT r.id FROM professional_relationships r WHERE r.id=? AND (r.student_id=? OR (r.student_id IS NULL AND r.invited_email=(SELECT email FROM users WHERE id=?))) FOR UPDATE',{replacements:[id,actor,actor],type:QueryTypes.SELECT,transaction});
+      if (!owned) throw new PortalError(404, 'Notificação não encontrada.');
+      await this.db.query('UPDATE professional_relationships SET notification_read_at=COALESCE(notification_read_at,UTC_TIMESTAMP()) WHERE id=?',{replacements:[id],transaction});
+      return {ok:true};
+    });
   }
   async consent(
     actor: string,
@@ -224,7 +242,7 @@ export class ProfessionalManagement {
           "Selecione uma permissão ou encerre o vínculo.",
         );
       await this.db.query(
-        "UPDATE professional_relationships SET student_id=?,status=?,capabilities=?,updated_at=UTC_TIMESTAMP() WHERE id=?",
+        "UPDATE professional_relationships SET student_id=?,status=?,capabilities=?,notification_read_at=COALESCE(notification_read_at,UTC_TIMESTAMP()),updated_at=UTC_TIMESTAMP() WHERE id=?",
         {
           replacements: [
             actor,
@@ -574,7 +592,8 @@ export async function registerProfessionalManagement(
     { preHandler: secure },
     run(async (req) => {
       await service.require(req.user.sub);
-      return service.relationships(req.user.sub, false);
+      const { offset } = portalListQuerySchema.parse(req.query);
+      return service.relationships(req.user.sub, false, offset);
     }),
   );
   app.post(
@@ -675,6 +694,8 @@ export async function registerProfessionalManagement(
       return { ok: true };
     }),
   );
+  app.get('/me/notifications', {preHandler:secure}, run((req, reply) => { reply.header('cache-control', 'private, no-store'); return service.notifications(req.user.sub); }));
+  app.patch('/me/notifications/:id/read', {preHandler:secure}, run(req => service.readNotification(req.user.sub, id(req))));
   app.get(
     "/me/professionals",
     { preHandler: secure },

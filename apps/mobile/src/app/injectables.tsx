@@ -1,10 +1,11 @@
+import { RetroactiveHealthModal } from '@/components/retroactive-health-modal';
 import { useAuth } from "@/auth/auth-context";
 import { InjectableForm } from "@/components/injectable-form";
 import { InformationModal } from "@/components/information-modal";
 import { CardShadow, Scrim, type AppPalette } from "@/constants/theme";
 import { confirmAction, showToast } from "@/components/app-dialog";
-import { ScreenHeader } from "@/components/screen-header";
-import { formatDate, formatRelativeDay, formatShortDate, localDate, parseLocalDate, shiftDate } from "@/utils/dates";
+import { FixedScreenHeader } from "@/components/screen-header";
+import { formatDate, formatRelativeDay, formatShortDate, localDate, parseLocalDate, shiftDate, withPeriod } from "@/utils/dates";
 import { useAppTheme } from "@/theme/theme-provider";
 import type {
   Injectable,
@@ -54,6 +55,7 @@ export default function InjectablesScreen() {
   const { colors: c } = useAppTheme();
   const s = styles(c);
   const { api } = useAuth();
+  const [retroactive, setRetroactive] = useState(false);
   const date = localDate();
   const [items, setItems] = useState<Injectable[]>([]);
   const [today, setToday] = useState<InjectableToday | null>(null);
@@ -151,7 +153,7 @@ export default function InjectablesScreen() {
   };
   return (
     <SafeAreaView style={s.safe} edges={["top"]}>
-      <ScrollView
+      <FixedScreenHeader backLabel="Saúde" /><ScrollView
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -163,7 +165,6 @@ export default function InjectablesScreen() {
         }
         contentContainerStyle={s.content}
       >
-        <ScreenHeader backLabel="Saúde" />
         <View style={s.header}>
           <View style={s.grow}>
             <Text accessibilityRole="header" style={s.heading}>
@@ -194,6 +195,7 @@ export default function InjectablesScreen() {
             <Text style={s.addText}>Cadastrar</Text>
           </Pressable>
         </View>
+        <Pressable accessibilityRole="button" onPress={()=>setRetroactive(true)} style={{minHeight:44,justifyContent:'center'}}><Text style={s.link}>Registrar em data anterior</Text></Pressable>
         <View style={s.safety}>
           <MaterialCommunityIcons
             name="medical-bag"
@@ -550,6 +552,7 @@ export default function InjectablesScreen() {
           onClose={() => setInfo(null)}
         />
       ) : null}
+    {retroactive ? <RetroactiveHealthModal kind="injectable" onClose={()=>setRetroactive(false)} onUpdated={load}/> : null}
     </SafeAreaView>
   );
 }
@@ -561,7 +564,7 @@ function chartSummary(item: Injectable, estimate: InjectableEstimate, maximum: n
   return [
     `${CHART_TITLE} de ${item.name} nos últimos 30 dias.`,
     `Hoje: cerca de ${amount(estimate.estimatedAmount)} ${unit}.`,
-    peak ? `Pico: ${amount(maximum)} ${unit} em ${formatShortDate(peak.at.slice(0, 10))}.` : "",
+    peak ? withPeriod(`Pico: ${amount(maximum)} ${unit} em ${formatShortDate(peak.at.slice(0, 10))}`) : "",
     next ? `Próxima aplicação prevista: ${formatRelativeDay(next).toLocaleLowerCase("pt-BR")}.` : "",
   ].filter(Boolean).join(" ");
 }

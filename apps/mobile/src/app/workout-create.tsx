@@ -1,9 +1,10 @@
+import { WorkoutPlanCover } from '@/components/workout-plan-cover';
 import { FormStickyFooter } from '@/components/form-sticky-footer';
 import { FormScrollView as ScrollView } from '@/components/form-scroll-view';
 import { FormInput as TextInput } from '@/components/form-input';
 import { useAppTheme } from '@/theme/theme-provider';
 import { Radius, Type, type AppPalette } from '@/constants/theme';
-import { createWorkoutPlanSchema, updateWorkoutPlanSchema, workoutExerciseInputSchema, type CatalogExercise, type SuggestedWorkoutPlan, type WorkoutExerciseInput, type WorkoutPlan } from '@fit/contracts';
+import { workoutCovers, type WorkoutCoverId, createWorkoutPlanSchema, updateWorkoutPlanSchema, type CatalogExercise, type SuggestedWorkoutPlan, type WorkoutExerciseInput, type WorkoutIllustrationId, type WorkoutPlan } from '@fit/contracts';
 import { ApiClientError } from '@fit/api-client';
 import { router, useLocalSearchParams, usePreventRemove } from 'expo-router';
 import { useCallback, useEffect, useRef, useState, type ComponentRef } from 'react';
@@ -16,6 +17,7 @@ import MaterialCommunityIcons from '@/components/icon';
 import { Image } from 'expo-image';
 import * as Crypto from 'expo-crypto';
 import { WorkoutExerciseCard } from '@/components/workout-exercise-card';
+import { WorkoutIllustrationPicker } from '@/components/workout-illustration-picker';
 import { PlanValidity } from '@/components/plan-validity';
 import { ScreenHeader } from '@/components/screen-header';
 import { confirmAction, showToast } from '@/components/app-dialog';
@@ -23,7 +25,7 @@ import { confirmLeave, useUnsavedChanges } from '@/utils/unsaved-changes';
 
 /** id: existing plan row (edit mode), kept so completed sessions keep pointing to it. */
 type DraftExercise = WorkoutExerciseInput & { draftId: string; id?: string };
-type Draft = { id?: string; name: string; exercises: DraftExercise[] };
+type Draft = { id?: string; name: string; illustrationId: WorkoutIllustrationId | null; exercises: DraftExercise[] };
 type Level = SuggestedWorkoutPlan['level'];
 const levelLabels: Record<Level, string> = { adaptation: 'Adaptação', beginner: 'Iniciante', intermediate: 'Intermediário' };
 const letter = (index: number) => String.fromCharCode(65 + index);
@@ -42,12 +44,12 @@ const formatReferences = (value: string) => {
   const items = value.split(';').map(part => referenceTerms.reduce((text, [pattern, replacement]) => text.replace(pattern, replacement), part).replace(/\s*\b(?:19|20)\d{2}\b/g, '').trim()).filter(Boolean);
   return items.length ? `Referências: ${[...new Set(items)].join(', ')}` : '';
 };
-const snapshotOf = (name: string, divisions: Draft[], validity: string) => JSON.stringify({ name, validity, divisions: divisions.map(division => ({ id: division.id ?? null, name: division.name, exercises: division.exercises.map(exercise => [exercise.id ?? null, exercise.name, exercise.catalogExerciseId ?? null, exercise.sets, exercise.reps, exercise.load ?? null, exercise.restSeconds ?? null, exercise.notes ?? null]) })) });
+const snapshotOf = (name: string, divisions: Draft[], validity: string, coverId: WorkoutCoverId | null = null) => JSON.stringify({ name, validity, coverId, divisions: divisions.map(division => ({ id: division.id ?? null, name: division.name, illustrationId: division.illustrationId, exercises: division.exercises.map(exercise => [exercise.id ?? null, exercise.name, exercise.catalogExerciseId ?? null, exercise.sets, exercise.reps, exercise.load ?? null, exercise.restSeconds ?? null, exercise.notes ?? null]) })) }, (_key, value) => typeof value === 'number' && !Number.isFinite(value) ? 'invalid-number' : value);
 const divisionLetters = (amount: number) => {
   const letters = Array.from({ length: amount }, (_, index) => String.fromCharCode(65 + index));
   return letters.length === 1 ? letters[0] : `${letters.slice(0, -1).join(', ')} e ${letters[letters.length - 1]}`;
 };
-const newDivision = (index: number): Draft => ({ name: `Treino ${String.fromCharCode(65 + index)}`, exercises: [] });
+const newDivision = (index: number): Draft => ({ name: `Treino ${String.fromCharCode(65 + index)}`, illustrationId: null, exercises: [] });
 const initialDivisions = () => [newDivision(0), newDivision(1)];
 const newExercise = (name: string, catalogExerciseId?: string): DraftExercise => ({ draftId: Crypto.randomUUID(), name, catalogExerciseId: catalogExerciseId ?? null, sets: 3, reps: '12', load: null, restSeconds: 60, notes: null });
 
@@ -75,6 +77,8 @@ export default function WorkoutCreate() {
   const [preview, setPreview] = useState<{ name: string; uri: string } | null>(null);
   const [suggestionsError, setSuggestionsError] = useState('');
   const [name, setName] = useState('');
+  const [coverId, setCoverId] = useState<WorkoutCoverId | null>(null);
+  const [sourceSuggestionId,setSourceSuggestionId] = useState<string|null>(null);
   const [validityDays, setValidityDays] = useState('30');
   const [divisions, setDivisions] = useState<Draft[]>(initialDivisions);
   const [initialSnapshot, setInitialSnapshot] = useState(() => snapshotOf('', initialDivisions(), '30'));
@@ -84,9 +88,8 @@ export default function WorkoutCreate() {
   const formRef = useRef<ComponentRef<typeof ScrollView>>(null);
   const divisionTop = useRef(0);
   useEffect(() => { tabsRef.current?.scrollTo({ x: active * 140, animated: true }); }, [active, divisions.length, flow]);
-  const [editing, setEditing] = useState<{ division: number; id: string; value: WorkoutExerciseInput } | null>(null);
+  const [editing, setEditing] = useState<{ division: number; id: string } | null>(null);
   const [exerciseError, setExerciseError] = useState('');
-  const [exerciseNotice, setExerciseNotice] = useState('');
   const [catalog, setCatalog] = useState<CatalogExercise[]>([]);
   const [catalogLoading, setCatalogLoading] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -120,10 +123,10 @@ export default function WorkoutCreate() {
     return api.getWorkoutPlan(editId).then(plan => {
       setOriginal(plan);
       if (plan.origin === 'professional') { setLoadState('readonly'); return; }
-      const drafts: Draft[] = plan.divisions.map(division => ({ id: division.id, name: division.name, exercises: division.exercises.map(exercise => ({ draftId: Crypto.randomUUID(), id: exercise.id, name: exercise.name, catalogExerciseId: exercise.catalogExerciseId ?? null, sets: exercise.sets, reps: exercise.reps, load: exercise.load ?? null, restSeconds: exercise.restSeconds ?? null, notes: exercise.notes ?? null })) }));
+      const drafts: Draft[] = plan.divisions.map(division => ({ id: division.id, name: division.name, illustrationId: division.illustrationId ?? null, exercises: division.exercises.map(exercise => ({ draftId: Crypto.randomUUID(), id: exercise.id, name: exercise.name, catalogExerciseId: exercise.catalogExerciseId ?? null, sets: exercise.sets, reps: exercise.reps, load: exercise.load ?? null, restSeconds: exercise.restSeconds ?? null, notes: exercise.notes ?? null })) }));
       setImages(previous => ({ ...previous, ...Object.fromEntries(plan.divisions.flatMap(division => division.exercises.filter(exercise => exercise.catalogExerciseId).map(exercise => [exercise.catalogExerciseId!, exercise.imageUrl]))) }));
-      setName(plan.name); setDivisions(drafts); setActive(0); setChangeValidity(false); setValidityDays('30');
-      setInitialSnapshot(snapshotOf(plan.name, drafts, 'keep'));
+      setCoverId(plan.coverId ?? null); setName(plan.name); setDivisions(drafts); setActive(0); setChangeValidity(false); setValidityDays('30');
+      setInitialSnapshot(snapshotOf(plan.name, drafts, 'keep', plan.coverId ?? null));
       setLoadState('ready');
     }).catch(() => setLoadState('error'));
   }, [api, editId]);
@@ -140,9 +143,9 @@ export default function WorkoutCreate() {
   const applySuggestion = (suggestion: SuggestedWorkoutPlan) => {
     const apply = () => {
       setImages(previous => ({ ...previous, ...Object.fromEntries(suggestion.divisions.flatMap(division => division.exercises.map(exercise => [exercise.catalogExerciseId, exercise.imageUrl]))) }));
-      setName(suggestion.name);
-      setDivisions(suggestion.divisions.map(division => ({ name: division.name, exercises: division.exercises.map(exercise => ({ draftId: Crypto.randomUUID(), name: exercise.name, catalogExerciseId: exercise.catalogExerciseId, sets: exercise.sets, reps: exercise.reps, load: null, restSeconds: exercise.restSeconds, notes: null })) })));
-      setEditing(null); setExerciseError(''); setExerciseNotice('');
+      setCoverId(suggestion.coverId ?? null); setName(suggestion.name); setSourceSuggestionId(suggestion.id);
+      setDivisions(suggestion.divisions.map(division => ({ name: division.name, illustrationId: null, exercises: division.exercises.map(exercise => ({ draftId: Crypto.randomUUID(), name: exercise.name, catalogExerciseId: exercise.catalogExerciseId, sets: exercise.sets, reps: exercise.reps, load: null, restSeconds: exercise.restSeconds, notes: null })) })));
+      setEditing(null); setExerciseError('');
       setActive(0); setCountOpen(false); setFlow('edit'); setSuggestionsOpen(false); setError(''); setFromLibrary(true);
     };
     if (dirty) { setSuggestionsOpen(false); ask('Substituir a configuração?', 'As alterações atuais serão substituídas pelo modelo escolhido.', 'Usar modelo', apply); }
@@ -154,7 +157,7 @@ export default function WorkoutCreate() {
   const completedDivisions = divisions.filter(division => division.exercises.length > 0).length;
   const filteredCatalog = catalog;
   const validityKey = editMode ? (changeValidity ? `change:${validityDays}` : 'keep') : validityDays;
-  const dirty = loadState === 'ready' && snapshotOf(name, divisions, validityKey) !== initialSnapshot;
+  const dirty = loadState === 'ready' && snapshotOf(name, divisions, validityKey, coverId) !== initialSnapshot;
   const levels = [...new Set(suggestions.map(item => item.level))];
   const goals = [...new Set(suggestions.map(item => item.goal))];
   const visibleSuggestions = suggestions.filter(item => (levelFilter === 'all' || item.level === levelFilter) && (goalFilter === 'all' || item.goal === goalFilter));
@@ -175,43 +178,26 @@ export default function WorkoutCreate() {
   const goBack = () => leave(() => { if (router.canGoBack()) router.back(); else router.replace('/'); });
   const goHome = async () => { if (!saveLock.current && await confirmLeave()) leave(() => router.dismissTo('/')); };
   const updateDivision = (index: number, change: Partial<Draft>) => { if (!saveLock.current) setDivisions((items) => items.map((item, itemIndex) => itemIndex === index ? { ...item, ...change } : item)); };
-  const editingOriginal = editing ? divisions[editing.division]?.exercises.find(exercise => exercise.draftId === editing.id) : null;
-  const exerciseDirty = editing != null && Object.entries(editing.value).some(([key, value]) => !Object.is(value, editingOriginal?.[key as keyof WorkoutExerciseInput]));
   const finishEditing = (action: () => void) => {
-    const finish = () => { Keyboard.dismiss(); setEditing(null); setExerciseError(''); action(); };
-    if (exerciseDirty) ask('Descartar edição do exercício?', 'Os ajustes deste exercício ainda não foram adicionados ao rascunho da ficha.', 'Descartar ajustes', finish);
-    else finish();
+    Keyboard.dismiss(); setEditing(null); setExerciseError(''); action();
   };
   const editExercise = (exercise: DraftExercise) => {
-    const open = () => {
-      const { draftId, id: _rowId, ...value } = exercise;
-      setEditing({ division: active, id: draftId, value });
-      setExerciseError(''); setExerciseNotice(''); setError('');
-    };
-    if (editing?.id === exercise.draftId) finishEditing(() => {});
-    else finishEditing(open);
+    setEditing(current => current?.id === exercise.draftId ? null : {division:active,id:exercise.draftId});
+    setExerciseError(''); setError('');
   };
-  const saveExercise = () => {
-    if (!editing || saveLock.current) return;
-    const parsed = workoutExerciseInputSchema.safeParse(editing.value);
-    if (!parsed.success) {
-      setExerciseError(exerciseIssues(parsed.error.issues.map(issue => issue.path[0] ?? '')));
-      return;
-    }
-    setDivisions(items => items.map((division, index) => index !== editing.division ? division : {
-      ...division, exercises: division.exercises.map(exercise => exercise.draftId !== editing.id ? exercise : { ...parsed.data, draftId: exercise.draftId, id: exercise.id }),
-    }));
-    Keyboard.dismiss(); setEditing(null); setExerciseError(''); setError('');
-    setExerciseNotice(`${parsed.data.name} atualizado no rascunho.`);
+  const changeExercise = (draftId: string, change: Partial<WorkoutExerciseInput>) => {
+    if (saveLock.current) return;
+    setDivisions(items => items.map(division => ({...division,exercises:division.exercises.map(exercise => exercise.draftId === draftId ? {...exercise,...change} : exercise)})));
+    setExerciseError(''); setError('');
   };
   const removeExercise = (exercise: DraftExercise) => ask('Remover exercício?', editMode && exercise.id ? `${exercise.name} sairá deste treino ao salvar. Treinos já realizados continuam no histórico.` : `${exercise.name} será removido deste treino.`, 'Remover exercício', () => {
     updateDivision(active, { exercises: current.exercises.filter(item => item.draftId !== exercise.draftId) });
-    setEditing(null); setExerciseError(''); setExerciseNotice(''); Keyboard.dismiss();
+    setEditing(null); setExerciseError(''); Keyboard.dismiss();
   });
   const changeDivisionCount = (amount: number) => {
     if (saveLock.current) return;
     const apply = () => { setCountOpen(false); setDivisions((items) => amount > items.length ? [...items, ...Array.from({ length: amount - items.length }, (_, index) => newDivision(items.length + index))] : items.slice(0, amount)); setActive((value) => Math.min(value, amount - 1)); };
-    const removedHaveData = amount < divisions.length && divisions.slice(amount).some((division, index) => division.exercises.length > 0 || division.name !== newDivision(amount + index).name);
+    const removedHaveData = amount < divisions.length && divisions.slice(amount).some((division, index) => division.exercises.length > 0 || division.illustrationId !== null || division.name !== newDivision(amount + index).name);
     if (removedHaveData) ask('Remover treinos?', `Os nomes e exercícios dos treinos removidos serão descartados. Os demais treinos serão mantidos.${editMode ? ' Treinos já realizados continuam no histórico.' : ''}`, 'Remover treinos', apply); else apply();
   };
   const sameExercise = (exercise: WorkoutExerciseInput, name: string, id?: string) =>
@@ -265,19 +251,19 @@ export default function WorkoutCreate() {
       const message = exerciseIssues(fields);
       setError(`Treino ${letter(divisionIndex)} · ${exercise?.name ?? `exercício ${exerciseIndex + 1}`}: ${message.charAt(0).toLocaleLowerCase('pt-BR')}${message.slice(1)}`);
       toDivision(divisionIndex);
-      if (exercise) { const { draftId, id: _rowId, ...value } = exercise; setEditing({ division: divisionIndex, id: draftId, value }); setExerciseError(message); }
+      if (exercise) { setEditing({ division: divisionIndex, id: exercise.draftId }); setExerciseError(message); }
       return;
     }
     const count = divisions[divisionIndex]?.exercises.length ?? 0;
     setError(count ? `O ${label} pode ter até 50 exercícios.` : `Adicione pelo menos um exercício ao ${label}.`); toDivision(divisionIndex);
   };
   const save = async () => {
-    if (saveLock.current || editing) return;
-    const divisionPayload = divisions.map((division) => ({ ...(division.id ? { id: division.id } : {}), name: division.name.trim(), exercises: division.exercises.map(({ draftId: _draftId, id, ...exercise }) => (editMode && id ? { id, ...exercise } : exercise)) }));
+    if (saveLock.current) return;
+    const divisionPayload = divisions.map((division) => ({ ...(division.id ? { id: division.id } : {}), name: division.name.trim(), illustrationId: division.illustrationId, exercises: division.exercises.map(({ draftId: _draftId, id, ...exercise }) => (editMode && id ? { id, ...exercise } : exercise)) }));
     const validity = validityDays.trim() ? Number(validityDays) : null;
     const parsed = editMode
-      ? updateWorkoutPlanSchema.safeParse({ name: name.trim(), ...(changeValidity ? { validityDays: validity } : {}), divisions: divisionPayload })
-      : createWorkoutPlanSchema.safeParse({ validityDays: validity, name: name.trim(), divisions: divisionPayload });
+      ? updateWorkoutPlanSchema.safeParse({ coverId, name: name.trim(), ...(changeValidity ? { validityDays: validity } : {}), divisions: divisionPayload })
+      : createWorkoutPlanSchema.safeParse({ coverId, ...(sourceSuggestionId ? {sourceSuggestionId} : {}), validityDays: validity, name: name.trim(), divisions: divisionPayload });
     if (!parsed.success) { showSaveIssue(parsed.error.issues); return; }
     saveLock.current = true; Keyboard.dismiss(); setBusy(true); setError('');
     try {
@@ -318,6 +304,11 @@ export default function WorkoutCreate() {
 
         <View style={styles.card}>
           <View style={styles.sectionHeading}><MaterialCommunityIcons name="clipboard-text-outline" size={21} color={c.link}/><Text accessibilityRole="header" style={styles.cardTitle}>Sobre a ficha</Text></View>
+          <View style={styles.section}><Text style={styles.label}>Imagem da ficha</Text><Text style={styles.helper}>Escolha uma capa para identificar sua ficha.</Text>
+            <PlainScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }} accessibilityRole="radiogroup" accessibilityLabel="Imagem da ficha">
+              {workoutCovers.map(cover => <Pressable key={cover.id} accessibilityRole="radio" accessibilityLabel={cover.name} aria-checked={coverId === cover.id} disabled={busy} onPress={() => setCoverId(cover.id)} style={{ width: 160, padding: 6, gap: 6, borderRadius: Radius.lg, borderWidth: 2, borderColor: coverId === cover.id ? c.primary : c.border }}><WorkoutPlanCover coverId={cover.id}/><Text style={styles.label}>{cover.name}</Text></Pressable>)}
+            </PlainScrollView>
+          </View>
           <View style={styles.section}><Text style={styles.label}>Nome da ficha</Text><TextInput keyboardAppearance={scheme} placeholderTextColor={c.textMuted} accessibilityLabel="Nome da ficha" maxLength={80} value={name} onChangeText={(value) => { if (!saveLock.current) { setName(value); setError(''); } }} placeholder="Ex.: Hipertrofia 4x por semana" style={styles.input} /></View>
           <View style={styles.section}><Text style={styles.label}>Validade</Text>
             {editMode && !changeValidity ? <View style={styles.validityRow}>{original ? <View style={styles.flex}><PlanValidity plan={original} /></View> : null}<Pressable accessibilityRole="button" accessibilityLabel="Alterar validade da ficha" disabled={busy} onPress={() => { setChangeValidity(true); setError(''); }} style={styles.inlineButton}><Text style={styles.link}>Alterar validade</Text></Pressable></View> : <>
@@ -343,36 +334,35 @@ export default function WorkoutCreate() {
           <Text accessibilityRole="header" style={styles.cardTitle}>Escolha o treino para editar</Text>
           <Text style={styles.helper}>{divisions.length === 1 ? 'Adicione e configure os exercícios do seu treino.' : 'Escolha um treino abaixo para adicionar e ajustar seus exercícios.'}</Text>
           <ScrollView ref={tabsRef} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabs}>
-            <View accessibilityRole="tablist" accessibilityLabel="Treinos da ficha" style={styles.tabs}>{divisions.map((division, index) => <Pressable key={index} accessibilityRole="tab" accessibilityLabel={`Treino ${String.fromCharCode(65 + index)}`} accessibilityHint={`${division.name}. ${division.exercises.length} exercícios.`} aria-selected={active === index} aria-disabled={busy} disabled={busy} onPress={() => { if (index !== active) finishEditing(() => { setActive(index); setExerciseNotice(''); setError(''); }); }} style={[styles.tab, active === index && styles.tabActive]}><View style={styles.tabHeading}><Text style={[styles.tabLabel, active === index && styles.tabLabelActive]}>Treino {String.fromCharCode(65 + index)}</Text>{active === index ? <MaterialCommunityIcons name="check" size={16} color={c.white}/> : null}</View><Text style={[styles.tabCount, active === index && styles.tabCountActive]}>{division.exercises.length === 0 ? 'Sem exercícios' : `${division.exercises.length} ${division.exercises.length === 1 ? 'exercício' : 'exercícios'}`}</Text></Pressable>)}</View>
+            <View accessibilityRole="tablist" accessibilityLabel="Treinos da ficha" style={styles.tabs}>{divisions.map((division, index) => <Pressable key={index} accessibilityRole="tab" accessibilityLabel={`Treino ${String.fromCharCode(65 + index)}`} accessibilityHint={`${division.name}. ${division.exercises.length} exercícios.`} aria-selected={active === index} aria-disabled={busy} disabled={busy} onPress={() => { if (index !== active) finishEditing(() => { setActive(index); setError(''); }); }} style={[styles.tab, active === index && styles.tabActive]}><View style={styles.tabHeading}><Text style={[styles.tabLabel, active === index && styles.tabLabelActive]}>Treino {String.fromCharCode(65 + index)}</Text>{active === index ? <MaterialCommunityIcons name="check" size={16} color={c.white}/> : null}</View><Text style={[styles.tabCount, active === index && styles.tabCountActive]}>{division.exercises.length === 0 ? 'Sem exercícios' : `${division.exercises.length} ${division.exercises.length === 1 ? 'exercício' : 'exercícios'}`}</Text></Pressable>)}</View>
           </ScrollView>
         </View>
 
         <View style={styles.card}>
           <View style={styles.divisionHeading}><Text accessibilityRole="header" style={styles.divisionTitle}>Treino {String.fromCharCode(65 + active)}</Text><Text style={styles.divisionPosition}>{active + 1} de {divisions.length}</Text></View>
           <View style={styles.section}><Text style={styles.label}>Nome deste treino</Text><TextInput keyboardAppearance={scheme} placeholderTextColor={c.textMuted} accessibilityLabel={`Nome do treino ${String.fromCharCode(65 + active)}`} maxLength={80} value={current.name} onChangeText={(value) => { updateDivision(active, { name: value }); setError(''); }} placeholder="Ex.: Peito e tríceps" style={styles.input} /></View>
+          <WorkoutIllustrationPicker value={current.illustrationId} label={letter(active)} disabled={busy} onChange={illustrationId => updateDivision(active, { illustrationId })}/>
           <View style={styles.exerciseHeading}><View style={styles.exerciseHeadingCopy}><Text style={styles.cardTitle}>Exercícios</Text>{current.exercises.length ? <Text style={styles.helper}>Toque para expandir e ajustar.</Text> : null}</View>{current.exercises.length ? <Pressable accessibilityRole="button" accessibilityLabel={`Adicionar exercícios ao treino ${String.fromCharCode(65 + active)}`} onPress={() => finishEditing(openExercisePicker)} style={styles.addButton}><Text style={styles.addButtonText}>+ Adicionar</Text></Pressable> : null}</View>
           {!current.exercises.length ? <View style={styles.empty}><MaterialCommunityIcons name="dumbbell" size={30} color={c.link}/><Text style={styles.emptyTitle}>O que vamos treinar?</Text><Text style={[styles.helper, styles.centered]}>Escolha exercícios do catálogo ou adicione os seus.</Text><Pressable accessibilityRole="button" accessibilityLabel={`Adicionar exercícios ao treino ${String.fromCharCode(65 + active)}`} onPress={() => finishEditing(openExercisePicker)} style={styles.emptyAction}><MaterialCommunityIcons name="plus" size={20} color={c.white}/><Text style={styles.primaryText}>Adicionar exercícios</Text></Pressable></View> : null}
-          {exerciseNotice ? <Text accessibilityLiveRegion="polite" style={styles.helper}>{exerciseNotice}</Text> : null}
           {current.exercises.map((exercise, index) => <WorkoutExerciseCard key={exercise.draftId}
             exercise={exercise} index={index} count={current.exercises.length}
             imageUrl={exercise.catalogExerciseId ? images[exercise.catalogExerciseId] : null}
-            draft={editing?.id === exercise.draftId ? editing.value : null}
+            draft={editing?.id === exercise.draftId ? exercise : null}
             error={editing?.id === exercise.draftId ? exerciseError : ''}
             onToggle={() => editExercise(exercise)}
-            onChange={change => { setEditing(value => value ? { ...value, value: { ...value.value, ...change } } : null); setExerciseError(''); }}
-            onSave={saveExercise} onCancel={() => finishEditing(() => {})}
+            onChange={change => changeExercise(exercise.draftId, change)}
             onMove={direction => moveExercise(index, direction)} onRemove={() => removeExercise(exercise)}
             onPreview={uri => setPreview({ name: exercise.name, uri })}/>) }
         </View>
         {!editMode && !fromLibrary ? <Pressable accessibilityRole="button" onPress={openSuggestions} style={styles.suggestionsButton}><MaterialCommunityIcons name="bookshelf" size={19} color={c.link}/><Text style={styles.suggestionsButtonText}>Prefiro começar com um modelo pronto</Text></Pressable> : null}
-      </ScrollView><FormStickyFooter onLayout={event => setSaveFooterHeight(event.nativeEvent.layout.height)}><View style={styles.saveFooter}><View style={styles.footerSummary}><Text accessibilityLiveRegion="polite" style={styles.footerProgress}>{completedDivisions} de {divisions.length} {divisions.length === 1 ? 'treino com exercícios' : 'treinos com exercícios'}</Text><Text style={styles.helper}>{totalExercises} {totalExercises === 1 ? 'exercício' : 'exercícios'}</Text></View>{editing ? <Text accessibilityLiveRegion="polite" style={styles.helper}>Salve ou cancele a edição do exercício antes de salvar a ficha.</Text> : null}{error ? <Text accessibilityRole="alert" style={styles.alertText}>{error}</Text> : null}<Pressable accessibilityRole="button" aria-busy={busy} aria-disabled={busy || editing != null} disabled={busy || editing != null} onPress={save} style={[styles.primary, (busy || editing != null) && styles.busy]}>{busy ? <ActivityIndicator color={c.onPrimary} /> : <Text style={styles.primaryText}>{editMode ? 'Salvar alterações' : 'Salvar ficha'}</Text>}</Pressable>
+      </ScrollView><FormStickyFooter onLayout={event => setSaveFooterHeight(event.nativeEvent.layout.height)}><View style={styles.saveFooter}><View style={styles.footerSummary}><Text accessibilityLiveRegion="polite" style={styles.footerProgress}>{completedDivisions} de {divisions.length} {divisions.length === 1 ? 'treino com exercícios' : 'treinos com exercícios'}</Text><Text style={styles.helper}>{totalExercises} {totalExercises === 1 ? 'exercício' : 'exercícios'}</Text></View><Text style={styles.helper}>Os ajustes dos exercícios serão salvos junto com a ficha.</Text>{error ? <Text accessibilityRole="alert" style={styles.alertText}>{error}</Text> : null}<Pressable accessibilityRole="button" aria-busy={busy} aria-disabled={busy} disabled={busy} onPress={save} style={[styles.primary, busy && styles.busy]}>{busy ? <ActivityIndicator color={c.onPrimary} /> : <Text style={styles.primaryText}>{editMode ? 'Salvar alterações' : 'Salvar ficha'}</Text>}</Pressable>
       </View></FormStickyFooter></>}
     </View>
 
     <Modal visible={pickerOpen} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setPickerOpen(false)}>
       <SafeAreaView style={styles.modalSafe}><View style={styles.safe}><View style={styles.modalHeader}><View style={styles.modalHeading}><Text accessibilityRole="header" style={styles.modalTitle}>Selecionar exercícios</Text><Text style={styles.helper} numberOfLines={1}>Treino {letter(active)} · {current.name}</Text></View><Pressable accessibilityRole="button" accessibilityLabel="Cancelar seleção de exercícios" onPress={() => setPickerOpen(false)} style={styles.closeButton}><Text style={styles.close}>Cancelar</Text></Pressable></View>
         <FlatList renderScrollComponent={props => <ScrollView {...props} bottomOffset={pickerFooterHeight + 16} />} data={catalogLoading ? [] : filteredCatalog} extraData={[current.exercises, pendingExercises]} keyExtractor={(item) => item.id} keyboardShouldPersistTaps="handled" contentContainerStyle={styles.modalContent} initialNumToRender={12} maxToRenderPerBatch={16} windowSize={7}
-          ListHeaderComponent={<View style={styles.catalogHeader}><Text style={styles.label}>Buscar no catálogo</Text><TextInput keyboardAppearance={scheme} placeholderTextColor={c.textMuted} value={search} onChangeText={(value) => { setCatalogLoading(true); setSearch(value); }} accessibilityLabel="Buscar no catálogo" placeholder="Ex.: agachamento, rosca ou puxada" style={styles.searchInput} /><Text style={styles.sectionHint}>{search.trim() ? 'Resultados pelo nome' : 'Exercícios mais usados'}</Text><Text style={styles.helper}>Digite para encontrar outros exercícios. Marque e confirme para configurar todos em uma lista.</Text><View accessibilityLiveRegion="polite" style={styles.selectionStatus}><View style={styles.selectionIcon}><MaterialCommunityIcons name="check" size={14} color={c.onPrimary}/></View><Text style={styles.selectionStatusText}>{pendingExercises.length ? `${pendingExercises.length} ${pendingExercises.length === 1 ? 'exercício selecionado' : 'exercícios selecionados'}` : 'Selecione os exercícios desejados'}</Text></View>{pickerError ? <Text accessibilityRole="alert" style={styles.alertText}>{pickerError}</Text> : null}</View>}
+          ListHeaderComponent={<View style={styles.catalogHeader}><Text style={styles.label}>Buscar no catálogo</Text><TextInput keyboardAppearance={scheme} placeholderTextColor={c.textMuted} value={search} onChangeText={(value) => { setCatalogLoading(true); setSearch(value); }} accessibilityLabel="Buscar no catálogo" placeholder="Ex.: bíceps, rosca ou halteres" style={styles.searchInput} /><Text style={styles.sectionHint}>{search.trim() ? 'Resultados por nome, músculo ou equipamento' : 'Exercícios mais usados'}</Text><Text style={styles.helper}>Digite para encontrar outros exercícios. Marque e confirme para configurar todos em uma lista.</Text><View accessibilityLiveRegion="polite" style={styles.selectionStatus}><View style={styles.selectionIcon}><MaterialCommunityIcons name="check" size={14} color={c.onPrimary}/></View><Text style={styles.selectionStatusText}>{pendingExercises.length ? `${pendingExercises.length} ${pendingExercises.length === 1 ? 'exercício selecionado' : 'exercícios selecionados'}` : 'Selecione os exercícios desejados'}</Text></View>{pickerError ? <Text accessibilityRole="alert" style={styles.alertText}>{pickerError}</Text> : null}</View>}
           ListEmptyComponent={catalogLoading ? <ActivityIndicator color={c.link} style={styles.catalogLoading} /> : <Text style={styles.noResults}>Nenhum exercício encontrado.</Text>}
           renderItem={({ item }) => { const added = current.exercises.some((exercise) => sameExercise(exercise, item.name, item.id)); const checked = added || pendingExercises.some((exercise) => sameExercise(exercise, item.name, item.id)); return <Pressable accessibilityRole="checkbox" accessibilityLabel={item.name} aria-checked={checked} aria-disabled={added} disabled={added} onPress={() => toggleExercise(item.name, item.id)} style={[styles.catalogRow, checked && styles.selectedRow, added && styles.busy]}>{item.imageUrl ? <View><Image source={{uri:item.imageUrl}} contentFit="cover" transition={150} style={styles.catalogImage} /><View style={[styles.imageCheck, checked && styles.checkedIcon]}>{checked ? <MaterialCommunityIcons name="check" size={13} color={c.onPrimary}/> : null}</View></View> : <View style={[styles.catalogIcon, checked && styles.checkedIcon]}>{checked ? <MaterialCommunityIcons name="check" size={18} color={c.onPrimary}/> : null}</View>}<View style={styles.catalogCopy}><Text style={styles.catalogName}>{item.name}{added ? ' (já adicionado)' : ''}</Text>{item.primaryMuscle || item.equipment ? <Text style={styles.catalogMeta}>{[item.primaryMuscle, item.equipment].filter(Boolean).join(' · ')}</Text> : null}</View></Pressable>; }}
           ListFooterComponent={<View style={styles.catalogFooter}><View style={styles.divider}><View style={styles.line} /><Text style={styles.dividerText}>OU</Text><View style={styles.line} /></View><Text style={styles.label}>Exercício personalizado</Text><TextInput keyboardAppearance={scheme} placeholderTextColor={c.textMuted} maxLength={100} value={manualName} onChangeText={setManualName} onSubmitEditing={addManualExercise} accessibilityLabel="Nome do exercício personalizado" placeholder="Ex.: Remada unilateral no cabo" style={styles.searchInput} /><Pressable accessibilityRole="button" disabled={manualName.trim().length < 2} onPress={addManualExercise} style={[styles.manualButton, manualName.trim().length < 2 && styles.busy]}><Text style={styles.primaryText}>Selecionar personalizado</Text></Pressable>{pendingExercises.filter((exercise) => !exercise.catalogExerciseId).map((exercise) => <Pressable key={exercise.name} accessibilityRole="checkbox" accessibilityLabel={exercise.name} aria-checked={true} onPress={() => toggleExercise(exercise.name)} style={[styles.catalogRow, styles.selectedRow]}><View style={[styles.catalogIcon, styles.checkedIcon]}><MaterialCommunityIcons name="check" size={18} color={c.onPrimary}/></View><Text style={styles.catalogName}>{exercise.name}</Text></Pressable>)}</View>}
@@ -390,7 +380,7 @@ export default function WorkoutCreate() {
       </View>
       <Text accessibilityLiveRegion="polite" style={styles.helper}>{visibleSuggestions.length} {visibleSuggestions.length === 1 ? 'modelo' : 'modelos'}</Text>
       {!visibleSuggestions.length ? <View style={styles.empty}><Text style={styles.emptyTitle}>Nenhum modelo com esses filtros</Text><Pressable accessibilityRole="button" onPress={() => { setLevelFilter('all'); setGoalFilter('all'); }} style={styles.inlineButton}><Text style={styles.link}>Limpar filtros</Text></Pressable></View> : null}
-      {visibleSuggestions.map(suggestion => { const level = levelLabels[suggestion.level]; const repeatsLevel = suggestion.name.toLocaleLowerCase('pt-BR').includes(level.toLocaleLowerCase('pt-BR')); const references = formatReferences(suggestion.reference); return <Pressable accessibilityRole="button" accessibilityHint="Usa este modelo como ponto de partida da ficha" key={suggestion.id} onPress={() => applySuggestion(suggestion)} style={styles.suggestionCard}><Text style={styles.suggestionTitle}>{suggestion.name}</Text><Text style={styles.suggestionGoal}>{repeatsLevel ? suggestion.goal : `${suggestion.goal} · ${level.toLocaleLowerCase('pt-BR')}`}</Text><Text style={styles.helper}>{suggestion.description}</Text><Text style={styles.suggestionMeta}>{suggestion.divisions.length} {suggestion.divisions.length === 1 ? 'treino' : 'treinos'} ({suggestion.divisions.map((_, index) => letter(index)).join(', ')}){references ? ` · ${references}` : ''}</Text></Pressable>; })}
+      {visibleSuggestions.map(suggestion => { const level = levelLabels[suggestion.level]; const repeatsLevel = suggestion.name.toLocaleLowerCase('pt-BR').includes(level.toLocaleLowerCase('pt-BR')); const references = formatReferences(suggestion.reference); return <Pressable accessibilityRole="button" accessibilityHint="Usa este modelo como ponto de partida da ficha" key={suggestion.id} onPress={() => applySuggestion(suggestion)} style={styles.suggestionCard}><WorkoutPlanCover coverId={suggestion.coverId}/><Text style={styles.suggestionTitle}>{suggestion.name}</Text><Text style={styles.suggestionGoal}>{repeatsLevel ? suggestion.goal : `${suggestion.goal} · ${level.toLocaleLowerCase('pt-BR')}`}</Text><Text style={styles.helper}>{suggestion.description}</Text><Text style={styles.suggestionMeta}>{suggestion.divisions.length} {suggestion.divisions.length === 1 ? 'treino' : 'treinos'} ({suggestion.divisions.map((_, index) => letter(index)).join(', ')}){references ? ` · ${references}` : ''}</Text></Pressable>; })}
     </>}</ScrollView></SafeAreaView></Modal>
     <Modal visible={personalOpen} animationType="slide" onRequestClose={() => setPersonalOpen(false)}><SafeAreaView style={styles.modalSafe}><ScrollView contentContainerStyle={styles.content}><Pressable accessibilityRole="button" accessibilityLabel="Fechar fichas do personal" onPress={() => setPersonalOpen(false)} style={styles.modalBack}><MaterialCommunityIcons name="chevron-left" size={26} color={c.link}/><Text style={styles.link}>Nova ficha</Text></Pressable><ProfessionalPlans kind="workout"/><Pressable accessibilityRole="button" onPress={() => { setPersonalOpen(false); router.push({pathname:'/workouts',params:{section:'plans'}}); }} style={styles.primary}><Text style={styles.primaryText}>Ver minhas fichas</Text></Pressable></ScrollView></SafeAreaView></Modal>
     <Modal visible={!!preview} transparent animationType="fade" onRequestClose={() => setPreview(null)}><SafeAreaView style={{flex:1,backgroundColor:c.background,padding:20,gap:16}}><Pressable accessibilityRole="button" accessibilityLabel="Fechar imagem" onPress={() => setPreview(null)} style={styles.modalBack}><MaterialCommunityIcons name="close" size={22} color={c.link}/><Text style={styles.link}>Fechar imagem</Text></Pressable><Text style={styles.cardTitle}>{preview?.name}</Text>{preview ? <Image source={{uri:preview.uri}} contentFit="contain" style={{flex:1}} accessibilityLabel={`Imagem ampliada de ${preview.name}`}/> : null}</SafeAreaView></Modal>

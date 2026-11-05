@@ -20,7 +20,6 @@ const stars = (n, seed, y1 = 200) => Array.from({ length: n }, (_, i) => { const
 
 // Pictogramas de pessoas: traço grosso arredondado, sem traços faciais.
 const runner = (x, y, s, c) => `<g transform="translate(${x} ${y}) scale(${s})"><circle cx="52" cy="-150" r="20" fill="${c}"/><g ${stroke(c, 22)}><path d="M40 -118L22 -46"/><path d="M38 -110L72 -84L100 -100"/><path d="M38 -110L6 -92L-14 -62"/><path d="M22 -46L56 -16L44 34"/><path d="M22 -46L-6 -8L-46 -18"/></g></g>`;
-const lifter = (x, y, s, c, bar) => `<g transform="translate(${x} ${y}) scale(${s})"><circle cx="0" cy="-158" r="20" fill="${c}"/><g ${stroke(c, 22)}><path d="M0 -126V-50"/><path d="M0 -118L-40 -150L-44 -200"/><path d="M0 -118L40 -150L44 -200"/><path d="M0 -50L-34 -6L-30 40"/><path d="M0 -50L34 -6L30 40"/></g><path d="M-120 -204H120" ${stroke(bar, 12)}/><rect x="-128" y="-238" width="22" height="68" rx="8" fill="${bar}"/><rect x="106" y="-238" width="22" height="68" rx="8" fill="${bar}"/></g>`;
 const meditate = (x, y, s, c) => `<g transform="translate(${x} ${y}) scale(${s})"><circle cx="0" cy="-150" r="21" fill="${c}"/><g ${stroke(c, 22)}><path d="M0 -118V-46"/><path d="M0 -108C-26 -96 -44 -70 -50 -40"/><path d="M0 -108C26 -96 44 -70 50 -40"/><path d="M-78 -18C-40 -38 40 -38 78 -18"/></g><circle cx="-52" cy="-38" r="9" fill="${c}"/><circle cx="52" cy="-38" r="9" fill="${c}"/></g>`;
 const person = (x, y, s, c) => `<g transform="translate(${x} ${y}) scale(${s})"><circle cx="0" cy="-92" r="30" fill="${c}"/><path d="M-56 0C-56 -38 -30 -54 0 -54S56 -38 56 0Z" fill="${c}"/></g>`;
 
@@ -33,13 +32,12 @@ const scenes = {
     <path d="M520 430C700 395 900 400 ${W} 420V${H}H520Z" fill="#F3E3C3"/><path d="M0 470C300 430 600 445 ${W} 470V${H}H0Z" fill="#0E7490" opacity=".9"/>
     ${runner(900, 452, .78, '#16404B')}<rect width="${W}" height="${H}" fill="url(#veil)"/>`,
   // Fitness: pista em direção às montanhas e pessoa levantando a barra.
-  workout: `<defs>${sky('s', [[0, '#0B3F52'], [.55, '#0E7490'], [1, '#5BD4E4']])}${glow('g', '#67E8F9', .7)}${veil(.75)}</defs>
-    <rect width="${W}" height="${H}" fill="url(#s)"/><circle cx="880" cy="250" r="280" fill="url(#g)"/><circle cx="880" cy="250" r="70" fill="#D7F6FA" opacity=".9"/>
-    <path d="M0 330L180 230L330 300L520 170L720 300L880 210L1050 290L${W} 240V${H}H0Z" fill="#0F5F73"/>
-    <path d="M0 380L240 310L460 360L700 290L960 350L${W} 320V${H}H0Z" fill="#14808F"/>
-    <path d="M300 ${H}C560 430 760 400 ${W} 395V${H}Z" fill="#14B8A6" opacity=".85"/>
-    <g ${stroke('#D7F6FA', 4)} opacity=".6"><path d="M420 ${H}C640 450 860 425 ${W} 420"/><path d="M560 ${H}C740 470 940 450 ${W} 448"/></g>
-    ${lifter(900, 470, .82, '#0B2A35', '#0B2A35')}${pulse(60, 120, 1.3, '#67E8F9', 5, .35)}<rect width="${W}" height="${H}" fill="url(#veil)"/>`,
+  workout: `<defs>${sky('s', [[0, '#102D3A'], [1, '#07596C']])}${glow('g', '#2DD4BF', .35)}${veil(.6)}<linearGradient id="metal" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#D1FAF5"/><stop offset=".5" stop-color="#55B9BA"/><stop offset="1" stop-color="#147589"/></linearGradient></defs>
+    <rect width="${W}" height="${H}" fill="url(#s)"/><circle cx="1030" cy="80" r="430" fill="url(#g)"/>
+    <g fill="none" stroke="#67E8F9" opacity=".1" stroke-width="2"><circle cx="1010" cy="260" r="210"/><circle cx="1010" cy="260" r="250"/><path d="M620 0L1200 520M770 0L1200 370"/></g>
+    <g transform="translate(940 285) rotate(-28)"><ellipse cy="135" rx="210" ry="24" fill="#071D29" opacity=".35"/><rect x="-190" y="-16" width="380" height="32" rx="16" fill="url(#metal)"/>
+    <g fill="#123746" stroke="#5DB8BA" stroke-width="3"><rect x="-165" y="-94" width="48" height="188" rx="16"/><rect x="-115" y="-72" width="32" height="144" rx="10"/><rect x="117" y="-94" width="48" height="188" rx="16"/><rect x="83" y="-72" width="32" height="144" rx="10"/></g><path d="M-150 -74V68M132 -74V68" stroke="#A6ECE0" stroke-width="5" opacity=".6"/></g>
+    <rect width="${W}" height="${H}" fill="url(#veil)"/>`,
   // Mente: lago calmo ao anoitecer, lua e pessoa meditando.
   mind: `<defs>${sky('s', [[0, '#132A45'], [.55, '#2B5C7E'], [1, '#7CC9D8']])}${glow('g', '#B9E9F1', .6)}${veil(.65)}</defs>
     <rect width="${W}" height="${H}" fill="url(#s)"/>${stars(46, 3)}<circle cx="920" cy="150" r="190" fill="url(#g)"/><circle cx="920" cy="150" r="52" fill="#EAF6F9"/>
@@ -74,9 +72,10 @@ const scenes = {
     ${person(800, 460, 1.15, '#0B2A35')}${person(980, 460, 1.15, '#0B2A35')}${person(890, 480, 1.35, '#16404B')}
     <rect width="${W}" height="${H}" fill="url(#veil)"/>`,
   // Fundo discreto do cartão de meta semanal (Início): só textura, para não competir com os dados.
-  pulse: `<defs>${sky('s', [[0, '#16404B'], [1, '#0B5B6E']])}${glow('g', '#14B8A6', .45)}</defs>
-    <rect width="${W}" height="${H}" fill="url(#s)"/><circle cx="1080" cy="40" r="360" fill="url(#g)"/>
-    ${pulse(820, 80, 1.15, '#67E8F9', 5, .1)}${wave(430, 14, '#14B8A6', .14)}${wave(470, 12, '#67E8F9', .08, 1)}`,
+  pulse: `<defs>${sky('s', [[0, '#102D3A'], [1, '#07596C']])}${glow('g', '#2DD4BF', .3)}</defs>
+    <rect width="${W}" height="${H}" fill="url(#s)"/><circle cx="1170" cy="30" r="500" fill="url(#g)"/>
+    <g fill="none" stroke="#73DAD4" opacity=".1" stroke-width="2"><circle cx="1250" cy="330" r="280"/><circle cx="1250" cy="330" r="320"/><circle cx="1250" cy="330" r="360"/></g>
+    <path d="M700 520L1200 20M820 520L1200 140" stroke="#67E8F9" stroke-width="2" opacity=".07"/>`,
 };
 
 // Cada saída recorta a cena (viewBox) no formato do lugar onde é usada e exporta já na resolução de tela 3x,
@@ -86,11 +85,13 @@ const exports = [
   { name: 'pulse-tall', scene: 'pulse', crop: [W - H * .8, 0, H * .8, H], width: 1080 },
   { name: 'workout-square', scene: 'workout', crop: [W - H * 1.15, 0, H * 1.15, H], width: 1200 },
 ];
+const shouldExport = scene => !process.argv.includes('--fitness-only') || ['workout', 'pulse'].includes(scene);
+const selectedExports = exports.filter(({ scene }) => shouldExport(scene));
 await mkdir(out, { recursive: true }); await mkdir(src, { recursive: true });
-for (const [name, body] of Object.entries(scenes)) await writeFile(fileURLToPath(new URL(`${name}.svg`, src)), `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">${body}</svg>`);
-for (const { name, scene, crop, width } of exports) {
+for (const [name, body] of Object.entries(scenes).filter(([name]) => shouldExport(name))) await writeFile(fileURLToPath(new URL(`${name}.svg`, src)), `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">${body}</svg>`);
+for (const { name, scene, crop, width } of selectedExports) {
   const height = Math.round(width * crop[3] / crop[2]);
   const svg = Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="${crop.join(' ')}" width="${width}" height="${height}" preserveAspectRatio="xMaxYMid slice">${scenes[scene]}</svg>`);
   await sharp(svg).webp({ quality: 90, smartSubsample: true }).toFile(fileURLToPath(new URL(`${name}.webp`, out)));
 }
-console.log(`Cenas geradas: ${exports.map(item => item.name).join(', ')}.`);
+console.log(`Cenas geradas: ${selectedExports.map(item => item.name).join(', ')}.`);

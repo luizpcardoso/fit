@@ -9,3 +9,15 @@ test('contratos profissionais rejeitam escalada de papel, conteúdo inválido e 
  assert.equal(portalAssignmentInputSchema.safeParse({contentId:randomUUID(),relationshipId:randomUUID(),mode:'manage',requestId:randomUUID(),replaceId:randomUUID(),replaceWorkoutPlanId:randomUUID()}).success,false);
  assert.equal(portalContentInputSchema.safeParse({kind:'workout',scope:'private',name:'Ficha',data:{validityDays:30,divisions:[]}}).success,false);
 });
+
+
+test('listas do portal validam paginação limitada e escopo sem aceitar propriedade enviada pelo cliente', async () => {
+ const {portalListQuerySchema,portalContentListQuerySchema}=await import('@fit/contracts');
+ assert.deepEqual(portalListQuerySchema.parse({}),{offset:0});
+ assert.equal(portalListQuerySchema.parse({offset:'200'}).offset,200);
+ for(const offset of [-1,1.5,'abc',1000001]) assert.equal(portalListQuerySchema.safeParse({offset}).success,false);
+ assert.equal(portalListQuerySchema.safeParse({offset:0,professionalId:randomUUID()}).success,false);
+ assert.equal(portalContentListQuerySchema.safeParse({kind:'workout',scope:'private',offset:'200'}).success,true);
+ assert.equal(portalContentListQuerySchema.safeParse({kind:'workout',scope:'other'}).success,false);
+ assert.equal(portalContentListQuerySchema.safeParse({kind:'workout',ownerId:randomUUID()}).success,false);
+});

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { mealCategorySchema } from "./meal-category.js";
 import type { PortalContentInput } from "./portal-content.js";
 export const MAX_DIET_OPTIONS = 3;
 export function dietOptionName(mealName: string, index: number) {
@@ -31,6 +32,8 @@ export type DietView = {
   dailyRange: { min: DietMacros; max: DietMacros };
 };
 export const dietMealInputSchema = z.strictObject({
+  name: z.string().trim().min(2).max(120).optional(),
+  category: mealCategorySchema.nullable().optional(),
   assignmentId: z.uuid(),
   mealIndex: z.number().int().min(0).max(11),
   optionIndex: z.number().int().min(0).max(MAX_DIET_OPTIONS - 1),

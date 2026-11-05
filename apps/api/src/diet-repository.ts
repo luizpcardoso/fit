@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { QueryTypes, type Sequelize } from "sequelize";
+import { QueryTypes, type Sequelize, type Transaction } from "sequelize";
 import {
   dietMacros,
   dietMealOptions,
@@ -67,8 +67,9 @@ export class DietRepository {
   async record(
     userId: string,
     input: DietMealInput,
+    external?: Transaction,
   ): Promise<{ id: string } | "missing" | "invalid" | "conflict"> {
-    return this.db.transaction(async (transaction) => {
+    const work = async (transaction: Transaction): Promise<{id:string}|"missing"|"invalid"|"conflict"> => {
       await this.db.query("SELECT id FROM users WHERE id=? FOR UPDATE", {
         replacements: [userId],
         type: QueryTypes.SELECT,
@@ -114,12 +115,13 @@ export class DietRepository {
       )
         return "invalid";
       await this.db.query(
-        "INSERT INTO meals (id,user_id,name,meal_date,meal_time,mode,calories,protein,carbs,fat,fiber,diet_assignment_id,diet_meal_index,diet_option_index,diet_request_id,created_at,updated_at) VALUES (?,?,?,?,?,'items',?,?,?,?,NULL,?,?,?,?,UTC_TIMESTAMP(),UTC_TIMESTAMP())",
+        "INSERT INTO meals (id,user_id,name,category,meal_date,meal_time,mode,calories,protein,carbs,fat,fiber,diet_assignment_id,diet_meal_index,diet_option_index,diet_request_id,created_at,updated_at) VALUES (?,?,?,?,?,?,'items',?,?,?,?,NULL,?,?,?,?,UTC_TIMESTAMP(),UTC_TIMESTAMP())",
         {
           replacements: [
             id,
             userId,
-            meal.name,
+            input.name ?? meal.name,
+            input.category ?? null,
             input.date,
             input.time,
             totals.calories,
@@ -156,6 +158,7 @@ export class DietRepository {
         );
       }
       return { id };
-    });
+    };
+    return external ? work(external) : this.db.transaction(work);
   }
 }

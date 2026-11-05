@@ -1,3 +1,4 @@
+import { analytics } from "./analytics.js";
 import { managementNav, activation } from "./management.js";
 const root = document.querySelector<HTMLDivElement>("#app")!;
 let accessToken = "";
@@ -116,13 +117,16 @@ async function dashboard() {
   document.querySelector<HTMLButtonElement>("#logout")!.onclick = () => {
     void logout();
   };
-  managementNav(access, () => {
-    void dashboard();
-  });
+  managementNav(access, professionalTypes);
   if (access.role !== "admin") {
     document.querySelector<HTMLButtonElement>("nav button")?.click();
     return;
   }
+  await analytics();
+}
+async function professionalTypes() {
+  document.querySelector("header h1")!.textContent = "Tipos profissionais";
+  document.querySelector("header .muted")!.textContent = "Defina as áreas de atuação e as capacidades de cada perfil.";
   document.querySelector("#content")!.innerHTML =
     `<div class="summary-grid"><article class="metric-card"><span class="metric-icon fitness">◇</span><div><small>Organização</small><strong>Perfis por especialidade</strong></div></article><article class="metric-card"><span class="metric-icon nutrition">○</span><div><small>Segurança</small><strong>Acesso por permissão</strong></div></article><article class="metric-card"><span class="metric-icon health">+</span><div><small>Privacidade</small><strong>Consentimento do aluno</strong></div></article></div><div class="grid"><section class="card"><div class="section-heading"><div><p class="section-kicker">Novo cadastro</p><h2>Novo tipo profissional</h2></div></div><p class="muted">Defina um perfil e escolha exatamente quais áreas ele poderá acessar.</p><form id="type-form"><label for="name">Nome do tipo</label><input id="name" required minlength="2" maxlength="80" placeholder="Ex.: Personal trainer"><div id="capabilities"></div><button>Salvar tipo</button></form></section><section class="card"><div class="section-heading"><div><p class="section-kicker">Equipe</p><h2>Perfis cadastrados</h2></div></div><div id="types" aria-live="polite" class="stack-list">Carregando…</div></section></div>`;
   const fields = document.querySelector("#capabilities")!;

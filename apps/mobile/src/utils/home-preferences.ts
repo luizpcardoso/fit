@@ -6,9 +6,9 @@ import { Platform } from 'react-native';
  * Device-local display preferences for Início (like the theme): they change only what is
  * shown on this device and never leave it.
  */
-export type HomePreferences = { showEnergyBalance: boolean };
+export type HomePreferences = { showEnergyBalance: boolean; showShortcuts: boolean };
 const key = 'fit.home.preferences';
-const defaults: HomePreferences = { showEnergyBalance: true };
+const defaults: HomePreferences = { showEnergyBalance: true, showShortcuts: true };
 let current: HomePreferences = defaults;
 let loaded = false;
 const listeners = new Set<() => void>();
@@ -18,7 +18,7 @@ async function read(): Promise<HomePreferences> {
   try {
     const raw = Platform.OS === 'web' ? globalThis.localStorage?.getItem(key) : await SecureStore.getItemAsync(key);
     const value = raw ? JSON.parse(raw) as Partial<HomePreferences> : {};
-    return { showEnergyBalance: typeof value.showEnergyBalance === 'boolean' ? value.showEnergyBalance : defaults.showEnergyBalance };
+    return { showEnergyBalance: typeof value.showEnergyBalance === 'boolean' ? value.showEnergyBalance : defaults.showEnergyBalance, showShortcuts: typeof value.showShortcuts === 'boolean' ? value.showShortcuts : defaults.showShortcuts };
   } catch { return defaults; }
 }
 function ensureLoaded() {

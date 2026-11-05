@@ -3,7 +3,7 @@ import { FormInput as TextInput } from '@/components/form-input';
 import { useAuth } from "@/auth/auth-context";
 import { showToast } from '@/components/app-dialog';
 import { ProfileAvatar } from '@/components/profile-avatar';
-import { ScreenHeader } from '@/components/screen-header';
+import { FixedScreenHeader } from '@/components/screen-header';
 import { Radius, Type, type AppPalette } from "@/constants/theme";
 import { useAppTheme } from "@/theme/theme-provider";
 import {
@@ -132,9 +132,8 @@ export default function ProfileDetails() {
     }
   };
   return (
-    <SafeAreaView style={s.safe} edges={["top"]}>
-      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.content}>
-        <ScreenHeader backLabel="Início" showHome={false} />
+    <SafeAreaView style={s.safe} edges={["top", "bottom"]}>
+      <FixedScreenHeader backLabel="Início" showHome={false} /><ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.content}>
         <View>
           <Text accessibilityRole="header" style={s.title}>Editar perfil</Text>
           <Text style={s.help}>Nome, foto e @usuário aparecem para os grupos. Os demais dados são privados.</Text>
@@ -168,17 +167,19 @@ export default function ProfileDetails() {
         </Section>
 
         <Section title="Sobre você" subtitle="Opcional e privado." icon="account-details-outline" s={s}>
-          <Choice label="Gênero" value={gender} values={options.gender} onChange={setGender} s={s} />
+          <Choice label="Gênero" hint="Como você se identifica. É diferente da base para estimativas acima e não muda nenhum cálculo." value={gender} values={options.gender} onChange={setGender} s={s} />
           <Choice label="Nível de atividade" value={activity} values={options.activity} onChange={setActivity} s={s} stacked />
           <Choice label="Objetivo principal" value={goal} values={options.goal} onChange={setGoal} s={s} />
         </Section>
 
+      </ScrollView>
+      <View style={s.footer}>
         {errors.form ? <Text accessibilityRole="alert" style={s.error}>{errors.form}</Text> : null}
         {Object.keys(errors).some(key => key !== 'form') ? <Text accessibilityRole="alert" style={s.error}>Revise os campos destacados.</Text> : null}
         <Pressable accessibilityRole="button" aria-disabled={busy} aria-busy={busy} disabled={busy} onPress={() => void save()} style={[s.save, busy && s.disabled]}>
           {busy ? <ActivityIndicator color={c.onPrimary} /> : <Text style={s.saveText}>Salvar perfil</Text>}
         </Pressable>
-      </ScrollView>
+      </View>
     </SafeAreaView>
   );
 }
@@ -226,6 +227,7 @@ function Choice<T extends string>({ label, hint, value, values, onChange, s, sta
 const styles = (c: AppPalette) =>
   StyleSheet.create({
     safe: { flex: 1, backgroundColor: c.background },
+    footer: { borderTopWidth: 1, borderTopColor: c.border, backgroundColor: c.surface, paddingHorizontal: 16, paddingVertical: 12, gap: 8 },
     content: { padding: 20, paddingBottom: 50, gap: 20, maxWidth: 720, width: "100%", alignSelf: "center" },
     title: { ...Type.display, fontWeight: "800", color: c.text },
     help: { ...Type.label, color: c.textMuted, marginTop: 4 },

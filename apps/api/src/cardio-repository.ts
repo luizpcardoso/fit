@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { QueryTypes, type Sequelize } from 'sequelize';
-import type { CardioActivity, CardioIntensity, CardioSession, CardioSessionInput } from '@fit/contracts';
+import { pageWindow, type CardioActivity, type CardioIntensity, type CardioSession, type CardioSessionInput, type Page, type PageQuery } from '@fit/contracts';
 
 export const cardioMetValues: Record<CardioActivity, Record<CardioIntensity, number>> = {
   walking: { light: 2.8, moderate: 3.8, intense: 4.8 },
@@ -34,6 +34,16 @@ export class CardioRepository {
   async list(userId: string, date: string) {
     const rows = await this.db.query<CardioRow>(`SELECT ${columns} FROM cardio_sessions WHERE user_id=? AND session_date=? ORDER BY created_at DESC,id DESC`, { replacements: [userId, date], type: QueryTypes.SELECT });
     return rows.map(mapCardio);
+  }
+
+  /** Every recorded session, newest first, for the cardio history. */
+  async page(userId: string, query: PageQuery): Promise<Page<CardioSession>> {
+    return this.db.transaction(async transaction => {
+      const [count] = await this.db.query<{ total: number }>('SELECT COUNT(*) total FROM cardio_sessions WHERE user_id=?', { replacements: [userId], type: QueryTypes.SELECT, transaction });
+      const { offset, ...page } = pageWindow(Number(count.total), query);
+      const rows = await this.db.query<CardioRow>(`SELECT ${columns} FROM cardio_sessions WHERE user_id=? ORDER BY session_date DESC,created_at DESC,id DESC LIMIT ? OFFSET ?`, { replacements: [userId, page.pageSize, offset], type: QueryTypes.SELECT, transaction });
+      return { ...page, items: rows.map(mapCardio) };
+    });
   }
 
   async create(userId: string, input: CardioSessionInput) {

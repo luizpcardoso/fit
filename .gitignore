@@ -22,3 +22,6 @@ artifacts/ux-review/
 
 /artifacts/ota/
 /deploy/data/updates/
+/artifacts/exercise-image-backups/
+/artifacts/release-*/
+apps/mobile/artifacts/

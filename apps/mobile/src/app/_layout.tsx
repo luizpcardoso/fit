@@ -57,6 +57,7 @@ function Navigation() {
           <Stack.Screen name="my-professionals" />
           <Stack.Screen name="feedback" />
           <Stack.Screen name="blocked-users" />
+          <Stack.Screen name="groups" />
           <Stack.Screen name="social-groups" />
           <Stack.Screen name="social-settings" />
           <Stack.Screen name="group-detail" />

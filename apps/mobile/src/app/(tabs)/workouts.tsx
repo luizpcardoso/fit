@@ -1,5 +1,4 @@
 import { WorkoutPlanCover } from '@/components/workout-plan-cover';
-import { ActiveWorkoutBanner } from '@/components/active-workout-banner';
 import { useAuth } from '@/auth/auth-context';
 import { PlanValidity } from '@/components/plan-validity';
 import { CardShadow, Radius, Type, type AppPalette } from '@/constants/theme';
@@ -50,7 +49,6 @@ export default function WorkoutsScreen(){
     {section!=='overview'?<ScreenHeader backLabel="Fitness" showHome={false} onBack={()=>selectSection('overview')}/>:null}
     <View style={s.header}><View style={s.headerTitle}><Text accessibilityRole="header" style={s.title}>{section==='overview'?'Fitness':section==='plans'?'Fichas':section==='training'?'Histórico':'Cardio'}</Text><Text style={s.subtitle}>{section==='overview'?'Fichas, histórico e cardio em um só lugar':section==='plans'?'Crie e organize suas fichas de treino':section==='training'?'Treinos realizados e correções':'Registre tempo, intensidade e gasto calórico'}</Text></View>{section==='plans'&&!plansEmpty&&!showArchived?<Pressable accessibilityRole="button" onPress={()=>router.push('/workout-create')} style={s.primarySmall}><MaterialCommunityIcons name="plus" size={18} color={c.onPrimary}/><Text style={s.primaryText}>Nova ficha</Text></Pressable>:null}</View>
 
-    <ActiveWorkoutBanner/>
     {section==='overview'&&!loading&&!error?(activePlan?<View style={[s.activePanel,CardShadow]}><WorkoutPlanCover coverId={activePlan.coverId}/>
       <View style={s.activeBadge}><View style={s.liveDot}/><Text style={s.activeBadgeText}>Ficha ativa</Text></View>
       <Text accessibilityRole="header" numberOfLines={2} style={s.activeTitle}>{activePlan.name}</Text>

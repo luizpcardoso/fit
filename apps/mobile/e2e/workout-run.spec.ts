@@ -58,7 +58,7 @@ for (const theme of ['light', 'dark']) test(`Home mantém treino ativo e permite
   await expect(page.getByLabel('1 de 3 séries concluídas', { exact: true })).toBeVisible();
   await expect(page.getByLabel(/Tempo total do treino/).first()).toBeVisible();
   await page.goto('/');
-  const banner = page.getByTestId('active-workout-banner');
+  const banner = page.getByTestId('workout-mini-player');
   await expect(banner).toBeInViewport();
   await expect(banner).toContainText('Treino A em andamento');
   await expect(banner).toContainText('1 de 5 séries');

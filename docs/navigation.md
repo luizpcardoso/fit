@@ -1,16 +1,20 @@
 # Navegação e hubs
 
-O menu inferior mantém cinco destinos estáveis: Fitness, Social, Início, Nutrição e Saúde. O Início permanece central e visualmente destacado. A interface usa "Início" (não "Home").
+A navegação principal é uma dock flutuante (`components/navigation-dock.tsx`) com quatro destinos: Início, Fitness, Nutrição e Saúde. O Início vem primeiro. Ao lado da pílula, um botão circular **+** abre a folha Registrar (`QuickRegisterSheet`) a partir de qualquer aba. A regra é que a pílula leva a destinos e o + dispara ações. A interface usa "Início" (não "Home").
 
-A barra inferior participa do layout e reserva sua altura fora da área rolável das cinco abas; não fica sobreposta ao conteúdo. As abas usam apenas o espaçamento normal no fim da lista, sem uma compensação fixa para a barra. No Android, a barra incorpora o `bottom inset` da área segura. Assim, ícones e rótulos permanecem acima da navegação do sistema, inclusive nos aparelhos configurados com os três botões, enquanto o fundo da barra ocupa a área até a borda da tela.
+O item ativo vira uma pílula preenchida com ícone e nome, com animação de largura que respeita "reduzir movimento". Os demais mostram só o ícone, mas mantêm o nome como rótulo acessível (`role="tab"`, `aria-selected`). Enquanto houver treino aberto, ou resultado salvo aguardando sincronização, um mini-player (`components/workout-mini-player.tsx`) aparece acima da dock em todas as abas e leva de volta à execução. Ele substitui o antigo banner dentro das telas. A dock some com o teclado aberto.
 
-O botão Voltar do Android, quando usado em qualquer destino principal da barra inferior, retorna primeiro para o Início. Somente quando o Início já está aberto um novo Voltar pode encerrar o aplicativo. Telas de detalhe, formulários e outros fluxos empilhados preservam a navegação para a tela anterior.
+A dock participa do layout e reserva sua altura fora da área rolável das abas, sem ficar sobreposta ao conteúdo. O fundo é o da página, para a pílula parecer flutuante. A dock incorpora o `bottom inset` da área segura, então os ícones ficam acima da navegação do sistema, inclusive em aparelhos com três botões. Em telas largas, ela fica centralizada com no máximo 480 px.
+
+Social não é uma aba. O feed único dos grupos fica em `/groups`, na pilha raiz, e é aberto pelo botão de grupos no cabeçalho do Início, que exibe o contador de posts não lidos. A tela tem "‹ Início" no topo. O avatar do Início abre o menu da conta. O antigo botão de menu ("hambúrguer") foi removido.
+
+O botão Voltar do Android, quando usado em qualquer destino da dock, retorna primeiro para o Início. Somente quando o Início já está aberto um novo Voltar pode encerrar o aplicativo. Telas de detalhe, formulários e outros fluxos empilhados preservam a navegação para a tela anterior.
 
 Telas abertas fora das abas usam o cabeçalho padrão `ScreenHeader` (`apps/mobile/src/components/screen-header.tsx`): à esquerda, Voltar com o nome do destino (por exemplo, "Fichas" ou "Saúde"); à direita, ações da tela e um atalho para o Início. O antigo botão flutuante foi removido porque cobria o conteúdo do topo. Telas com dados ainda não salvos registram `useUnsavedChanges`; Voltar e Início pedem confirmação somente quando há algo a perder.
 
 Confirmações, avisos e erros usam `showDialog`/`confirmAction` e o retorno rápido `showToast` (`components/app-dialog.tsx`). `Alert.alert` não deve ser usado: no React Native Web ele não faz nada, e ações como arquivar ou excluir deixariam de funcionar no navegador.
 
-O menu do Início (ícone no topo) reúne Editar perfil, Meus profissionais, Configurações, Feedback e Sair da conta. Sair pede confirmação.
+O menu da conta (avatar no topo do Início) reúne Editar perfil, Meus profissionais, Configurações, Feedback e Sair da conta. Sair pede confirmação.
 
 As funcionalidades secundárias ficam organizadas dentro de hubs:
 
@@ -22,11 +26,11 @@ No hub Saúde, cada card abre uma tela dedicada. Medicamentos e Suplementos não
 
 Mente abre o MVP privado de bem-estar emocional, com check-in diário, diário, visão semanal, lembrete opcional e caminhos de apoio. A área não oferece diagnósticos nem compartilha registros com grupos.
 
-A Home oferece até quatro atalhos editáveis, privados e sincronizados com a conta. No topo, o resumo "Hoje" agrega os horários de medicamentos e suplementos, aplicações previstas, check-in da mente quando habilitado, com treino contado separadamente na meta semanal. Ele mostra o progresso dos checks e abre uma lista completa com acesso direto a cada registro. A ação Registrar ocupa um espaço secundário e abre uma folha inferior com as ações frequentes.
+A Home oferece até quatro atalhos editáveis, privados e sincronizados com a conta. No topo, o resumo "Hoje" agrega os horários de medicamentos e suplementos, aplicações previstas, check-in da mente quando habilitado, com treino contado separadamente na meta semanal. Ele mostra o progresso dos checks e abre uma lista completa com acesso direto a cada registro. A ação Registrar não fica mais no Início: é o + global da dock.
 
-O card Fitness da Home resume o planejamento semanal sem competir com as atividades do dia. Treino e cardio ficam reunidos nele: o usuário pode iniciar um treino, adicionar cardio ou abrir sua gestão completa. O menu inferior representa destinos; a folha e os atalhos representam ações.
+O card Fitness da Home resume o planejamento semanal sem competir com as atividades do dia. Treino e cardio ficam reunidos nele: o usuário pode iniciar um treino, adicionar cardio ou abrir sua gestão completa. A dock representa destinos; o +, a folha Registrar e os atalhos representam ações.
 
-Essa hierarquia segue a orientação de manter poucas seções principais no menu inferior, preservar sua posição e expor categorias secundárias em telas internas. Em telas maiores, a mesma lista de destinos pode futuramente adaptar-se para uma barra lateral.
+Essa hierarquia segue a orientação de manter poucas seções principais na navegação inferior (quatro), preservar sua posição e expor categorias secundárias em telas internas. A separação entre destinos e uma ação primária segue apps como Strava, Google Fit e o padrão de abas com ação separada do iOS 26. Em telas maiores, a mesma lista de destinos pode futuramente adaptar-se para uma barra lateral.
 
 Referências:
 
@@ -46,7 +50,7 @@ Em Configurações → Tela inicial, ou pelo botão Ocultar do próprio card, a 
 
 Enquanto a meta semanal não é configurada, o card Fitness não mostra um alvo presumido (antes aparecia "0/3"). Ele convida a definir a meta e informa os treinos já realizados na semana. Sem ficha ativa, a ação principal passa de Treinar para Criar ficha.
 
-Social abre o feed único dos grupos; Meus grupos, convites e preferências ficam acessíveis a partir do feed. Detalhes em `docs/groups.md`.
+O botão Social do Início abre o feed único dos grupos; Meus grupos, convites e preferências ficam acessíveis a partir do feed. Detalhes em `docs/groups.md`.
 
 Telas longas (execução e detalhes de treino, Alimentação, Mente, Corpo e medidas, Suplementos/Medicamentos, Perfil, Configurações e outras) usam `FixedScreenHeader`, que mantém voltar e Início visíveis durante a rolagem. Subseções de Fitness (Fichas, Histórico, Cardio) usam o mesmo voltar nomeado “‹ Fitness”, sem o botão Início porque já estão numa aba.
 

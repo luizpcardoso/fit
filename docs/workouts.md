@@ -29,7 +29,7 @@ A ficha guarda um snapshot da imagem do exercício no momento em que é criada. 
 
 ## Navegação
 
-O menu inferior possui Fitness, Social (grupos), Início, Nutrição e Saúde. Fitness reúne Fichas, Histórico (treinos realizados) e Cardio. O topo de Fitness mostra o estado real antes da grade de áreas: com ficha ativa, um card com nome, próximo treino (o seguinte ao último realizado, A → B → C → A) e o botão “Treinar”, que abre a confirmação do treino, priorizando o planejado para hoje; sem ficha ativa, um aviso para escolher uma; sem fichas, o estado vazio com “Criar ficha”. Em Fichas, “Nova ficha” no cabeçalho só aparece quando o estado vazio (que já tem “Criar ficha”) não está visível, e “Fichas arquivadas” só aparece quando há fichas arquivadas.
+A dock inferior possui Início, Fitness, Nutrição e Saúde, além do + Registrar (ver `docs/navigation.md`). Fitness reúne Fichas, Histórico (treinos realizados) e Cardio. O topo de Fitness mostra o estado real antes da grade de áreas: com ficha ativa, um card com nome, próximo treino (o seguinte ao último realizado, A → B → C → A) e o botão “Treinar”, que abre a confirmação do treino, priorizando o planejado para hoje; sem ficha ativa, um aviso para escolher uma; sem fichas, o estado vazio com “Criar ficha”. Em Fichas, “Nova ficha” no cabeçalho só aparece quando o estado vazio (que já tem “Criar ficha”) não está visível, e “Fichas arquivadas” só aparece quando há fichas arquivadas.
 
 As cinco abas principais ficam no grupo `(tabs)`. Criação de ficha, detalhes e edição de sessão são telas do Stack raiz, protegidas pela sessão; não são abas ocultas. Isso permite abrir esses fluxos e voltar à tela anterior.
 

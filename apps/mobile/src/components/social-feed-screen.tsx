@@ -302,6 +302,7 @@ export default function SocialFeedScreen({ groupId: id }: { groupId?: string }) 
   return (
     <SafeAreaView style={s.safe} edges={["top"]}>
       {unified ? <View style={s.socialHeader}>
+        <ScreenHeader backLabel="Início" showHome={false}/>
         <View style={s.socialHeading}><View style={s.flex}><Text accessibilityRole="header" style={s.socialTitle}>Social</Text><Text style={s.headerMeta}>Conexões que fazem bem</Text></View>
           <Pressable accessibilityRole="button" accessibilityLabel="Notificações do Social" onPress={()=>router.push('/group-notifications')} style={s.headerIcon}><MaterialCommunityIcons name="bell-outline" size={24} color={c.text}/></Pressable>
           <Pressable accessibilityRole="button" accessibilityLabel="Configurações do Social" onPress={()=>router.push('/social-settings')} style={s.headerIcon}><MaterialCommunityIcons name="tune-variant" size={24} color={c.text}/></Pressable>
@@ -337,7 +338,7 @@ export default function SocialFeedScreen({ groupId: id }: { groupId?: string }) 
             tintColor={c.primary}
           />
         }
-        contentContainerStyle={[s.content, unified && {paddingBottom:24}]}
+        contentContainerStyle={[s.content, unified && {paddingBottom:24 + insets.bottom}]}
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={<View style={{gap:14}}>{unified ? <View style={s.feedIntro}>
           <Pressable accessibilityRole="button" accessibilityLabel="Criar publicação" onPress={()=>router.push('/group-post')} style={s.composerPrompt}><View style={s.userAvatar}><Text style={s.userInitial}>{(user?.displayName||user?.firstName||'V').slice(0,1).toUpperCase()}</Text></View><Text style={s.promptText}>O que você quer compartilhar?</Text><MaterialCommunityIcons name="image-plus-outline" size={24} color={c.link}/></Pressable>
@@ -924,7 +925,7 @@ function CommentsModal({
 
 const styles = (c: AppPalette) =>
   StyleSheet.create({
-    socialHeader:{paddingHorizontal:20,paddingTop:10,paddingBottom:12,gap:16,backgroundColor:c.surface,borderBottomWidth:1,borderBottomColor:c.border},
+    socialHeader:{paddingHorizontal:20,paddingTop:4,paddingBottom:12,gap:16,backgroundColor:c.surface,borderBottomWidth:1,borderBottomColor:c.border},
     socialHeading:{flexDirection:'row',alignItems:'center',gap:8,maxWidth:720,width:'100%',alignSelf:'center'},
     socialTitle:{fontSize:30,fontWeight:'800',letterSpacing:-1,color:c.text},
     socialNavigation:{flexDirection:'row',gap:10,maxWidth:720,width:'100%',alignSelf:'center'},

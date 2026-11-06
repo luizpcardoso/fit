@@ -1,9 +1,9 @@
 import { showToast } from '@/components/app-dialog';
-import { ActiveWorkoutBanner } from '@/components/active-workout-banner';
 import { useWorkoutRun } from '@/components/workout-run-provider';
 import { isWorkoutRunOpen } from '@fit/contracts';
 import Constants from 'expo-constants';
 import {useGroupUpdates} from '@/components/group-updates-provider';
+import {GroupUpdatesBadge} from '@/components/group-updates-badge';
 import { HomeNutrition } from '@/components/home-nutrition';
 import { useAppTheme } from "@/theme/theme-provider";
 import { Scrim, Type, type AppPalette } from "@/constants/theme";
@@ -39,7 +39,7 @@ import {
 } from "@/hooks/use-health-routine";
 import { WorkoutGoalForm } from "@/components/workout-goal-form";
 import { CardioSection } from "@/components/cardio-section";
-import { HomeShortcuts, QuickRegisterSheet } from "@/components/home-shortcuts";
+import { HomeShortcuts } from "@/components/home-shortcuts";
 import { useInjectablesToday } from "@/hooks/use-injectables-today";
 import { InjectablesTodayModal } from "@/components/injectables-today-modal";
 import { useHomePreferences } from "@/utils/home-preferences";
@@ -90,10 +90,10 @@ export default function HomeScreen() {
   const [notificationError, setNotificationError] = useState(false);
   const [groups, setGroups] = useState<GroupSummary[]>([]);
   const groupDashboard=useGroupUpdates();
+  const postsUnseen=groupDashboard.postsUnseen??0;
   const [activeGroupId, setActiveGroupId] = useState("");
   const [groupPickerOpen, setGroupPickerOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [quickRegisterOpen, setQuickRegisterOpen] = useState(false);
   const [activitiesOpen, setActivitiesOpenState] = useState(false);
   const setActivitiesOpen = (open: boolean) => {
     setActivitiesOpenState(open);
@@ -299,7 +299,6 @@ export default function HomeScreen() {
   return (
     <View style={s.root}>
       <SafeAreaView style={s.safe} edges={["top"]}>
-        <ActiveWorkoutBanner containerStyle={s.workoutDock}/>
         <ScrollView
           testID="home-scroll"
           contentContainerStyle={s.content}
@@ -308,8 +307,9 @@ export default function HomeScreen() {
           <View style={s.header}>
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Editar perfil"
-              onPress={() => router.push("/profile-details")}
+              accessibilityLabel="Abrir menu"
+              accessibilityHint="Perfil, profissionais, configurações e sair da conta"
+              onPress={() => setMenuOpen(true)}
               style={s.avatar}
             >
               {user?.avatarUrl?<Image source={{uri:user.avatarUrl}} style={{width:48,height:48,borderRadius: 20}}/>:<Text style={s.avatarText}>
@@ -323,17 +323,13 @@ export default function HomeScreen() {
               </Text>
               <Text style={s.subtitle}>Vamos cuidar da sua rotina hoje?</Text>
             </View>
+            <Pressable accessibilityRole="button" accessibilityLabel={postsUnseen > 0 ? `Social, ${postsUnseen} ${postsUnseen === 1 ? 'post não lido' : 'posts não lidos'}` : 'Social'} onPress={() => router.push('/groups')} style={s.menuButton}>
+              <MaterialCommunityIcons name="account-group-outline" size={25} color={c.link}/>
+              <GroupUpdatesBadge count={postsUnseen} focused={false}/>
+            </Pressable>
             <Pressable accessibilityRole="button" accessibilityLabel={`Notificações, ${professionalUnread + groupDashboard.notificationsUnread} não lidas${notificationError ? ', atualização indisponível' : ''}`} onPress={() => router.push('/group-notifications')} style={s.menuButton}>
               <MaterialCommunityIcons name="bell-outline" size={25} color={c.link}/>
               {professionalUnread + groupDashboard.notificationsUnread > 0 ? <View style={{position:'absolute',right:0,top:0,minWidth:18,height:18,borderRadius:9,backgroundColor:c.danger,alignItems:'center',justifyContent:'center'}}><Text style={{color:c.onPrimary,fontSize:10,fontWeight:'800'}}>{professionalUnread + groupDashboard.notificationsUnread > 99 ? '99+' : professionalUnread + groupDashboard.notificationsUnread}</Text></View> : notificationError ? <Text style={{color:c.warning,position:'absolute',right:0,top:0}}>!</Text> : null}
-            </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Abrir menu"
-              onPress={() => setMenuOpen(true)}
-              style={s.menuButton}
-            >
-              <MaterialCommunityIcons name="menu" size={25} color={c.link} />
             </Pressable>
           </View>
 
@@ -378,18 +374,6 @@ export default function HomeScreen() {
                     ? `Próxima: ${nextActivity.title}`
                     : "Tudo concluído por hoje ✓"}
               </Text>
-            </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Registrar: treino, refeição, cardio e mais"
-              onPress={() => setQuickRegisterOpen(true)}
-              style={[s.quickRegisterCompact, CardShadow]}
-            >
-              <View style={s.quickRegisterIcon}>
-                <MaterialCommunityIcons name="plus" size={22} color={c.onPrimary} />
-              </View>
-              <Text style={s.quickRegisterTitle}>Registrar</Text>
-              <Text numberOfLines={2} style={s.quickRegisterText}>Treino e refeição</Text>
             </Pressable>
           </View>
 
@@ -811,10 +795,6 @@ export default function HomeScreen() {
             onSave={saveGoal}
           />
         ) : null}
-        <QuickRegisterSheet
-          visible={quickRegisterOpen}
-          onClose={() => setQuickRegisterOpen(false)}
-        />
         <Modal
           transparent
           visible={menuOpen}
@@ -901,7 +881,6 @@ const createStyles = (c: AppPalette, scheme: "light" | "dark") =>
   StyleSheet.create({
     root: { flex: 1, backgroundColor: c.background },
     safe: { flex: 1 },
-    workoutDock: { width: '100%', maxWidth: 680, alignSelf: 'center', paddingHorizontal: 20, paddingTop: 12, paddingBottom: 8 },
     content: {
       paddingHorizontal: 20,
       paddingTop: 18,
@@ -1152,27 +1131,6 @@ const createStyles = (c: AppPalette, scheme: "light" | "dark") =>
     },
     todayFill: { height: "100%", borderRadius: 4, backgroundColor: c.success },
     todayNext: { fontSize: 12, color: c.textMuted },
-    quickRegisterCompact: {
-      width: 99,
-      backgroundColor: c.surface,
-      borderWidth: 1,
-      borderColor: c.border,
-      borderRadius: 20,
-      padding: 11,
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    quickRegisterIcon: {
-      width: 38,
-      height: 38,
-      borderRadius: 16,
-      backgroundColor: c.primary,
-      alignItems: "center",
-      justifyContent: "center",
-      marginBottom: 5,
-    },
-    quickRegisterTitle: { fontSize: 12, fontWeight: "800", color: c.text },
-    quickRegisterText: { fontSize: 12, color: c.textMuted, marginTop: 1, textAlign: "center" },
     communityCard: {
       backgroundColor: c.surface,
       borderRadius: 24,

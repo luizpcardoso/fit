@@ -46,9 +46,9 @@ O Android 14 permite dispensar notificações ongoing; a restauração trata ess
 
 Testes Android do módulo: `./gradlew :fit-daily-summary:testDebugUnitTest` (com o SDK e a configuração local de assinatura de desenvolvimento exigida pelo projeto). Cobrem restauração, desligamento, eventos atrasados, atualização sem duplicação, expiração e bloqueio de notificações.
 
-## Indicador na aba Grupos
+## Indicador de posts no Início
 
-O ícone Grupos da barra inferior mostra um contador de posts ainda não vistos, limitado visualmente a `99+`. Um pulso breve destaca alterações no contador quando outra aba está aberta; a preferência de reduzir movimento é respeitada. O nome acessível da aba informa a quantidade completa.
+O botão Social no cabeçalho do Início mostra um contador de posts ainda não vistos, limitado visualmente a `99+`. Um pulso breve destaca alterações no contador; a preferência de reduzir movimento é respeitada. O nome acessível do botão informa a quantidade completa ("Social, N posts não lidos").
 
 O campo opcional `postsUnseen` de `/groups/dashboard` considera somente posts visíveis de outros autores nos grupos dos quais a pessoa participa, respeitando a data de entrada, a última leitura e pessoas ocultadas. Publicações próprias, comentários, reações e posts removidos não aumentam esse indicador. As contagens anteriores do dashboard são preservadas. Não há migração nova.
 

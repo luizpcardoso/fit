@@ -16,7 +16,7 @@
 
 Na criação de ficha, o seletor permite marcar vários exercícios do catálogo ou personalizados e confirmar o lote. Depois da confirmação, os exercícios aparecem em uma lista vertical de configuração, na ordem de seleção. Novos exercícios começam com 3 séries de 12 repetições, editáveis pelo usuário. Cancelar o seletor descarta apenas a seleção ainda não confirmada.
 
-A ficha guarda um snapshot da imagem do exercício no momento em que é criada. Assim, uma troca posterior no catálogo não altera silenciosamente fichas já entregues aos usuários.
+A ficha guarda um snapshot da imagem do exercício no momento em que é criada. Assim, uma troca posterior no catálogo não altera silenciosamente fichas já entregues aos usuários. Quando o snapshot está vazio (exercício do catálogo adicionado antes de ele ter imagem), a leitura da ficha usa a imagem atual do catálogo, sem gravar nada; exercícios próprios nunca herdam imagem. Teste: `apps/api/test/workout-image-fallback.integration.test.ts` (`RUN_DB_TESTS=1`, banco temporário).
 
 ## Validade das fichas
 

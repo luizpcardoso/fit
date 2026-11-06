@@ -19,7 +19,7 @@ Não gravar caminhos locais em `exercises.image_url`: esse campo contém uma cha
 
 ## Compatibilidade
 
-O catálogo e as sugestões leem a imagem atual do exercício. Fichas existentes guardam `workout_plan_exercises.image_url` como snapshot; publicar no catálogo **não atualiza automaticamente essas fichas**. Não executar atualização em massa ou reescrever históricos neste fluxo. Fichas novas capturam a imagem publicada ao inserir o exercício. A imagem do exercício também é independente das ilustrações de grupo muscular dos treinos A/B/C.
+O catálogo e as sugestões leem a imagem atual do exercício. Fichas guardam `workout_plan_exercises.image_url` como snapshot. Quando o snapshot está vazio, a API exibe a imagem atual do catálogo; por isso fichas antigas passam a mostrar imagens recém-publicadas sem alteração de dados. Substituir uma imagem não altera fichas que já têm snapshot. Não executar atualização em massa ou reescrever históricos neste fluxo. Fichas novas capturam a imagem publicada ao inserir o exercício. A imagem do exercício também é independente das ilustrações de grupo muscular dos treinos A/B/C.
 
 ## Estado da coleção
 

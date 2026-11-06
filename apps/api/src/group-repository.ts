@@ -59,6 +59,8 @@ export class GroupRepository {
     const expired=await this.db.query<{id:string;photo_path:string|null}>("SELECT id,photo_path FROM group_posts WHERE (photo_data IS NOT NULL OR photo_path IS NOT NULL) AND (deleted_at IS NOT NULL OR created_at<=DATE_SUB(UTC_TIMESTAMP(6),INTERVAL 48 HOUR))",{type:QueryTypes.SELECT});
     for(const post of expired){await this.db.query('DELETE FROM group_posts WHERE id=?',{replacements:[post.id],type:QueryTypes.DELETE});if(post.photo_path){const [remaining]=await this.db.query<{id:string}>('SELECT id FROM group_posts WHERE photo_path=? LIMIT 1',{replacements:[post.photo_path],type:QueryTypes.SELECT});if(!remaining)await removeMedia(post.photo_path);}}
   }
+  // Group images and post photos share the media folder with public avatars/exercise images; public routes must refuse them.
+  async isPrivateMedia(key:string){const rows=await this.db.query('SELECT 1 FROM `groups` WHERE avatar_path=? OR cover_path=? UNION ALL SELECT 1 FROM group_posts WHERE photo_path=? LIMIT 1',{replacements:[key,key,key],type:QueryTypes.SELECT});return rows.length>0;}
   async migratePhotos(){const rows=await this.db.query<{id:string;photo_data:Buffer}>('SELECT id,photo_data FROM group_posts WHERE photo_data IS NOT NULL LIMIT 20',{type:QueryTypes.SELECT});for(const row of rows){const key=await saveMedia(row.photo_data);try{await this.db.query('UPDATE group_posts SET photo_path=?,photo_data=NULL WHERE id=?',{replacements:[key,row.id],type:QueryTypes.UPDATE});}catch(error){await removeMedia(key);throw error;}}return rows.length;}
   async publishToGroups(userId:string,groupIds:string[],input:CreateGroupPostInput){
     const processed=input.photoDataUrl?await this.photo(input.photoDataUrl):null;
@@ -159,10 +161,11 @@ export class GroupRepository {
       `SELECT g.id,g.name,g.description,g.avatar_url avatarUrl,g.avatar_path avatarPath,g.cover_path coverPath,g.updated_at updatedAt,m.role,g.active,g.created_at createdAt,(SELECT COUNT(*) FROM group_members x WHERE x.group_id=g.id AND x.status='active') memberCount,((SELECT COUNT(*) FROM group_posts p WHERE p.group_id=g.id AND p.deleted_at IS NULL AND p.created_at>=m.joined_at AND p.created_at>COALESCE(m.last_seen_at,m.joined_at))+(SELECT COUNT(*) FROM group_comments c JOIN group_posts p ON p.id=c.post_id WHERE p.group_id=g.id AND p.created_at>=m.joined_at AND c.deleted_at IS NULL AND c.created_at>COALESCE(m.last_seen_at,m.joined_at))+(SELECT COUNT(*) FROM group_post_reactions r JOIN group_posts p ON p.id=r.post_id WHERE p.group_id=g.id AND p.created_at>=m.joined_at AND r.created_at>COALESCE(m.last_seen_at,m.joined_at))) unseenCount FROM group_members m JOIN \`groups\` g ON g.id=m.group_id WHERE m.user_id=? AND m.status='active' ORDER BY g.active DESC,g.updated_at DESC`,
       { replacements: [userId], type: QueryTypes.SELECT },
     );
-    return rows.map((r: any) => ({
+    // Storage keys stay internal: the files are served only through the member-checked media route.
+    return rows.map(({ avatarPath, coverPath, ...r }: any) => ({
       ...r,
-      avatarUrl: r.avatarPath ? groupMediaUrl(r.id,'avatar',r.updatedAt) : r.avatarUrl,
-      coverUrl: r.coverPath ? groupMediaUrl(r.id,'cover',r.updatedAt) : null,
+      avatarUrl: avatarPath ? groupMediaUrl(r.id,'avatar',r.updatedAt) : r.avatarUrl,
+      coverUrl: coverPath ? groupMediaUrl(r.id,'cover',r.updatedAt) : null,
       active: Boolean(r.active),
       memberCount: Number(r.memberCount),
       unseenCount: Number(r.unseenCount),
@@ -188,10 +191,11 @@ export class GroupRepository {
       "SELECT workout_completed,cardio_completed,weekly_goal,weekly_streak FROM group_share_preferences WHERE group_id=? AND user_id=?",
       { replacements: [groupId, userId], type: QueryTypes.SELECT },
     );
+    const { avatarPath, coverPath, ...group } = g;
     return {
-      ...g,
-      avatarUrl: g.avatarPath ? groupMediaUrl(g.id,'avatar',g.updatedAt) : g.avatarUrl,
-      coverUrl: g.coverPath ? groupMediaUrl(g.id,'cover',g.updatedAt) : null,
+      ...group,
+      avatarUrl: avatarPath ? groupMediaUrl(g.id,'avatar',g.updatedAt) : g.avatarUrl,
+      coverUrl: coverPath ? groupMediaUrl(g.id,'cover',g.updatedAt) : null,
       role: m.role,
       active: Boolean(g.active),
       commentsEnabled: Boolean(g.commentsEnabled),

@@ -39,6 +39,11 @@ const ACCESS_SECONDS = 15 * 60;
 const REFRESH_MILLIS = 30 * 24 * 60 * 60 * 1000;
 const tokenHash = (token: string) => createHash('sha256').update(token).digest('hex');
 const publicUser = ({ passwordHash: _, ...user }: PublicUser & { passwordHash: string }): PublicUser => user;
+// Unknown e-mails still pay for a bcrypt comparison, so response time does not reveal which accounts exist.
+let timingHash: Promise<string> | undefined;
+const unknownUserHash = () => (timingHash ??= bcrypt.hash(randomBytes(16).toString('hex'), 12));
+// Anonymous auth routes are limited per IP even when a valid Bearer is sent; otherwise each account would get its own budget.
+const byIp = (request: FastifyRequest) => `ip:${request.ip}`;
 const bodySchemas = {
   register: { type: 'object', required: ['email','password','phone','firstName','lastName'], additionalProperties: false, properties: { email: { type: 'string', format: 'email', maxLength: 254 }, password: { type: 'string', minLength: 8, maxLength: 72 }, phone: { type: 'string', minLength: 10, maxLength: 20 }, firstName: { type: 'string', minLength: 2, maxLength: 60 }, lastName: { type: 'string', minLength: 2, maxLength: 60 } } },
   login: { type: 'object', required: ['email','password'], additionalProperties: false, properties: { email: { type: 'string', format: 'email' }, password: { type: 'string', minLength: 1, maxLength: 72 } } },
@@ -78,20 +83,22 @@ export async function buildApp(options: { observabilityStore?: ObservabilityStor
 
   if (options.observabilityStore) await registerObservability(app, options.observabilityStore, secure, options.observabilityRetention, options.observabilityEnabled);
 
-  app.post('/auth/register', { config: { rateLimit: { max: 5, timeWindow: '1 minute' } }, schema: { tags: ['Autenticação'], summary: 'Cria uma conta', body: bodySchemas.register, response: { 201: authJsonSchema, 400: errorJsonSchema, 409: errorJsonSchema, 429: errorJsonSchema } } }, async (request, reply) => {
+  app.post('/auth/register', { config: { rateLimit: { max: 5, timeWindow: '1 minute', keyGenerator: byIp } }, schema: { tags: ['Autenticação'], summary: 'Cria uma conta', body: bodySchemas.register, response: { 201: authJsonSchema, 400: errorJsonSchema, 409: errorJsonSchema, 429: errorJsonSchema } } }, async (request, reply) => {
     const input = registerInputSchema.parse(request.body);
     if (await repository.findUserByEmail(input.email)) return reply.code(409).send({ code: 'EMAIL_ALREADY_EXISTS', message: 'Este e-mail já está cadastrado.', fieldErrors: { email: ['Este e-mail já está cadastrado.'] } });
-    const baseUsername=input.email.split('@')[0].toLowerCase().replace(/[^a-z0-9._]/g,'').slice(0,20)||'usuario';
-    const user = await repository.createUser({ ...input,username:`${baseUsername}.${randomBytes(3).toString('hex')}`,displayName:`${input.firstName} ${input.lastName}`,avatarUrl:null,countMentalCheckIn:true,birthDate: null, gender: null, estimationSex: null, heightCm: null, activityLevel: null, primaryGoal: null, passwordHash: await bcrypt.hash(input.password, 12) });
+    // The default handle comes from the first name, never the e-mail: user search must not reveal e-mail addresses.
+    const baseUsername=input.firstName.normalize('NFD').toLowerCase().replace(/[^a-z0-9]/g,'').slice(0,15)||'usuario';
+    const user = await repository.createUser({ ...input,username:`${baseUsername}.${randomBytes(4).toString('hex')}`,displayName:`${input.firstName} ${input.lastName}`,avatarUrl:null,countMentalCheckIn:true,birthDate: null, gender: null, estimationSex: null, heightCm: null, activityLevel: null, primaryGoal: null, passwordHash: await bcrypt.hash(input.password, 12) });
     return reply.code(201).send(await issueTokens(publicUser(user)));
   });
-  app.post('/auth/login', { config: { rateLimit: { max: 8, timeWindow: '1 minute' } }, schema: { tags: ['Autenticação'], summary: 'Autentica com e-mail e senha', body: bodySchemas.login, response: { 200: authJsonSchema, 400: errorJsonSchema, 401: errorJsonSchema, 429: errorJsonSchema } } }, async (request, reply) => {
+  app.post('/auth/login', { config: { rateLimit: { max: 8, timeWindow: '1 minute', keyGenerator: byIp } }, schema: { tags: ['Autenticação'], summary: 'Autentica com e-mail e senha', body: bodySchemas.login, response: { 200: authJsonSchema, 400: errorJsonSchema, 401: errorJsonSchema, 429: errorJsonSchema } } }, async (request, reply) => {
     const input = loginInputSchema.parse(request.body);
     const user = await repository.findUserByEmail(input.email);
-    if (!user || !(await bcrypt.compare(input.password, user.passwordHash)) || !(await repository.canAuthenticate(user.id))) return reply.code(401).send({ code: 'INVALID_CREDENTIALS', message: 'E-mail ou senha incorretos ou acesso indisponível.' });
+    const passwordMatches = await bcrypt.compare(input.password, user?.passwordHash ?? await unknownUserHash());
+    if (!user || !passwordMatches || !(await repository.canAuthenticate(user.id))) return reply.code(401).send({ code: 'INVALID_CREDENTIALS', message: 'E-mail ou senha incorretos ou acesso indisponível.' });
     return issueTokens(publicUser(user));
   });
-  app.post('/auth/refresh', { config: { rateLimit: { max: 20, timeWindow: '1 minute' } }, schema: { tags: ['Autenticação'], summary: 'Renova e rotaciona a sessão', body: bodySchemas.refresh, response: { 200: authJsonSchema, 400: errorJsonSchema, 401: errorJsonSchema } } }, async (request, reply) => {
+  app.post('/auth/refresh', { config: { rateLimit: { max: 20, timeWindow: '1 minute', keyGenerator: byIp } }, schema: { tags: ['Autenticação'], summary: 'Renova e rotaciona a sessão', body: bodySchemas.refresh, response: { 200: authJsonSchema, 400: errorJsonSchema, 401: errorJsonSchema } } }, async (request, reply) => {
     const { refreshToken } = refreshInputSchema.parse(request.body);
     const nextToken = randomBytes(48).toString('base64url');
     const user = await repository.rotateSession(tokenHash(refreshToken), tokenHash(nextToken), Date.now() + REFRESH_MILLIS);
@@ -124,7 +131,7 @@ export async function buildApp(options: { observabilityStore?: ObservabilityStor
     if(previous?.avatarUrl?.startsWith('/media/avatars/'))await removeMedia(previous.avatarUrl.split('/').at(-1)!).catch(()=>app.log.warn('Falha ao remover avatar substituído.'));
     return result;
   });
-  app.get('/media/avatars/:key',async(request,reply)=>{const {key}=z.strictObject({key:z.string().regex(/^[a-f0-9-]{36}\.webp$/)}).parse(request.params);let data:Buffer;try{data=await readMedia(key);}catch{return reply.code(404).header('cache-control','no-store').send({code:'NOT_FOUND',message:'Foto não encontrada.'});}return reply.header('content-type','image/webp').header('cache-control','public, max-age=86400, immutable').send(data);});
+  app.get('/media/avatars/:key',async(request,reply)=>{const {key}=z.strictObject({key:z.string().regex(/^[a-f0-9-]{36}\.webp$/)}).parse(request.params);let data:Buffer;try{if(await options.groupRepository?.isPrivateMedia(key))throw new Error('private media');data=await readMedia(key);}catch{return reply.code(404).header('cache-control','no-store').send({code:'NOT_FOUND',message:'Foto não encontrada.'});}return reply.header('content-type','image/webp').header('cache-control','public, max-age=86400, immutable').send(data);});
   app.get('/health', { schema: { hide: true } }, async () => ({ status: 'ok' }));
   if (options.medicationRepository && options.supplementRepository && options.injectableRepository && options.mentalWellbeingRepository && options.workoutRepository && options.nutritionRepository) {
     registerReminderAgendaRoutes(app, {medications:options.medicationRepository,supplements:options.supplementRepository,injectables:options.injectableRepository,workouts:options.workoutRepository}, secure);

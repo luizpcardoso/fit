@@ -120,6 +120,10 @@ test(
       assert.equal(avatarDownload.statusCode,200);assert.deepEqual(await sharp(avatarDownload.rawPayload).metadata().then(({width,height})=>({width,height})),{width:512,height:512});
       assert.equal(coverDownload.statusCode,200);assert.deepEqual(await sharp(coverDownload.rawPayload).metadata().then(({width,height})=>({width,height})),{width:1600,height:600});
       assert.equal((await app.inject({method:'GET',url:`/groups/${groupId}/media/cover`,headers:outsider})).statusCode,404);
+      assert.doesNotMatch(branded.body,/avatarPath|coverPath/);
+      assert.doesNotMatch((await app.inject({method:'GET',url:'/groups',headers:member})).body,new RegExp(`avatarPath|coverPath|${brandedPaths.cover_path}`));
+      for(const key of [brandedPaths.avatar_path,brandedPaths.cover_path])assert.equal((await app.inject({method:'GET',url:`/media/avatars/${key}`})).statusCode,404);
+      assert.deepEqual((await app.inject({method:'GET',url:'/users/search?username=___',headers:outsider})).json(),[]);
       const firstFeed = await app.inject({
         method: "GET",
         url: `/groups/${groupId}/posts`,

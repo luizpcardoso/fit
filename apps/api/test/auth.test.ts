@@ -62,3 +62,36 @@ test('perfil separa gênero da base para estimativas e valida o valor', async ()
   assert.equal(cleared.json().estimationSex, null);
   await app.close();
 });
+
+test('login e cadastro limitam por IP mesmo com Bearer válido e não revelam e-mail pelo tempo', async () => {
+  const app = await buildApp({ jwtSecret: 'test-secret-with-more-than-32-characters' });
+  try {
+    const created = await app.inject({ method: 'POST', url: '/auth/register', payload: account });
+    const bearer = { authorization: `Bearer ${created.json().accessToken}` };
+    const attempt = (headers = {}) => app.inject({ method: 'POST', url: '/auth/login', headers, payload: { email: account.email, password: 'senha-errada-123' } });
+    for (let i = 0; i < 8; i++) assert.equal((await attempt()).statusCode, 401);
+    assert.equal((await attempt()).statusCode, 429);
+    assert.equal((await attempt(bearer)).statusCode, 429);
+    for (let i = 0; i < 4; i++) await app.inject({ method: 'POST', url: '/auth/register', headers: bearer, payload: { ...account, email: `limite-${i}@example.com` } });
+    assert.equal((await app.inject({ method: 'POST', url: '/auth/register', headers: bearer, payload: { ...account, email: 'limite-extra@example.com' } })).statusCode, 429);
+  } finally { await app.close(); }
+
+  const timing = await buildApp({ jwtSecret: 'test-secret-with-more-than-32-characters' });
+  try {
+    await timing.inject({ method: 'POST', url: '/auth/login', payload: { email: 'aquecimento@example.com', password: 'senha-errada-123' } });
+    const started = performance.now();
+    const unknown = await timing.inject({ method: 'POST', url: '/auth/login', payload: { email: 'ninguem@example.com', password: 'senha-errada-123' } });
+    assert.equal(unknown.statusCode, 401);
+    // Without the dummy comparison this answers in ~1 ms; bcrypt cost 12 takes well over 40 ms.
+    assert.ok(performance.now() - started > 40);
+  } finally { await timing.close(); }
+});
+
+test('@usuário padrão vem do primeiro nome, sem expor o e-mail na busca', async () => {
+  const app = await buildApp({ jwtSecret: 'test-secret-with-more-than-32-characters' });
+  try {
+    const created = await app.inject({ method: 'POST', url: '/auth/register', payload: { ...account, email: 'segredo.pessoal@example.com', firstName: 'Ána Júlia' } });
+    assert.equal(created.statusCode, 201);
+    assert.match(created.json().user.username, /^anajulia\.[a-f0-9]{8}$/);
+  } finally { await app.close(); }
+});

@@ -27,6 +27,10 @@ export class PortalError extends Error {
     super(message);
   }
 }
+// E-mail addresses are not verified, so an invitation only reaches an account that already existed when it was
+// sent: registering the invited address afterwards must not claim it. Expects the student id as replacement.
+const invitedAccount =
+  "r.student_id IS NULL AND r.invited_email=(SELECT email FROM users WHERE id=? AND created_at<=r.created_at)";
 export const json = <T>(value: T | string): T =>
   typeof value === "string" ? JSON.parse(value) : value;
 export class ProfessionalManagement {
@@ -151,7 +155,7 @@ export class ProfessionalManagement {
   }
   async relationships(actor: string, student: boolean, offset = 0) {
     const rows = await this.db.query<any>(
-      `SELECT r.id,r.professional_id professionalId,CONCAT(p.first_name,' ',p.last_name) professionalName,r.student_id studentId,CASE WHEN r.status='active' THEN CONCAT(s.first_name,' ',s.last_name) ELSE NULL END studentName,r.status,r.capabilities,r.expires_at expiresAt,r.created_at createdAt FROM professional_relationships r JOIN users p ON p.id=r.professional_id LEFT JOIN users s ON s.id=r.student_id WHERE ${student ? "(r.student_id=? OR (r.invited_email=(SELECT email FROM users WHERE id=?) AND r.status='pending'))" : "r.professional_id=?"} ORDER BY r.created_at DESC,r.id DESC LIMIT 200 OFFSET ?`,
+      `SELECT r.id,r.professional_id professionalId,CONCAT(p.first_name,' ',p.last_name) professionalName,r.student_id studentId,CASE WHEN r.status='active' THEN CONCAT(s.first_name,' ',s.last_name) ELSE NULL END studentName,r.status,r.capabilities,r.expires_at expiresAt,r.created_at createdAt FROM professional_relationships r JOIN users p ON p.id=r.professional_id LEFT JOIN users s ON s.id=r.student_id WHERE ${student ? `(r.student_id=? OR (${invitedAccount} AND r.status='pending'))` : "r.professional_id=?"} ORDER BY r.created_at DESC,r.id DESC LIMIT 200 OFFSET ?`,
       {
         replacements: student ? [actor, actor, offset] : [actor, offset],
         type: QueryTypes.SELECT,
@@ -168,7 +172,7 @@ export class ProfessionalManagement {
     }));
   }
   async notifications(actor: string) {
-    const ownership = "(r.student_id=? OR (r.student_id IS NULL AND r.invited_email=(SELECT email FROM users WHERE id=?)))";
+    const ownership = `(r.student_id=? OR (${invitedAccount}))`;
     const items = await this.db.query<import('@fit/contracts').ProfessionalNotification>(
       `SELECT r.id,CONCAT('Convite de ',p.first_name,' ',p.last_name) title,'Abra para consultar o convite e gerenciar suas permissões.' message,r.notification_read_at readAt,r.created_at createdAt FROM professional_relationships r JOIN users p ON p.id=r.professional_id WHERE ${ownership} ORDER BY r.created_at DESC,r.id DESC LIMIT 200`,
       {replacements:[actor,actor],type:QueryTypes.SELECT},
@@ -178,7 +182,7 @@ export class ProfessionalManagement {
   }
   async readNotification(actor: string, id: string) {
     return this.db.transaction(async transaction => {
-      const [owned] = await this.db.query('SELECT r.id FROM professional_relationships r WHERE r.id=? AND (r.student_id=? OR (r.student_id IS NULL AND r.invited_email=(SELECT email FROM users WHERE id=?))) FOR UPDATE',{replacements:[id,actor,actor],type:QueryTypes.SELECT,transaction});
+      const [owned] = await this.db.query(`SELECT r.id FROM professional_relationships r WHERE r.id=? AND (r.student_id=? OR (${invitedAccount})) FOR UPDATE`,{replacements:[id,actor,actor],type:QueryTypes.SELECT,transaction});
       if (!owned) throw new PortalError(404, 'Notificação não encontrada.');
       await this.db.query('UPDATE professional_relationships SET notification_read_at=COALESCE(notification_read_at,UTC_TIMESTAMP()) WHERE id=?',{replacements:[id],transaction});
       return {ok:true};
@@ -191,10 +195,14 @@ export class ProfessionalManagement {
   ) {
     return this.db.transaction(async (transaction) => {
       const [row] = await this.db.query<any>(
-        "SELECT r.*,u.email FROM professional_relationships r JOIN users u ON u.id=? WHERE r.id=? FOR UPDATE",
+        "SELECT r.*,u.email,u.created_at accountCreatedAt FROM professional_relationships r JOIN users u ON u.id=? WHERE r.id=? FOR UPDATE",
         { replacements: [actor, id], type: QueryTypes.SELECT, transaction },
       );
-      if (!row || (row.student_id !== actor && row.invited_email !== row.email))
+      const invited =
+        !row?.student_id &&
+        row?.invited_email === row?.email &&
+        new Date(row.accountCreatedAt).getTime() <= new Date(row.created_at).getTime();
+      if (!row || (row.student_id !== actor && !invited))
         throw new PortalError(404, "Vínculo não encontrado.");
       if (input.action === "accept" || input.action === "decline") {
         if (
@@ -624,15 +632,27 @@ export async function registerProfessionalManagement(
         );
         if (self.email === input.email)
           throw new PortalError(400, "Não é possível convidar a si mesmo.");
-        const [existing] = await service.db.query(
-          "SELECT id FROM professional_relationships WHERE professional_id=? AND invited_email=? AND (status='active' OR (status='pending' AND expires_at>UTC_TIMESTAMP())) FOR UPDATE",
+        const [existing] = await service.db.query<{ id: string; status: string }>(
+          "SELECT id,status FROM professional_relationships WHERE professional_id=? AND invited_email=? AND (status='active' OR (status='pending' AND expires_at>UTC_TIMESTAMP())) FOR UPDATE",
           {
             replacements: [req.user.sub, input.email],
             type: QueryTypes.SELECT,
             transaction,
           },
         );
-        if (!existing) {
+        if (existing?.status === "pending") {
+          // Sending again re-dates the pending invite, so a student who signed up after the first one can now see it.
+          await service.db.query(
+            "UPDATE professional_relationships SET created_at=UTC_TIMESTAMP(),expires_at=DATE_ADD(UTC_TIMESTAMP(),INTERVAL 7 DAY),notification_read_at=NULL,updated_at=UTC_TIMESTAMP() WHERE id=?",
+            { replacements: [existing.id], transaction },
+          );
+          await service.audit(
+            req.user.sub,
+            "relationship.reinvited",
+            existing.id,
+            transaction,
+          );
+        } else if (!existing) {
           const invitationId = randomUUID();
           await service.db.query(
             "INSERT INTO professional_relationships (id,professional_id,invited_email,status,capabilities,expires_at,created_at,updated_at) VALUES (?,?,?,'pending',?,DATE_ADD(UTC_TIMESTAMP(),INTERVAL 7 DAY),UTC_TIMESTAMP(),UTC_TIMESTAMP())",
@@ -656,7 +676,7 @@ export async function registerProfessionalManagement(
       });
       return {
         message:
-          "Convite processado. O aluno poderá responder pelo aplicativo.",
+          "Convite processado. Se o aluno já tiver conta no aplicativo, poderá responder por lá; caso contrário, peça que se cadastre e envie o convite novamente.",
       };
     }),
   );

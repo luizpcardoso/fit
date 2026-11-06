@@ -62,7 +62,7 @@ export class SequelizeAuthRepository implements AuthRepository {
     if(fields.length)await this.sequelize.query(`UPDATE users SET ${fields.map(([field])=>`${field}=?`).join(',')},updated_at=NOW() WHERE id=?`,{replacements:[...fields.map(([,value])=>value),id],type:QueryTypes.UPDATE});
     return this.findUserById(id);
   }
-  async searchSocialUsers(userId:string,username:string):Promise<GroupUser[]>{return this.sequelize.query<GroupUser>('SELECT id,username,COALESCE(display_name,CONCAT(first_name,\' \',last_name)) displayName,avatar_url avatarUrl FROM users WHERE username LIKE ? AND id<>? ORDER BY username LIMIT 10',{replacements:[`${username}%`,userId],type:QueryTypes.SELECT});}
+  async searchSocialUsers(userId:string,username:string):Promise<GroupUser[]>{return this.sequelize.query<GroupUser>('SELECT id,username,COALESCE(display_name,CONCAT(first_name,\' \',last_name)) displayName,avatar_url avatarUrl FROM users WHERE username LIKE ? AND id<>? ORDER BY username LIMIT 10',{replacements:[`${username.replace(/[\\%_]/g,'\\$&')}%`,userId],type:QueryTypes.SELECT});}
   async createSession(userId: string, tokenHash: string, expiresAt: number, transaction?: Transaction): Promise<void> {
     await this.sequelize.query('INSERT INTO sessions (id,user_id,token_hash,expires_at,created_at,updated_at) VALUES (?,?,?,?,NOW(),NOW())', { replacements: [randomUUID(), userId, tokenHash, expiresAt], type: QueryTypes.INSERT, transaction });
   }

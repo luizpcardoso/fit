@@ -9,6 +9,7 @@ import { createDatabase } from "../src/database.js";
 import { migrateDatabase } from "../src/migrate.js";
 import { SequelizeAuthRepository } from "../src/repository.js";
 import { SequelizePortalStore } from "../src/portal.js";
+import { GroupRepository } from "../src/group-repository.js";
 import {
   ProfessionalManagement,
   registerProfessionalManagement,
@@ -103,6 +104,9 @@ test(
       assert.equal((await call('GET',`/portal/groups/${groupId}/members`,admin.accessToken)).json()[0].role,'owner');
       assert.equal((await call('PATCH',`/portal/groups/${groupId}/members`,admin.accessToken,{userId:admin.user.id,action:'remove'})).statusCode,409);
       assert.equal((await call('POST',`/portal/groups/${groupId}/invites`,admin.accessToken,{username:student.user.username})).statusCode,200);
+      // A student's private group: the admin may manage it but must not invite their own account into the feed.
+      const privateGroupId=await new GroupRepository(db).create(student.user.id,{name:'Grupo privado do aluno'});
+      assert.equal((await call('POST',`/portal/groups/${privateGroupId}/invites`,admin.accessToken,{username:admin.user.username})).statusCode,400);
       assert.equal((await call('PATCH',`/portal/groups/${groupId}`,admin.accessToken,{name:'Grupo teste atualizado',description:'Teste',active:false})).statusCode,200);
       await db.query(
         "INSERT INTO professional_types (id,name,capabilities) VALUES (?,?,?)",
@@ -324,6 +328,20 @@ test(
       assert.equal(read.unreadCount,0); assert.ok(read.items[0].readAt);
       await call('PATCH',`/me/notifications/${relation.id}/read`,student.accessToken);
       assert.equal((await call('GET','/me/notifications',student.accessToken)).json().items[0].readAt,read.items[0].readAt);
+      // E-mail is not verified: an address registered only after the invitation cannot claim it; sending again reaches it.
+      const lateEmail=`portal-late-${randomUUID()}@example.com`;
+      assert.equal((await call('POST','/portal/invitations',login.accessToken,{email:lateEmail,capabilities:['fitness.view']})).statusCode,200);
+      await new Promise(resolve=>setTimeout(resolve,1100)); // DATETIME columns keep whole seconds
+      const late=(await call('POST','/auth/register',undefined,{email:lateEmail,password:'test-password-123',phone:'71999990000',firstName:'Tardio',lastName:'Teste'})).json();
+      users.push(late.user.id);
+      assert.deepEqual((await call('GET','/me/professionals',late.accessToken)).json(),[]);
+      assert.equal((await call('GET','/me/notifications',late.accessToken)).json().unreadCount,0);
+      const [lateInvite]=await db.query<{id:string}>('SELECT id FROM professional_relationships WHERE invited_email=?',{replacements:[lateEmail],type:QueryTypes.SELECT});
+      assert.equal((await call('PATCH',`/me/notifications/${lateInvite.id}/read`,late.accessToken)).statusCode,404);
+      assert.equal((await call('POST',`/me/professionals/${lateInvite.id}/consent`,late.accessToken,{action:'accept',capabilities:['fitness.view']})).statusCode,404);
+      assert.equal((await call('POST','/portal/invitations',login.accessToken,{email:lateEmail,capabilities:['fitness.view']})).statusCode,200);
+      assert.equal((await call('GET','/me/professionals',late.accessToken)).json()[0].id,lateInvite.id);
+      await db.query('DELETE FROM professional_relationships WHERE id=?',{replacements:[lateInvite.id]}); // keeps the pagination counts below exact
 
       assert.equal(
         (

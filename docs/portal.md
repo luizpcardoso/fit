@@ -11,7 +11,7 @@ Consulte também `docs/portal-workspace-context.md` para o mapa resumido da impl
 - Tipos profissionais editáveis, capacidades por área e restrições individuais.
 - Cadastro profissional exclusivo pelo administrador; senha temporária aleatória, exibida uma vez, válida por 48 horas; primeira ativação exige senha definitiva diferente e aceite das condições de uso de dados.
 - Suspensão/reativação e regeneração de acesso para contas ainda não ativadas.
-- Convites por e-mail válidos por sete dias, aceite/recusa pelo app, consentimento granular, redução de permissões e encerramento do vínculo.
+- Convites por e-mail válidos por sete dias, aceite/recusa pelo app, consentimento granular, redução de permissões e encerramento do vínculo. Como o e-mail não é verificado, o convite só alcança uma conta que já existia quando foi enviado; quem cadastra o endereço depois não o recebe. Reenviar um convite pendente renova a data e a validade, alcançando a conta criada nesse intervalo. A resposta ao profissional é a mesma com ou sem conta.
 - Profissional: Meus alunos com busca, filtros e painel individual; Minhas fichas, Minhas dietas, Minhas metas e Minhas orientações. Convites em tela própria; modelos podem ser atribuídos pela biblioteca ou pelo painel, com prévia e seleção de aluno autorizado.
 - Catálogos globais na navegação administrativa; profissionais usam sua biblioteca privada e mantêm referências globais nos editores. Bibliotecas organizadas por Fitness, Nutrição e Saúde & bem-estar: alimentos com porções e nutrientes, exercícios, categorias, fichas, metas, dietas e orientações de saúde mental.
 - Busca, filtros de visibilidade/status/categoria e paginação nas bibliotecas; busca e paginação na auditoria.
@@ -29,7 +29,7 @@ Consulte também `docs/portal-workspace-context.md` para o mapa resumido da impl
 
 O acesso ao aluno exige conta profissional ativa e ativada, capacidade no tipo, capacidade individual, vínculo ativo e consentimento para aquela ação. View, suggest e manage são independentes: para acompanhar e editar, selecione ambas as capacidades.
 
-Ampliar permissões administrativas não amplia o consentimento do aluno. Novas áreas exigem novo convite após encerrar o vínculo anterior. Administradores não recebem acesso automático aos dados privados de saúde nem ao feed privado dos grupos.
+Ampliar permissões administrativas não amplia o consentimento do aluno. Novas áreas exigem novo convite após encerrar o vínculo anterior. Administradores não recebem acesso automático aos dados privados de saúde nem ao feed privado dos grupos. O portal recusa convite de grupo para a própria conta de quem convida.
 
 Encerrar vínculo cancela sugestões pendentes, retira acesso profissional e preserva material recebido e histórico com autoria. Atualizar modelo não altera prescrições anteriores. Não há exclusão definitiva de planos pela interface web.
 

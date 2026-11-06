@@ -533,6 +533,8 @@ export async function registerPortalContent(
     // Read before setting headers: a missing key must not leave image/webp + immutable on the error reply (the CDN would cache it).
     let data: Buffer;
     try {
+      if (await new GroupRepository(service.db).isPrivateMedia(key))
+        throw new Error("private media");
       data = await readMedia(key);
     } catch {
       return reply.code(404).header("cache-control", "no-store").send({
@@ -904,6 +906,9 @@ export async function registerPortalContent(
           { replacements: [username], type: QueryTypes.SELECT, transaction: t },
         );
         if (!user) throw new PortalError(404, "Usuário não encontrado.");
+        // Managing a group from the portal must not become a way for the admin to join a private feed.
+        if (user.id === req.user.sub)
+          throw new PortalError(400, "Não é possível convidar a si mesmo.");
         const [existing] = await service.db.query(
           "SELECT id FROM group_members WHERE group_id=? AND user_id=? AND status='active'",
           {

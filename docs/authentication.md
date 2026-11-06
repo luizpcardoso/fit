@@ -12,7 +12,8 @@ O cadastro solicita nome, sobrenome, telefone, e-mail e senha. E-mails são norm
 - Access tokens JWT expiram em 15 minutos.
 - Refresh tokens aleatórios expiram em 30 dias, são armazenados como hash e rotacionados em cada uso.
 - O app armazena tokens no SecureStore no Android/iOS e nunca armazena a senha.
-- Login e cadastro possuem rate limiting. O login usa uma mensagem genérica para não confirmar a existência de contas.
+- Login, cadastro e renovação possuem rate limiting por IP, mesmo quando a requisição traz um Bearer válido. O login usa uma mensagem genérica e executa a comparação bcrypt também para e-mails inexistentes, para não confirmar a existência de contas pela resposta nem pelo tempo.
+- O @usuário padrão vem do primeiro nome (sem acentos) mais 8 caracteres aleatórios, nunca do e-mail; contas antigas mantêm o @ atual. A busca por @usuário trata `_` e `%` literalmente.
 - Logout revoga o refresh token e remove os tokens locais.
 - Não há verificação de e-mail nem recuperação de senha nesta primeira versão.
 

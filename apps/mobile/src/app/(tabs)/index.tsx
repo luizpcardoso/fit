@@ -330,18 +330,31 @@ export default function HomeScreen() {
           contentContainerStyle={s.content}
           showsVerticalScrollIndicator={false}
         >
+          {/* Two tiers: on narrow phones avatar + actions on one row left ~150px for the greeting. */}
           <View style={s.header}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Abrir menu"
-              accessibilityHint="Perfil, profissionais, configurações e sair da conta"
-              onPress={() => setMenuOpen(true)}
-              style={s.avatar}
-            >
-              {user?.avatarUrl?<Image source={{uri:user.avatarUrl}} style={{width:48,height:48,borderRadius: 20}}/>:<Text style={s.avatarText}>
-                {firstName[0].toLocaleUpperCase("pt-BR")}
-              </Text>}
-            </Pressable>
+            <View style={s.headerTop}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Abrir menu"
+                accessibilityHint="Perfil, profissionais, configurações e sair da conta"
+                onPress={() => setMenuOpen(true)}
+                style={s.avatar}
+              >
+                {user?.avatarUrl?<Image source={{uri:user.avatarUrl}} style={{width:48,height:48,borderRadius: 20}}/>:<Text style={s.avatarText}>
+                  {firstName[0].toLocaleUpperCase("pt-BR")}
+                </Text>}
+              </Pressable>
+              <View style={s.headerActions}>
+                <Pressable accessibilityRole="button" accessibilityLabel={postsUnseen > 0 ? `Social, ${postsUnseen} ${postsUnseen === 1 ? 'post não lido' : 'posts não lidos'}` : 'Social'} onPress={() => router.push('/groups')} style={s.menuButton}>
+                  <MaterialCommunityIcons name="account-group-outline" size={25} color={c.link}/>
+                  <GroupUpdatesBadge count={postsUnseen} focused={false}/>
+                </Pressable>
+                <Pressable accessibilityRole="button" accessibilityLabel={`Notificações, ${professionalUnread + groupDashboard.notificationsUnread} não lidas${notificationError ? ', atualização indisponível' : ''}`} onPress={() => router.push('/group-notifications')} style={s.menuButton}>
+                  <MaterialCommunityIcons name="bell-outline" size={25} color={c.link}/>
+                  <GroupUpdatesBadge count={professionalUnread + groupDashboard.notificationsUnread} focused={false} stale={notificationError}/>
+                </Pressable>
+              </View>
+            </View>
             <View style={s.headerCopy}>
               <Text style={s.date}>{formattedDate}</Text>
               <Text accessibilityRole="header" style={s.greeting}>
@@ -349,14 +362,6 @@ export default function HomeScreen() {
               </Text>
               <Text style={s.subtitle}>Vamos cuidar da sua rotina hoje?</Text>
             </View>
-            <Pressable accessibilityRole="button" accessibilityLabel={postsUnseen > 0 ? `Social, ${postsUnseen} ${postsUnseen === 1 ? 'post não lido' : 'posts não lidos'}` : 'Social'} onPress={() => router.push('/groups')} style={s.menuButton}>
-              <MaterialCommunityIcons name="account-group-outline" size={25} color={c.link}/>
-              <GroupUpdatesBadge count={postsUnseen} focused={false}/>
-            </Pressable>
-            <Pressable accessibilityRole="button" accessibilityLabel={`Notificações, ${professionalUnread + groupDashboard.notificationsUnread} não lidas${notificationError ? ', atualização indisponível' : ''}`} onPress={() => router.push('/group-notifications')} style={s.menuButton}>
-              <MaterialCommunityIcons name="bell-outline" size={25} color={c.link}/>
-              <GroupUpdatesBadge count={professionalUnread + groupDashboard.notificationsUnread} focused={false} stale={notificationError}/>
-            </Pressable>
           </View>
 
           <View style={s.todayOverview}>
@@ -942,13 +947,14 @@ const createStyles = (c: AppPalette, scheme: "light" | "dark") =>
       gap: 18,
     },
     flex: { flex: 1, minWidth: 0 },
-    header: {
+    header: { gap: 14, marginBottom: 2 },
+    headerTop: {
       flexDirection: "row",
       alignItems: "center",
-      gap: 12,
-      marginBottom: 2,
+      justifyContent: "space-between",
     },
-    headerCopy: { flex: 1, gap: 2 },
+    headerActions: { flexDirection: "row", gap: 10 },
+    headerCopy: { gap: 4 },
     date: {
       fontSize: 12,
       fontWeight: "800",
@@ -962,7 +968,7 @@ const createStyles = (c: AppPalette, scheme: "light" | "dark") =>
       letterSpacing: -0.8,
       color: c.text,
     },
-    subtitle: { fontSize: 13, color: c.textMuted },
+    subtitle: { fontSize: 14, color: c.textMuted },
     menuButton: {
       width: 44,
       height: 44,

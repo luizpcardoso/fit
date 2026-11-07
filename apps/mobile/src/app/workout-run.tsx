@@ -44,13 +44,21 @@ function useNow(active = true) {
 export default function WorkoutRunScreen() {
   const { colors: c } = useAppTheme(), s = styles(c), session = useWorkoutRun(), { api } = useAuth();
   const params = useLocalSearchParams<{ planId?: string; divisionId?: string; suggestedDivisionId?: string }>();
-  const [panel, setPanel] = useState<Panel>(null), [busy, setBusy] = useState(false), [error, setError] = useState(''), [finishedHere, setFinishedHere] = useState<string | null>(null), [sharing, setSharing] = useState(false);
+  const [panel, setPanel] = useState<Panel>(null), [busy, setBusy] = useState(false), [error, setError] = useState(''), [finishedHere, setFinishedHere] = useState<string | null>(null), [sharing, setSharing] = useState<false | 'auto' | 'manual'>(false);
   const [completionUndo, setCompletionUndo] = useState<ExerciseCompletionUndo | null>(null);
   const [previous, setPrevious] = useState<{ divisionId: string; values: WorkoutRunPrevious } | null>(null);
   const [loadDrafts, setLoadDrafts] = useState<Record<string, string>>({});
   const strip = useRef<ComponentRef<typeof ScrollView>>(null);
   const run = session.run, p = run?.progress, open = Boolean(p && isWorkoutRunOpen(p));
   const result = Boolean(run && !open && (finishedHere === run.id || session.dirty));
+  // Offer posting right after a workout finished on this screen; the result card can reopen it.
+  const sharePrompted = useRef<string | null>(null);
+  const historySessionId = run?.historySessionId ?? null;
+  useEffect(() => {
+    if (!result || !run || finishedHere !== run.id || !historySessionId || sharePrompted.current === historySessionId) return;
+    sharePrompted.current = historySessionId;
+    setSharing('auto');
+  }, [result, run, finishedHere, historySessionId]);
   const exercise = run?.exercises[p?.currentIndex ?? 0], item = p?.exercises.find(x => x.id === exercise?.id);
   const done = run?.exercises.filter(e => p?.exercises.find(x => x.id === e.id)?.completedSets.length === e.sets).length ?? 0;
   const performed = p?.exercises.filter(e => e.completedSets.length > 0).length ?? 0;
@@ -173,7 +181,7 @@ export default function WorkoutRunScreen() {
             </Pressable>; })}
         </ScrollView>
         <View style={s.exerciseCard} testID="workout-exercise-card">
-          <ExerciseThumbnail key={exercise.id} name={exercise.name} uri={exercise.imageUrl} height={150} onPreview={() => setPanel('image')}/>
+          <ExerciseThumbnail key={exercise.id} name={exercise.name} uri={exercise.imageUrl} fill onPreview={() => setPanel('image')}/>
           <View style={s.exerciseHeader}>
             <View style={s.flex}>
               <Text accessibilityRole="header" numberOfLines={2} style={s.exerciseName}>{exercise.name}</Text>
@@ -198,8 +206,8 @@ export default function WorkoutRunScreen() {
         </View>
         {upcoming ? <Text style={s.upcoming}>A seguir: <Text style={s.upcomingName}>{upcoming.name}</Text> · {upcoming.sets} × {repsLabel(upcoming.reps)}{upcoming.load != null ? ` · ${formatMeasure(upcoming.load, 'kg', 2)}` : ''}</Text> : <Text style={s.upcoming}>Este é o último exercício do treino.</Text>}
       </> : null}
-      {run && p && result ? <WorkoutResult run={run} progress={p} dirty={session.dirty} busy={busy} onShare={() => setSharing(true)} onDone={() => { setFinishedHere(null); void act(async () => { await session.dismiss(); router.dismissTo('/'); }); }} onAnother={() => { setFinishedHere(null); void act(session.dismiss); }} onHistory={() => router.dismissTo({ pathname: '/workouts', params: { section: 'training' } })}/> : null}
-      {run ? <ShareActivityModal activity={sharing && run.historySessionId ? { eventType: 'workout_completed', sourceType: 'workout_session', sourceId: run.historySessionId } : null} onClose={() => setSharing(false)}/> : null}
+      {run && p && result ? <WorkoutResult run={run} progress={p} dirty={session.dirty} busy={busy} onShare={() => setSharing('manual')} onDone={() => { setFinishedHere(null); void act(async () => { await session.dismiss(); router.dismissTo('/'); }); }} onAnother={() => { setFinishedHere(null); void act(session.dismiss); }} onHistory={() => router.dismissTo({ pathname: '/workouts', params: { section: 'training' } })}/> : null}
+      {run ? <ShareActivityModal auto={sharing === 'auto'} activity={sharing && run.historySessionId ? { eventType: 'workout_completed', sourceType: 'workout_session', sourceId: run.historySessionId } : null} onClose={() => setSharing(false)}/> : null}
     </ScrollView>
     {open && p && run && exercise && item ? <View style={s.footer}>
       <RestBar progress={p} restSeconds={exercise.restSeconds ?? 60} disabled={disabled} onChange={update} c={c}/>
@@ -210,7 +218,7 @@ export default function WorkoutRunScreen() {
       </View>
     </View> : null}
     <Sheet visible={panel !== null} onClose={() => setPanel(null)} title={panel === 'exercises' ? 'Exercícios do treino' : panel === 'exercise' ? exercise?.name ?? '' : panel === 'options' ? 'Opções do treino' : panel === 'instructions' ? exercise?.name ?? '' : ''} c={c}>
-      {panel === 'image' && exercise?.imageUrl ? <Image source={{ uri: exercise.imageUrl }} contentFit="contain" style={{ height: 350, width: '100%' }}/> : null}
+      {panel === 'image' && exercise?.imageUrl ? <Image source={{ uri: exercise.imageUrl }} contentFit="contain" style={{ width: '100%', aspectRatio: 3 / 2, maxHeight: 420, backgroundColor: c.white, borderRadius: 16 }}/> : null}
       {panel === 'exercises' && run && p ? run.exercises.map((e, i) => { const state = p.exercises.find(x => x.id === e.id)!; return <Pressable key={e.id} accessibilityRole="button" accessibilityLabel={`${i + 1}. ${e.name}`} aria-selected={i === p.currentIndex} disabled={disabled} onPress={() => { update(value => ({ ...value, currentIndex: i })); setPanel(null); }} style={[s.exerciseOption, i === p.currentIndex && s.exerciseOptionCurrent]}><View style={s.flex}><Text style={s.heading}>{i + 1}. {e.name}</Text><Text style={s.muted}>{state.skipped ? 'Pulado por enquanto' : `${state.completedSets.length} de ${e.sets} séries`}</Text></View><MaterialCommunityIcons name={state.completedSets.length === e.sets ? 'check-circle' : 'chevron-right'} size={22} color={c.link}/></Pressable>; }) : null}
       {panel === 'exercise' && exercise && item && p ? <>
         {item.completedSets.length < exercise.sets ? <SheetAction icon="check-all" label="Concluir todas as séries" detail="Marca as séries que faltam neste exercício." disabled={disabled || !running} onPress={completeExercise} c={c}/> : null}
@@ -290,7 +298,7 @@ function WorkoutResult({ run, progress: p, dirty, busy, onShare, onDone, onAnoth
     {dirty ? <Text style={s.caption}>Resultado salvo neste celular. O histórico e a meta atualizam quando a conexão voltar.</Text> : null}
     {!discarded ? <>{group('Completos', complete, 'check-circle')}{group('Parciais', partial, 'circle-half-full')}{group('Não feitos', skipped, 'circle-outline')}</> : null}
     <Pressable accessibilityRole="button" disabled={busy || dirty} onPress={onDone} style={[s.primaryButton, (busy || dirty) && s.disabled]}><Text style={s.primaryText}>Concluir</Text></Pressable>
-    {run.historySessionId ? <Pressable accessibilityRole="button" onPress={onShare} style={s.button}><Text style={s.link}>Compartilhar resultado</Text></Pressable> : null}
+    {run.historySessionId ? <Pressable accessibilityRole="button" onPress={onShare} style={s.button}><Text style={s.link}>Postar nos grupos</Text></Pressable> : null}
     <View style={s.resultLinks}><Pressable accessibilityRole="button" onPress={onHistory} style={s.textButton}><Text style={s.link}>Ver histórico</Text></Pressable><Pressable accessibilityRole="button" disabled={busy || dirty} onPress={onAnother} style={[s.textButton, (busy || dirty) && s.disabled]}><Text style={s.link}>Iniciar outro treino</Text></Pressable></View>
   </View>;
 }

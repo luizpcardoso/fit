@@ -18,6 +18,8 @@ test('refeições: referências por categoria não substituem o nome livre', () 
   assert.equal(mealInputSchema.safeParse({ ...input, category: 'categoria inventada' }).success, false);
   assert.equal(mealInputSchema.safeParse({ ...input, time: '24:00' }).success, false);
   assert.equal(mealCategoryTime(null), null);
+  assert.equal(mealCategoryTime('breakfast', { breakfast: '09:30' }), '09:30');
+  assert.equal(mealCategoryTime('lunch', { breakfast: '09:30' }), '12:30');
 });
 
 test('horários: passos de 30 minutos respeitam a data e preservam minutos exatos', () => {

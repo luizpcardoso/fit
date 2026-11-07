@@ -1,4 +1,5 @@
-import { MealCategoryPicker, MealWhenFields } from '@/components/meal-details-fields';
+import { MealCategoryPicker, MealWhenFields, nameForCategory } from '@/components/meal-details-fields';
+import { useMealCategoryTimes } from '@/hooks/use-user-preferences';
 import { formatNumber } from '@/utils/numbers';
 import { useMealWhen } from '@/hooks/use-meal-when';
 import { FormStickyFooter } from '@/components/form-sticky-footer';
@@ -18,7 +19,7 @@ import * as Crypto from "expo-crypto";
 import {
   dietMacros,
   mealCategories,
-  mealCategoryTime,
+  mealCategoryLabel,
   type MealCategory,
   dietMealInputSchema,
   type DietMealInput,
@@ -64,6 +65,7 @@ export function DietMealForm({
     requestId = useRef(Crypto.randomUUID());
   const requestSignature=useRef('');
   const resetTime = when.resetTime;
+  const { timeFor } = useMealCategoryTimes();
   const choose=useCallback((rows:DietView[],choice:DietSelection|null)=>{
     setChosen(choice);
     const meal=choice?rows.find(row=>row.id===choice.assignmentId)?.meals[choice.mealIndex]:undefined;
@@ -75,9 +77,9 @@ export function DietMealForm({
     if (!meal) return;
     const matching = mealCategories.find(item => item.label.toLocaleLowerCase('pt-BR') === meal.name.trim().toLocaleLowerCase('pt-BR'))?.id ?? null;
     setCategory(matching);
-    setName('');
-    resetTime(meal.time || mealCategoryTime(matching));
-  },[resetTime]);
+    setName(mealCategoryLabel(matching) ?? '');
+    resetTime(meal.time || timeFor(matching));
+  },[resetTime, timeFor]);
   const load = async () => {
     setLoading(true);
     setError("");
@@ -184,7 +186,7 @@ export function DietMealForm({
             {plan ? <><View style={{gap:5}}><Text style={{color:c.text,fontSize:18,fontWeight:'800'}}>{plan.name}</Text><Text style={{color:c.textMuted,fontSize:12}}>Por {plan.authorName}</Text><DietExpiry diet={plan}/></View><DietMealRows diet={plan} onSelect={mealIndex => choose(diets,{assignmentId:plan.id,mealIndex,optionIndex:0})}/></> : null}
           </> : diet && meal && chosen ? <>
             <View style={{gap:6}}><Text style={{color:c.text,fontSize:21,fontWeight: '800'}}>{meal.name}</Text><Text style={{color:c.textMuted,fontSize:12}}>{diet.name} · {meal.time || 'Sem horário definido'}</Text><Pressable accessibilityRole="button" disabled={busy} onPress={() => {setPlanId(diet.id);choose(diets,null);}} style={{minHeight:44,justifyContent:'center'}}><Text style={{color:c.link}}>Alterar refeição</Text></Pressable><DietExpiry diet={diet}/></View>
-            <MealCategoryPicker value={category} disabled={busy} onChange={value => { setCategory(value); const reference = mealCategoryTime(value); if (reference) when.suggest(reference); }}/>
+            <MealCategoryPicker value={category} disabled={busy} onChange={(value, reference) => { setName(current => nameForCategory(current, category, value)); setCategory(value); if (reference) when.suggest(reference); }}/>
             <Text style={{color:c.text,fontSize:14,fontWeight:'700'}}>Nome da refeição</Text>
             <TextInput accessibilityLabel="Nome da refeição" editable={!busy} value={name} onChangeText={setName} placeholder="Ex.: Marmita congelada" placeholderTextColor={c.textMuted} maxLength={120} style={{...field,minHeight:48,fontSize:14}}/>
             <MealWhenFields value={when} category={category} disabled={busy}/>

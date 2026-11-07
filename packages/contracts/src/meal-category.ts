@@ -13,9 +13,12 @@ export const mealCategories: readonly { id: MealCategory; label: string; from: n
   { id: 'dinner', label: 'Jantar', from: 18 * 60, to: 21 * 60 },
   { id: 'supper', label: 'Ceia', from: 21 * 60, to: 23 * 60 },
 ];
-export function mealCategoryTime(category?: MealCategory | null) {
+/** Suggested time for a category: the person's saved time when present, else the window midpoint. */
+export function mealCategoryTime(category?: MealCategory | null, overrides?: Partial<Record<MealCategory, string>>) {
   const item = mealCategories.find(value => value.id === category);
   if (!item) return null;
+  const custom = overrides?.[item.id];
+  if (custom) return custom;
   const minutes = Math.round((item.from + item.to) / 2 / 30) * 30;
   return `${Math.floor(minutes / 60).toString().padStart(2, '0')}:${(minutes % 60).toString().padStart(2, '0')}`;
 }

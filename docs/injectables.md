@@ -9,7 +9,8 @@ O recurso não prescreve medicamentos, não recomenda doses ou frequências e n�
 ## Fluxo
 
 - Saúde > Injetáveis abre a agenda, cadastros, histórico e estimativa. O gráfico tem um único nome em toda a interface, **Quantidade estimada no organismo**, com subtítulo explicando que é uma estimativa matemática pela meia-vida, não medição no sangue. A leitura acessível do gráfico informa o valor de hoje, o pico do período e a próxima aplicação prevista.
-- O cadastro recebe nome, dose, unidade, dias da semana, meia-vida e observações opcionais.
+- O cadastro recebe nome, dose, unidade, dias da semana, meia-vida e observações opcionais. O seletor de dias é o componente compartilhado `WeekdayPicker` (também usado em medicamentos/suplementos e nos lembretes de peso e medidas).
+- Uma aplicação prevista pode ser dispensada só naquele dia (`POST/DELETE /injectables/:id/dismissals` com `{date}`, idempotente, apenas em dia previsto e para o dono). Ela segue em `items` com `dismissedAt` para desfazer, mas sai de `total`/`applied`/`remaining` (contada em `dismissed`), do resumo diário e da agenda. Tabela `injectable_dismissals` (migration 047).
 - A Home mostra injetáveis previstos no dia junto de Medicamentos e Suplementos.
 - Uma aplicação prevista pode ser marcada ou desfeita pela Home ou pela tela de Injetáveis.
 - Cada aplicação preserva um snapshot da dose e unidade vigentes.

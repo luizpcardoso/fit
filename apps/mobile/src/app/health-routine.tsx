@@ -1,4 +1,5 @@
 import { RetroactiveHealthModal } from '@/components/retroactive-health-modal';
+import { formatWeekdays } from '@/components/weekday-picker';
 import { renderFormListScroll } from '@/components/form-list-scroll';
 import { FormInput as TextInput } from '@/components/form-input';
 import { useLoadMore } from '@/hooks/use-load-more';
@@ -121,7 +122,7 @@ function HealthRoutineView({ kind }: { kind: HealthKind }) {
           <Pressable accessibilityRole="button" accessibilityLabel={`Editar ${item.name}`} style={s.itemBody} onPress={() => setForm({ item })}>
             <Text numberOfLines={1} style={s.itemName}>{item.name}</Text>
             <Text numberOfLines={1} style={s.itemDose}>{healthDose(item)}</Text>
-            <Text numberOfLines={1} style={s.itemTimes}>{item.times.length ? [...item.times].sort().join(' · ') : `${item.dailyFrequency} tomada(s) ao dia`}</Text>
+            <Text numberOfLines={1} style={s.itemTimes}>{[item.times.length ? [...item.times].sort().join(' · ') : `${item.dailyFrequency} tomada(s) · sem horário`, ...(item.weekdays ? [formatWeekdays(item.weekdays)] : [])].join(' · ')}</Text>
             <Text style={item.active ? s.itemStatus : s.paused}>{item.active ? `${taken}/${item.dailyFrequency} ${item.dailyFrequency === 1 ? 'dose' : 'doses'} hoje` : 'Pausado · toque para editar'}</Text>
           </Pressable>
           <View style={s.itemActions}>

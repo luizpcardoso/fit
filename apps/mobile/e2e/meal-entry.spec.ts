@@ -36,7 +36,11 @@ for (const theme of ['light', 'dark']) test(`refeição: categoria, nome livre, 
   await expect(page.getByRole('radio', { name: 'Agora', exact: true })).toBeChecked();
   await expect(page.getByLabel('Horário exato (HH:MM)', { exact: true })).toHaveCount(0);
   await page.getByRole('radio', { name: 'Almoço', exact: true }).click();
-  await expect(page.getByLabel('Nome da refeição', { exact: true })).toHaveValue('');
+  // The category names the meal until the person writes another name.
+  await expect(page.getByLabel('Nome da refeição', { exact: true })).toHaveValue('Almoço');
+  await page.getByRole('radio', { name: 'Jantar', exact: true }).click();
+  await expect(page.getByLabel('Nome da refeição', { exact: true })).toHaveValue('Jantar');
+  await page.getByRole('radio', { name: 'Almoço', exact: true }).click();
   await expect(page.getByRole('radio', { name: 'Selecionar horário', exact: true })).toBeChecked();
   await expect(page.getByLabel('Horário exato (HH:MM)', { exact: true })).toHaveValue('12:30');
   await expect(page.getByRole('radio', { name: 'Agora', exact: true })).toContainText('09:06');
@@ -155,7 +159,7 @@ for (const theme of ['light', 'dark']) test(`refeição da dieta: metadados pess
   await page.getByRole('button', { name: 'Adicionar refeição', exact: true }).click();
   await page.getByRole('radio', { name: 'Usar minha dieta', exact: true }).click();
   await page.getByRole('button', { name: 'Abrir Almoço às 12:30', exact: true }).click();
-  await expect(page.getByLabel('Nome da refeição', { exact: true })).toHaveValue('');
+  await expect(page.getByLabel('Nome da refeição', { exact: true })).toHaveValue('Almoço');
   await expect(page.getByRole('radio', { name: 'Almoço', exact: true })).toBeChecked();
   await expect(page.getByLabel('Horário exato (HH:MM)', { exact: true })).toHaveValue('12:30');
   await page.getByLabel('Nome da refeição', { exact: true }).fill('Marmita congelada da dieta');

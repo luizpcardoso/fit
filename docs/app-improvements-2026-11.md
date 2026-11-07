@@ -9,6 +9,18 @@
 - Criar e editar fichas mantêm um único rascunho. Alterar campos de um exercício atualiza o rascunho imediatamente. Recolher, reordenar ou trocar de exercício/treino mantém os valores. Apenas o botão geral persiste a ficha. A validação aponta o exercício inválido e falhas de rede preservam o rascunho para tentar novamente. As proteções de navegação e fechamento da página continuam ativas enquanto houver alterações.
 - O catálogo busca por nome, músculo ou equipamento, sem distinguir acentos ou maiúsculas; prioriza nomes correspondentes, limita a 60 resultados e mantém exercícios privados fora da busca global. Foram acrescentadas 21 variações de exercícios, incluindo roscas, antebraços, membros inferiores e abdômen.
 
+## Rotina, refeições e lembretes
+
+- **Rotina de hoje** (antes “Pendências de hoje”) mostra o progresso `feitas/total` e “N restantes”. A folha agrupa por horário, depois **A qualquer hora** (doses sem horário, com “Marcar todos”) e **Outras** (injetáveis e check-in).
+- Doses de medicamentos/suplementos e aplicações de injetáveis podem ser **dispensadas hoje**; ficam em “Dispensadas hoje”, com Desfazer, e saem do total, do resumo e dos lembretes. O check-in mental continua controlado pela preferência própria.
+- Medicamentos e suplementos aceitam **Sem horário**, chave **Lembrar nos horários** e **dias da semana** opcionais (`docs/supplements.md`).
+- Ao finalizar treino ou cardio, “Postar nos seus grupos?” abre com todos os grupos elegíveis marcados; ações: Postar em todos, Escolher grupos, Não postar (`docs/groups.md`).
+- Imagens de exercício usam moldura fixa 3:2 com a imagem inteira sobre branco, no app (`ExerciseThumbnail`) e no portal.
+- Refeição: a categoria sugere o nome; “Adição rápida”; “Informar macronutrientes” com todos os campos opcionais; **Personalizar** horários das categorias, salvos na conta (`docs/nutrition.md`).
+- Lembretes de peso e medidas: linha compacta + folha com dias da semana e horário (`docs/notifications.md`).
+
+Migrações 046–048: `supplements.weekdays_json`/`remind`, tabelas `supplement_dismissals`/`injectable_dismissals` e `user_preferences`. Itens existentes seguem todos os dias com lembrete ligado.
+
 ## Banco e compatibilidade
 
 As migrações 036–038 acrescentam `notification_read_at` aos vínculos profissionais, `count_mental_check_in` aos usuários (padrão verdadeiro) e os novos exercícios globais. O servidor aplica migrações ao iniciar; para aplicação explícita, usar `npm run db:migrate --workspace=@fit/api` no ambiente desejado. Os novos exercícios também entram no portal global quando já há uma conta administradora. Nenhum dado emocional é incluído nas notificações.

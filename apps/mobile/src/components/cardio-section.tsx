@@ -65,7 +65,7 @@ export function CardioSection({ date, title = 'Cardio de hoje', compact = false,
     </View>
     {formOpen?<CardioForm date={date} latestWeight={weight} onClose={()=>setFormOpen(false)} onSaved={async created=>{onChanged?.();setFormOpen(false);showToast('Cardio registrado.');setShareActivity({eventType:'cardio_completed',sourceType:'cardio_session',sourceId:created.id});await load()}}/>:null}
     {infoOpen?<InformationModal title="Como estimamos o gasto" paragraphs={infoParagraphs} details={infoDetails} onClose={()=>setInfoOpen(false)}/>:null}
-    <ShareActivityModal activity={shareActivity} onClose={()=>setShareActivity(null)}/>
+    <ShareActivityModal auto activity={shareActivity} onClose={()=>setShareActivity(null)}/>
   </>;
 
   return <View style={s.section}>
@@ -90,7 +90,7 @@ export function CardioSection({ date, title = 'Cardio de hoje', compact = false,
     <CardioHistory key={historyVersion} excludeDate={date} onRemove={remove}/>
     {formOpen?<CardioForm date={date} latestWeight={weight} onClose={()=>setFormOpen(false)} onSaved={async created=>{changed();setFormOpen(false);showToast('Cardio registrado.');setShareActivity({eventType:'cardio_completed',sourceType:'cardio_session',sourceId:created.id});await load()}}/>:null}
     {infoOpen?<InformationModal title="Como funciona o cardio" paragraphs={infoParagraphs} details={infoDetails} onClose={()=>setInfoOpen(false)}/>:null}
-    <ShareActivityModal activity={shareActivity} onClose={()=>setShareActivity(null)}/>
+    <ShareActivityModal auto activity={shareActivity} onClose={()=>setShareActivity(null)}/>
   </View>;
 }
 

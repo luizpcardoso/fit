@@ -8,6 +8,7 @@ import { ActivityIndicator, Modal, Platform, Pressable, StyleSheet, Switch, Text
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { formatHealthTimeInput, healthUnits } from '@/utils/health';
 import { formatDecimalInput, formatDecimalValue } from '@/utils/input-format';
+import { WeekdayPicker } from '@/components/weekday-picker';
 
 type Props = { kind: HealthKind; initial: HealthItem | null; onClose(): void; onSave(input: HealthItemInput, active: boolean): Promise<void>; onDelete?(): void };
 
@@ -22,12 +23,16 @@ export function HealthItemForm({ kind, initial, onClose, onSave, onDelete }: Pro
   const [strength, setStrength] = useState(initial?.strength ?? '');
   const [frequency, setFrequency] = useState(initial?.dailyFrequency ?? 1);
   const [times, setTimes] = useState(() => Array.from({ length: initial?.dailyFrequency ?? 1 }, (_, index) => initial?.times[index] ?? (medication ? '' : suggestSupplementTimes(initial?.dailyFrequency ?? 1)[index])));
+  const [timed, setTimed] = useState(initial ? initial.times.length > 0 : true);
+  const [remind, setRemind] = useState(initial?.remind ?? true);
+  const [everyDay, setEveryDay] = useState(!initial?.weekdays);
+  const [weekdays, setWeekdays] = useState<number[]>(initial?.weekdays ?? [1, 2, 3, 4, 5, 6, 7]);
   const [notes, setNotes] = useState(initial?.notes ?? '');
   const [active, setActive] = useState(initial?.active ?? true);
   const [busy, setBusy] = useState(false);
   const saving = useRef(false);
   const [error, setError] = useState('');
-  type FieldKey = 'name' | 'amount' | 'strength' | 'times' | 'notes';
+  type FieldKey = 'name' | 'amount' | 'strength' | 'times' | 'weekdays' | 'notes';
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<FieldKey, string>>>({});
   const [timeErrors, setTimeErrors] = useState<number[]>([]);
   const clearField = (key: FieldKey) => setFieldErrors(current => (current[key] ? { ...current, [key]: undefined } : current));
@@ -38,9 +43,9 @@ export function HealthItemForm({ kind, initial, onClose, onSave, onDelete }: Pro
   };
   const save = async () => {
     if (saving.current) return;
-    const input = supplementInputSchema.safeParse({ name, amount: amount.trim() ? Number(amount.replace(',', '.')) : null, unit, strength: strength.trim() || null, dailyFrequency: frequency, times, notes: notes.trim() || null });
+    const input = supplementInputSchema.safeParse({ name, amount: amount.trim() ? Number(amount.replace(',', '.')) : null, unit, strength: strength.trim() || null, dailyFrequency: frequency, times: timed ? times : [], weekdays: everyDay || weekdays.length === 7 ? null : weekdays, remind, notes: notes.trim() || null });
     // Field-level messages: the shared schema decides validity, the form explains where to fix it.
-    const invalidTimes = times.flatMap((time, index) => !/^([01]\d|2[0-3]):[0-5]\d$/.test(time) ? [index] : times.indexOf(time) !== index ? [index] : []);
+    const invalidTimes = !timed ? [] : times.flatMap((time, index) => !/^([01]\d|2[0-3]):[0-5]\d$/.test(time) ? [index] : times.indexOf(time) !== index ? [index] : []);
     if (!input.success) {
       const next: Partial<Record<FieldKey, string>> = {};
       for (const issue of input.error.issues) {
@@ -49,6 +54,7 @@ export function HealthItemForm({ kind, initial, onClose, onSave, onDelete }: Pro
         else if (key === 'amount') next.amount = 'Use um número maior que zero, ou deixe em branco.';
         else if (key === 'strength') next.strength = 'Use até 100 caracteres.';
         else if (key === 'notes') next.notes = 'Use até 500 caracteres.';
+        else if (key === 'weekdays') next.weekdays = 'Escolha ao menos um dia da semana.';
         else if (key === 'times') next.times = invalidTimes.some(index => times[index] && times.indexOf(times[index]) !== index) ? 'Cada tomada precisa de um horário diferente.' : 'Informe cada horário no formato HH:MM, por exemplo 07:00.';
       }
       setFieldErrors(next); setTimeErrors(invalidTimes);
@@ -72,8 +78,15 @@ export function HealthItemForm({ kind, initial, onClose, onSave, onDelete }: Pro
         <Text style={s.label}>Apresentação / concentração · opcional</Text><TextInput keyboardAppearance={scheme} placeholderTextColor={c.textMuted} accessibilityLabel="Apresentação ou concentração" editable={!busy} value={strength} onChangeText={value => { setStrength(value); clearField('strength'); }} maxLength={100} placeholder={medication ? 'Ex.: 500 mg por comprimido' : 'Ex.: 1.000 mg por cápsula'} style={[s.input, fieldErrors.strength && s.inputError]} />{fieldErrors.strength ? <Text style={s.fieldError}>{fieldErrors.strength}</Text> : null}
         <View style={s.divider} /><Text style={s.section}>Rotina diária</Text>
         <Text style={s.label}>Quantas tomadas por dia?</Text><View style={s.frequency}>{[1, 2, 3, 4, 5, 6].map(value => <Pressable key={value} accessibilityRole="radio" accessibilityLabel={`${value} tomadas por dia`} aria-checked={frequency === value} aria-disabled={busy} disabled={busy} onPress={() => selectFrequency(value)} style={[s.frequencyButton, frequency === value && s.selected]}><Text style={frequency === value ? s.selectedText : s.chipText}>{value}x</Text></Pressable>)}</View>
-        <Text style={s.helper}>{medication ? 'Preencha a frequência e os horários que você já utiliza.' : 'Horários sugeridos a partir das 07:00; ajuste à sua rotina.'}</Text>
-        <View style={s.timeGrid}>{times.map((time, index) => <View key={index} style={s.timeField}><Text style={s.label}>{index + 1}ª tomada</Text><TextInput keyboardAppearance={scheme} placeholderTextColor={c.textMuted} accessibilityLabel={`Horário da ${index + 1}ª tomada`} editable={!busy} value={time} onChangeText={value => { setTimes(current => current.map((old, position) => position === index ? formatHealthTimeInput(value) : old)); setTimeErrors(current => current.filter(item => item !== index)); }} keyboardType="number-pad" maxLength={5} placeholder="Ex.: 07:00" style={[s.input, s.timeInput, timeErrors.includes(index) && s.inputError]} /></View>)}</View>{fieldErrors.times ? <Text style={s.fieldError}>{fieldErrors.times}</Text> : null}
+        <Text style={s.label}>Horário</Text><View accessibilityRole="radiogroup" style={s.wrap}>{([[true, 'Com horário'], [false, 'Sem horário']] as const).map(([value, text]) => <Pressable key={text} accessibilityRole="radio" aria-checked={timed === value} aria-disabled={busy} disabled={busy} onPress={() => { setTimed(value); setTimeErrors([]); clearField('times'); }} style={[s.chip, timed === value && s.selected]}><Text style={timed === value ? s.selectedText : s.chipText}>{text}</Text></Pressable>)}</View>
+        {timed ? <>
+          <Text style={s.helper}>{medication ? 'Preencha a frequência e os horários que você já utiliza.' : 'Horários sugeridos a partir das 07:00; ajuste à sua rotina.'}</Text>
+          <View style={s.timeGrid}>{times.map((time, index) => <View key={index} style={s.timeField}><Text style={s.label}>{index + 1}ª tomada</Text><TextInput keyboardAppearance={scheme} placeholderTextColor={c.textMuted} accessibilityLabel={`Horário da ${index + 1}ª tomada`} editable={!busy} value={time} onChangeText={value => { setTimes(current => current.map((old, position) => position === index ? formatHealthTimeInput(value) : old)); setTimeErrors(current => current.filter(item => item !== index)); }} keyboardType="number-pad" maxLength={5} placeholder="Ex.: 07:00" style={[s.input, s.timeInput, timeErrors.includes(index) && s.inputError]} /></View>)}</View>{fieldErrors.times ? <Text style={s.fieldError}>{fieldErrors.times}</Text> : null}
+          <View style={s.status}><View style={s.flex}><Text style={s.section}>Lembrar nos horários</Text><Text style={s.helper}>Notificação no aparelho em cada horário, se os lembretes da categoria estiverem ligados.</Text></View><Switch {...(Platform.OS === 'web' ? { activeThumbColor: c.controlThumb } : {})} accessibilityLabel="Lembrar nos horários" disabled={busy} value={remind} onValueChange={setRemind} aria-checked={remind} aria-disabled={busy} trackColor={{ false: c.controlTrackOff, true: c.link }} thumbColor={c.controlThumb} ios_backgroundColor={c.controlTrackOff} /></View>
+        </> : <Text style={s.helper}>Sem horário, as tomadas aparecem em “A qualquer hora” na Rotina de hoje, para marcar quando quiser. Não geram lembretes.</Text>}
+        <Text style={s.label}>Dias da semana</Text><View accessibilityRole="radiogroup" style={s.wrap}>{([[true, 'Todos os dias'], [false, 'Dias específicos']] as const).map(([value, text]) => <Pressable key={text} accessibilityRole="radio" aria-checked={everyDay === value} aria-disabled={busy} disabled={busy} onPress={() => { setEveryDay(value); clearField('weekdays'); }} style={[s.chip, everyDay === value && s.selected]}><Text style={everyDay === value ? s.selectedText : s.chipText}>{text}</Text></Pressable>)}</View>
+        {everyDay ? null : <><WeekdayPicker value={weekdays} disabled={busy} onChange={days => { setWeekdays(days); clearField('weekdays'); }} /><Text style={s.helper}>Nos outros dias o {label} não aparece na rotina nem gera lembretes.</Text></>}
+        {fieldErrors.weekdays ? <Text style={s.fieldError}>{fieldErrors.weekdays}</Text> : null}
         <Text style={s.label}>Observações · opcional</Text><TextInput keyboardAppearance={scheme} placeholderTextColor={c.textMuted} accessibilityLabel="Observações" editable={!busy} value={notes} onChangeText={value => { setNotes(value); clearField('notes'); }} maxLength={500} multiline placeholder="Ex.: Tomar depois do café da manhã" style={[s.input, s.notes, fieldErrors.notes && s.inputError]} />{fieldErrors.notes ? <Text style={s.fieldError}>{fieldErrors.notes}</Text> : null}
         {initial ? <View style={s.status}><View style={s.flex}><Text style={s.section}>{active ? 'Cadastro ativo' : 'Cadastro pausado'}</Text><Text style={s.helper}>Pausados não entram nas tomadas do dia.</Text></View><Switch {...(Platform.OS === 'web' ? { activeThumbColor: c.controlThumb } : {})} accessibilityLabel="Cadastro ativo" disabled={busy} value={active} onValueChange={setActive} aria-checked={active} aria-disabled={busy} trackColor={{ false: c.controlTrackOff, true: c.link }} thumbColor={c.controlThumb} ios_backgroundColor={c.controlTrackOff} /></View> : null}
         {error ? <Text accessibilityRole="alert" style={s.error}>{error}</Text> : null}

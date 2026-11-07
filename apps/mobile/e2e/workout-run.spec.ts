@@ -29,8 +29,8 @@ for (const theme of ['light', 'dark']) test(`Home mantém treino ativo e permite
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
   page.on('console', message => { if (message.type() === 'error' && message.text().includes('Unexpected text node')) errors.push(message.text()); });
   await page.goto('/', { waitUntil: 'domcontentloaded' });
-  await expect(page.getByText('0 de 1 feitas', { exact: true })).toBeVisible({ timeout: 30000 });
-  await page.getByRole('button', { name: 'Ver atividades de hoje', exact: true }).click();
+  await expect(page.getByText('1 restante', { exact: true })).toBeVisible({ timeout: 30000 });
+  await page.getByRole('button', { name: 'Ver rotina de hoje, 0 de 1 feitas', exact: true }).click();
   await expect(page.getByText('Treino planejado para hoje', { exact: true })).toHaveCount(0);
   await expect(page.getByText('Check-in da Mente', { exact: true })).toBeVisible();
   await page.goto(`/workout-run?planId=${plan.id}`);
@@ -122,7 +122,7 @@ for (const theme of ['light', 'dark']) test(`Home mantém treino ativo e permite
   const previous = await (await request.get(`${apiURL}/workout-runs/previous?divisionId=${plan.divisions[0].id}`, { headers })).json();
   expect(previous[plan.divisions[0].exercises[0].id][0]).toEqual({ set: 0, loadKg: 40, reps: 12 });
   await page.goto('/');
-  await expect(page.getByText('0 de 1 feitas', { exact: true })).toBeVisible();
+  await expect(page.getByText('1 restante', { exact: true })).toBeVisible();
   await expect(page.getByLabel('1 de 1 treinos nesta semana. Meta da semana concluída.', { exact: true })).toBeVisible();
   await expect(banner).toHaveCount(0);
   const summary = await (await request.get(`${apiURL}/me/daily-summary?date=${today}`, { headers })).json();

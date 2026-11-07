@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { supplementInputSchema, supplementIntakeInputSchema, suggestSupplementTimes } from '@fit/contracts';
+import { supplementInputSchema, supplementIntakeInputSchema, suggestSupplementTimes, updateSupplementSchema } from '@fit/contracts';
 
 test('contratos de suplementos aceitam os exemplos e rejeitam programação inválida', () => {
   for (const input of [
@@ -21,4 +21,17 @@ test('sugestões iniciam às 07:00 e usam múltiplos de 30 minutos', () => {
   assert.deepEqual(suggestSupplementTimes(3), ['07:00','15:00','23:00']);
   assert.deepEqual(suggestSupplementTimes(5), ['07:00','12:00','16:30','21:30','02:00']);
   for (let frequency=1;frequency<=6;frequency++) for (const time of suggestSupplementTimes(frequency)) assert.equal(Number(time.slice(3)) % 30,0);
+});
+
+test('contratos aceitam doses sem horário, dias da semana e lembrete por item', () => {
+  const untimed = supplementInputSchema.safeParse({ name: 'Creatina', dailyFrequency: 2, times: [], remind: false });
+  assert.equal(untimed.success, true);
+  assert.deepEqual(untimed.data?.times, []);
+  assert.equal(supplementInputSchema.safeParse({ name: 'Creatina', dailyFrequency: 1, times: ['08:00'], weekdays: [1, 3, 5] }).success, true);
+  assert.equal(supplementInputSchema.safeParse({ name: 'Creatina', dailyFrequency: 1, times: ['08:00'], weekdays: null }).success, true);
+  for (const weekdays of [[], [0], [8], [1, 1], [1, 2, 3, 4, 5, 6, 7, 1]]) assert.equal(supplementInputSchema.safeParse({ name: 'Creatina', dailyFrequency: 1, times: ['08:00'], weekdays }).success, false);
+  assert.equal(supplementInputSchema.safeParse({ name: 'Creatina', dailyFrequency: 2, times: ['08:00'] }).success, false);
+  assert.equal(updateSupplementSchema.safeParse({ times: [] }).success, true);
+  assert.equal(updateSupplementSchema.safeParse({ weekdays: [2, 2] }).success, false);
+  assert.equal(updateSupplementSchema.safeParse({ remind: 'no' }).success, false);
 });

@@ -23,6 +23,8 @@ import type { CardioRepository } from './cardio-repository.js';
 import { registerCardioRoutes } from './cardio-routes.js';
 import type { ShortcutRepository } from './shortcut-repository.js';
 import { registerShortcutRoutes } from './shortcut-routes.js';
+import type { PreferenceStore } from './preference-repository.js';
+import { registerPreferenceRoutes } from './preference-routes.js';
 import type { MentalWellbeingStore } from './mental-wellbeing-repository.js';
 import { registerMentalWellbeingRoutes } from './mental-wellbeing-routes.js';
 import type { InjectableStore } from './injectable-repository.js';
@@ -50,7 +52,7 @@ const bodySchemas = {
   refresh: { type: 'object', required: ['refreshToken'], additionalProperties: false, properties: { refreshToken: { type: 'string', minLength: 32, maxLength: 512 } } },
 } as const;
 
-export async function buildApp(options: { observabilityStore?: ObservabilityStore; observabilityEnabled?: boolean; observabilityRetention?: RetentionPolicy; portalStore?: PortalStore; repository?: AuthRepository; workoutRepository?: WorkoutRepository; supplementRepository?: SupplementRepository; medicationRepository?: SupplementRepository; nutritionRepository?: NutritionRepository; cardioRepository?: CardioRepository; shortcutRepository?: ShortcutRepository; mentalWellbeingRepository?: MentalWellbeingStore; injectableRepository?: InjectableStore; groupRepository?:GroupRepository; feedbackRepository?: import("./feedback.js").FeedbackStore; jwtSecret: string }) {
+export async function buildApp(options: { observabilityStore?: ObservabilityStore; observabilityEnabled?: boolean; observabilityRetention?: RetentionPolicy; portalStore?: PortalStore; repository?: AuthRepository; workoutRepository?: WorkoutRepository; supplementRepository?: SupplementRepository; medicationRepository?: SupplementRepository; nutritionRepository?: NutritionRepository; cardioRepository?: CardioRepository; shortcutRepository?: ShortcutRepository; preferenceRepository?: PreferenceStore; mentalWellbeingRepository?: MentalWellbeingStore; injectableRepository?: InjectableStore; groupRepository?:GroupRepository; feedbackRepository?: import("./feedback.js").FeedbackStore; jwtSecret: string }) {
   const app = Fastify({ logger: false, bodyLimit: 1_048_576, trustProxy: process.env.TRUST_PROXY === '1' ? ['loopback', '172.16.0.0/12'] : false });
   app.addHook('onSend', async (_request, reply, payload) => {
     reply.header('x-content-type-options', 'nosniff').header('x-frame-options', 'DENY').header('referrer-policy', 'no-referrer');
@@ -149,6 +151,7 @@ export async function buildApp(options: { observabilityStore?: ObservabilityStor
   if (options.nutritionRepository) await registerNutritionRoutes(app, options.nutritionRepository, secure);
   if (options.cardioRepository) await registerCardioRoutes(app, options.cardioRepository, secure,options.groupRepository);
   if (options.shortcutRepository) await registerShortcutRoutes(app, options.shortcutRepository, secure);
+  if (options.preferenceRepository) await registerPreferenceRoutes(app, options.preferenceRepository, secure);
   if (options.mentalWellbeingRepository) await registerMentalWellbeingRoutes(app, options.mentalWellbeingRepository, secure);
   if (options.injectableRepository) await registerInjectableRoutes(app, options.injectableRepository, secure);
   if(options.groupRepository)await registerGroupRoutes(app,options.groupRepository,secure);

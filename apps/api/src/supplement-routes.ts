@@ -1,5 +1,5 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
-import { healthPageQuerySchema, supplementInputSchema, supplementIntakeInputSchema, updateSupplementSchema } from '@fit/contracts';
+import { healthPageQuerySchema, supplementDismissalInputSchema, supplementInputSchema, supplementIntakeInputSchema, updateSupplementSchema } from '@fit/contracts';
 import { z } from 'zod';
 import type { SupplementRepository } from './supplement-repository.js';
 
@@ -28,5 +28,13 @@ export async function registerSupplementRoutes(app: FastifyInstance, repo: Suppl
   app.delete(`${prefix}/:id/intakes`, { ...base, schema: { ...base.schema, summary: 'Desfaz tomada' } }, async (request, reply) => {
     const input = supplementIntakeInputSchema.parse(request.body);
     return await repo.undo(request.user.sub, params.parse(request.params).id, input.date, input.slot) ? reply.code(204).send() : notFound(reply);
+  });
+  app.post(`${prefix}/:id/dismissals`, { ...base, schema: { ...base.schema, summary: 'Dispensa a dose do dia' } }, async (request, reply) => {
+    const input = supplementDismissalInputSchema.parse(request.body);
+    return await repo.dismiss(request.user.sub, params.parse(request.params).id, input.date, input.slot) ? reply.code(204).send() : notFound(reply);
+  });
+  app.delete(`${prefix}/:id/dismissals`, { ...base, schema: { ...base.schema, summary: 'Desfaz a dispensa da dose' } }, async (request, reply) => {
+    const input = supplementDismissalInputSchema.parse(request.body);
+    return await repo.restore(request.user.sub, params.parse(request.params).id, input.date, input.slot) ? reply.code(204).send() : notFound(reply);
   });
 }

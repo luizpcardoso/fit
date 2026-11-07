@@ -23,11 +23,12 @@ type Activity = {
   sourceType: "workout_session" | "cardio_session" | "weekly_goal";
   sourceId: string;
 };
-export function ShareActivityModal({ activity, onClose }: { activity: Activity | null; onClose(): void }) {
+/** `auto`: opened by the app right after an activity; stays hidden (and closes) when there is no eligible group or groups fail to load. */
+export function ShareActivityModal({ activity, auto, onClose }: { activity: Activity | null; auto?: boolean; onClose(): void }) {
   // Unmount the content before clearing the activity; hidden native modals still render children.
-  return activity ? <ShareActivityContent key={`${activity.eventType}:${activity.sourceId}`} activity={activity} onClose={onClose} /> : null;
+  return activity ? <ShareActivityContent key={`${activity.eventType}:${activity.sourceId}`} activity={activity} auto={Boolean(auto)} onClose={onClose} /> : null;
 }
-function ShareActivityContent({ activity, onClose }: { activity: Activity; onClose(): void }) {
+function ShareActivityContent({ activity, auto, onClose }: { activity: Activity; auto: boolean; onClose(): void }) {
   const { colors: c } = useAppTheme();
   const s = styles(c);
   const { api } = useAuth();
@@ -39,13 +40,16 @@ function ShareActivityContent({ activity, onClose }: { activity: Activity; onClo
   const inFlight = useRef(false);
   const mounted = useRef(true);
   const [error, setError] = useState('');
+  const [loadFailed, setLoadFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
+  // Posting is the default: every eligible group starts selected, choosing is optional.
+  const [choosing, setChoosing] = useState(false);
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   const close = () => { if (!inFlight.current) onClose(); };
   useEffect(() => {
     if (!activity) return;
     let active = true;
-    void Promise.resolve().then(()=>{if(active){setLoading(true);setGroups([]);setSelected([]);setError('');}});
+    void Promise.resolve().then(()=>{if(active){setLoading(true);setGroups([]);setSelected([]);setError('');setLoadFailed(false);}});
     api
       .listGroups()
       .then((items) => Promise.all(items.map((item) => api.getGroup(item.id))))
@@ -56,9 +60,9 @@ function ShareActivityContent({ activity, onClose }: { activity: Activity; onClo
         );
         setGroups(eligible);
         setMemberOfAny(details.length > 0);
-        setSelected([]); // Sharing requires an explicit choice for this activity.
+        setSelected(eligible.map((group) => group.id)); // Still requires tapping "Postar".
       })
-      .catch(() => { if (active) setError('Não foi possível carregar os grupos. Sua atividade está salva. Tente novamente.'); })
+      .catch(() => { if (active) { setLoadFailed(true); setError('Não foi possível carregar os grupos. Sua atividade está salva. Tente novamente.'); } })
       .finally(() => {
         if (active) setLoading(false);
       });
@@ -66,6 +70,9 @@ function ShareActivityContent({ activity, onClose }: { activity: Activity; onClo
       active = false;
     };
   }, [activity, api, attempt]);
+  // An automatic prompt with nothing to offer would only interrupt; the activity is already saved.
+  const pointless = auto && !loading && (loadFailed || !groups.length);
+  useEffect(() => { if (pointless) onClose(); }, [pointless, onClose]);
   const share = async () => {
     if (inFlight.current || !selected.length || loading) return;
     inFlight.current = true; setSaving(true); setError('');
@@ -79,7 +86,7 @@ function ShareActivityContent({ activity, onClose }: { activity: Activity; onClo
         );
       const count = selected.length;
       if (mounted.current) onClose();
-      showToast(count === 1 ? 'Conquista compartilhada em 1 grupo.' : `Conquista compartilhada em ${count} grupos.`);
+      showToast(count === 1 ? 'Atividade postada em 1 grupo.' : `Atividade postada em ${count} grupos.`);
     } catch (failure) {
       if (mounted.current) setError(groupErrorMessage(failure, {
         forbidden: 'Um dos grupos não aceita mais este tipo de atividade. Nada foi compartilhado; sua atividade continua salva.',
@@ -92,9 +99,13 @@ function ShareActivityContent({ activity, onClose }: { activity: Activity; onClo
       if (mounted.current) setSaving(false);
     }
   };
+  const allSelected = selected.length === groups.length;
+  const shareLabel = groups.length === 1 && allSelected ? `Postar em ${groups[0].name}`
+    : allSelected ? `Postar em todos os grupos (${groups.length})`
+    : selected.length ? `Postar em ${selected.length} ${selected.length === 1 ? "grupo" : "grupos"}` : "Escolha ao menos um grupo";
   return (
     <Modal
-      visible={Boolean(activity)}
+      visible={Boolean(activity) && !(auto && (loading || pointless))}
       transparent
       animationType="slide"
       onRequestClose={close}
@@ -111,9 +122,9 @@ function ShareActivityContent({ activity, onClose }: { activity: Activity; onClo
               />
             </View>
             <View style={s.flex}>
-              <Text accessibilityRole="header" style={s.title}>Compartilhar conquista?</Text>
+              <Text accessibilityRole="header" style={s.title}>Postar nos seus grupos?</Text>
               <Text style={s.subtitle}>
-                Escolha em quais grupos esta atividade pode aparecer.
+                Sua atividade já está salva. Postar incentiva quem treina com você.
               </Text>
             </View>
             <Pressable accessibilityRole="button" accessibilityLabel="Fechar compartilhamento" onPress={close} style={s.close}>
@@ -128,6 +139,11 @@ function ShareActivityContent({ activity, onClose }: { activity: Activity; onClo
           <ScrollView contentContainerStyle={{ gap: 10 }}>
           {loading ? (
             <ActivityIndicator accessibilityLabel="Carregando grupos" color={c.link} />
+          ) : groups.length && !choosing ? (
+            <View style={s.summary}>
+              <MaterialCommunityIcons name="account-group-outline" size={20} color={c.link} />
+              <Text style={s.summaryText}>{groups.length === 1 ? groups[0].name : `${groups.length} grupos: ${groups.map((group) => group.name).join(", ")}`}</Text>
+            </View>
           ) : groups.length ? (
             groups.map((group) => {
               const chosen = selected.includes(group.id);
@@ -183,9 +199,6 @@ function ShareActivityContent({ activity, onClose }: { activity: Activity; onClo
           )}
           </ScrollView>
           <View style={s.actions}>
-            <Pressable accessibilityRole="button" onPress={close} style={s.later}>
-              <Text style={s.laterText}>{groups.length ? "Não compartilhar" : "Fechar"}</Text>
-            </Pressable>
             {loading || groups.length ? <Pressable
               accessibilityRole="button"
               aria-disabled={saving || loading || !selected.length}
@@ -196,9 +209,15 @@ function ShareActivityContent({ activity, onClose }: { activity: Activity; onClo
               {saving ? (
                 <ActivityIndicator color={c.onPrimary} />
               ) : (
-                <Text style={s.shareText}>Compartilhar</Text>
+                <Text style={s.shareText}>{shareLabel}</Text>
               )}
             </Pressable> : null}
+            {groups.length > 1 ? <Pressable accessibilityRole="button" aria-expanded={choosing} disabled={saving} onPress={() => { if (choosing) setSelected(groups.map((group) => group.id)); setChoosing((value) => !value); }} style={s.choose}>
+              <Text style={s.chooseText}>{choosing ? "Voltar para todos" : "Escolher grupos"}</Text>
+            </Pressable> : null}
+            <Pressable accessibilityRole="button" onPress={close} style={s.later}>
+              <Text style={s.laterText}>{groups.length ? "Não postar" : "Fechar"}</Text>
+            </Pressable>
           </View>
         </SafeAreaView>
       </View>
@@ -285,20 +304,19 @@ const styles = (c: AppPalette) =>
       textAlign: "center",
       lineHeight: 16,
     },
-    actions: { flexDirection: "row", gap: 9, marginTop: 8 },
+    summary: { flexDirection: "row", alignItems: "center", gap: 10, padding: 14, borderRadius: 16, backgroundColor: c.primarySoft },
+    summaryText: { flex: 1, color: c.text, fontSize: 13, fontWeight: "700", lineHeight: 18 },
+    actions: { gap: 8, marginTop: 8 },
+    choose: { minHeight: 48, justifyContent: "center", alignItems: "center", borderRadius: 16, borderWidth: 1, borderColor: c.primary },
+    chooseText: { color: c.link, fontWeight: "800", fontSize: 13 },
     later: {
-      flex: 1,
-      minHeight: 48,
+      minHeight: 44,
       justifyContent: "center",
-      padding: 14,
-      borderRadius: 16,
-      backgroundColor: c.surfaceSoft,
       alignItems: "center",
     },
-    laterText: { color: c.text, fontWeight: "800", fontSize: 13 },
+    laterText: { color: c.textMuted, fontWeight: "800", fontSize: 13 },
     share: {
-      flex: 1,
-      minHeight: 48,
+      minHeight: 52,
       justifyContent: "center",
       padding: 14,
       borderRadius: 16,

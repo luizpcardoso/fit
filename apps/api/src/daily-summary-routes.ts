@@ -16,12 +16,12 @@ export type DailySummarySources = {
 };
 
 // A missing intake is an unconfirmed record, never proof that a dose was not taken.
-export function overdueMedicationCount(date: string, items: { time?: string | null; consumedAt?: string | null }[], now = new Date()) {
+export function overdueMedicationCount(date: string, items: { time?: string | null; consumedAt?: string | null; dismissedAt?: string | null }[], now = new Date()) {
   const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Bahia', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(now);
   const part = (name: string) => parts.find(item => item.type === name)!.value;
   if (date !== `${part('year')}-${part('month')}-${part('day')}`) return 0;
   const time = `${part('hour')}:${part('minute')}`;
-  return items.filter(item => !item.consumedAt && item.time && /^([01]\d|2[0-3]):[0-5]\d$/.test(item.time) && item.time < time).length;
+  return items.filter(item => !item.consumedAt && !item.dismissedAt && item.time && /^([01]\d|2[0-3]):[0-5]\d$/.test(item.time) && item.time < time).length;
 }
 
 export function registerDailySummaryRoutes(

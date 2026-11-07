@@ -5,7 +5,7 @@ import type { ApiError, AuthResponse, CatalogExercise, CompleteWorkoutInput, Cre
 import type { HealthKind, HealthItem, HealthItemInput, HealthToday, UpdateHealthItemInput, MedicationToday } from '@fit/contracts';
 import type { BodyMeasurement, BodyMeasurementInput, DailyExpenditure, DailyExpenditureInput, DailyNutritionSummary, FavoriteMeal, Food, FoodInput, Meal, MealSyncEntry, MealSyncResult, MealCategory, MealInput, UpdateFoodInput } from '@fit/contracts';
 import type { CardioSession, CardioSessionInput } from '@fit/contracts';
-import type { HomeShortcuts } from '@fit/contracts';
+import type { HomeShortcuts, UpdateUserPreferences, UserPreferences } from '@fit/contracts';
 import type { MentalCheckIn, MentalCheckInInput } from '@fit/contracts';
 import type { Injectable, InjectableEstimate, InjectableInput, InjectableToday, UpdateInjectableInput } from '@fit/contracts';
 import type { CreateGroupInput,CreateGroupPostInput,GroupComment,GroupDashboard,GroupDetails,GroupEventSettings,GroupInvite,GroupMember,GroupNotification,GroupPost,GroupReaction,GroupReport,GroupReportReason,GroupSharePreferences,GroupSummary,GroupUser,UpdateGroupInput,UpdateGroupPostInput,UpdateSocialProfileInput } from '@fit/contracts';
@@ -142,6 +142,7 @@ export function createApiClient(options: ClientOptions) {
     deleteInjectable: (id:string) => request<void>(`/injectables/${id}`, { method:'DELETE' }),
     getInjectablesToday: (date:string) => request<InjectableToday>(`/injectables/today?date=${encodeURIComponent(date)}`),
     setInjectableApplication: (id:string,date:string,applied:boolean) => request<void>(`/injectables/${id}/applications`, { method:applied?'POST':'DELETE',body:JSON.stringify({date}) }),
+    setInjectableDismissal: (id:string,date:string,dismissed:boolean) => request<void>(`/injectables/${id}/dismissals`, { method:dismissed?'POST':'DELETE',body:JSON.stringify({date}) }),
     getInjectableEstimate: (id:string,days=30) => request<InjectableEstimate>(`/injectables/${id}/estimate?days=${days}`),
     getReminderAgenda:(from:string,to:string)=>request<import('@fit/contracts').ReminderAgenda>(`/me/reminder-agenda?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`),
     listMentalCheckIns: (from:string,to:string) => request<MentalCheckIn[]>(`/mental-check-ins?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`),
@@ -152,6 +153,8 @@ export function createApiClient(options: ClientOptions) {
     getCardioSessionsPage: (query: PageQuery) => request<Page<CardioSession>>(`/cardio-sessions/page?page=${query.page}&pageSize=${query.pageSize}`),
     createCardioSession: (input:CardioSessionInput) => request<CardioSession>('/cardio-sessions', { method:'POST', body:JSON.stringify(input) }),
     deleteCardioSession: (id:string) => request<void>(`/cardio-sessions/${id}`, { method:'DELETE' }),
+    getPreferences: () => request<UserPreferences>('/me/preferences'),
+    updatePreferences: (input: UpdateUserPreferences) => request<UserPreferences>('/me/preferences', { method: 'PATCH', body: JSON.stringify(input) }),
     getHomeShortcuts: () => request<HomeShortcuts>('/me/home-shortcuts'),
     saveHomeShortcuts: (input:HomeShortcuts) => request<HomeShortcuts>('/me/home-shortcuts', { method:'PUT',body:JSON.stringify(input) }),
     listFoods: () => request<Food[]>('/nutrition/foods'),
@@ -193,6 +196,7 @@ export function createApiClient(options: ClientOptions) {
       return { ...daily, items: daily.items.map(({ supplement, ...entry }) => ({ ...entry, item: supplement })) };
     },
     setHealthIntake: (kind: HealthKind, id: string, date: string, slot: number, consumed: boolean) => request<void>(`${kind === 'medication' ? '/medications' : '/supplements'}/${id}/intakes`, { method: consumed ? 'POST' : 'DELETE', body: JSON.stringify({ date, slot }) }),
+    setHealthDismissal: (kind: HealthKind, id: string, date: string, slot: number, dismissed: boolean) => request<void>(`${kind === 'medication' ? '/medications' : '/supplements'}/${id}/dismissals`, { method: dismissed ? 'POST' : 'DELETE', body: JSON.stringify({ date, slot }) }),
     register: (input: RegisterInput) => request<AuthResponse>('/auth/register', { method: 'POST', body: JSON.stringify(input) }),
     login: (input: LoginInput) => request<AuthResponse>('/auth/login', { method: 'POST', body: JSON.stringify(input) }),
     me: () => request<PublicUser>('/auth/me'),

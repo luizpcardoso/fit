@@ -26,23 +26,32 @@ async function login(page: Page, request: APIRequestContext) {
   const errors: string[]=[];page.on('pageerror', error=>errors.push(error.message));
   return errors;
 }
-test('compartilhamento conclui, permite escolher grupo, fecha sem crash e preserva treino',async({page,request})=>{
+test('postagem abre ao finalizar com todos os grupos marcados, permite escolher grupos, fecha sem crash e preserva treino',async({page,request})=>{
   const errors=await login(page,request);
   const group=await post(request,'/groups',{name:'Grupo escolhido'});
-  await request.put(apiURL+`/groups/${group.id}/events`,{headers,data:{workout_completed:true,cardio_completed:false,weekly_goal:false,weekly_streak:false,member_joined:false}});
+  const second=await post(request,'/groups',{name:'Outro grupo'});
+  for(const id of [group.id,second.id])await request.put(apiURL+`/groups/${id}/events`,{headers,data:{workout_completed:true,cardio_completed:false,weekly_goal:false,weekly_streak:false,member_joined:false}});
   const created=await post(request,'/workout-plans',{name:'Ficha E2E',divisions:[{name:'Treino A',exercises:[{name:'Agachamento',sets:3,reps:'10'}]}]});
   const plan=await(await request.get(apiURL+`/workout-plans/${created.id}`,{headers})).json();
   await page.goto(`/workout-run?planId=${plan.id}&divisionId=${plan.divisions[0].id}`);
-  await page.getByRole('checkbox').click();await page.getByRole('button',{name:'Finalizar treino',exact:true}).click();
-  await expect(page.getByText('Compartilhar conquista?')).toBeVisible();
-  await expect(page.getByRole('button',{name:'Compartilhar',exact:true})).toBeDisabled();
-  await page.getByRole('checkbox').filter({hasText:'Grupo escolhido'}).click();
+  await page.getByRole('button',{name:'Iniciar treino A',exact:true}).click();
+  await page.getByTestId('complete-exercise-button').click();
+  await page.getByRole('button',{name:'Finalizar treino agora',exact:true}).click();
+  await page.getByRole('button',{name:'Finalizar treino',exact:true}).last().click();
+  await expect(page.getByText('Postar nos seus grupos?')).toBeVisible();
+  await expect(page.getByRole('button',{name:'Postar em todos os grupos (2)',exact:true})).toBeEnabled();
+  await expect(page.getByRole('button',{name:'Não postar',exact:true})).toBeVisible();
+  await page.getByRole('button',{name:'Escolher grupos',exact:true}).click();
+  await expect(page.getByRole('checkbox').filter({hasText:'Grupo escolhido'})).toBeChecked();
+  await page.getByRole('checkbox').filter({hasText:'Outro grupo'}).click();
+  await expect(page.getByRole('button',{name:'Postar em 1 grupo',exact:true})).toBeEnabled();
   await page.route('**/groups/share-activity', route => route.fulfill({ status:503, contentType:'application/json', body:JSON.stringify({code:'INTERNAL_ERROR',message:'Falha simulada'}) }), { times:1 });
-  await page.getByRole('button',{name:'Compartilhar',exact:true}).click();
+  await page.getByRole('button',{name:'Postar em 1 grupo',exact:true}).click();
   await expect(page.getByText(/Compartilhamento não enviado/)).toBeVisible();
   expect((await(await request.get(apiURL+'/workout-sessions',{headers})).json()).length).toBe(1);
-  await page.getByRole('button',{name:'Compartilhar',exact:true}).click();
-  await expect(page.getByText('Treino finalizado!',{exact:true})).toBeVisible();
+  await page.getByRole('button',{name:'Postar em 1 grupo',exact:true}).click();
+  await expect(page.getByText('Postar nos seus grupos?')).toHaveCount(0);
+  await expect(page.getByText(/Treino finalizado/).first()).toBeVisible();
   expect((await(await request.get(apiURL+'/workout-sessions',{headers})).json()).length).toBe(1);
   expect(errors).toEqual([]);
 });
@@ -73,20 +82,20 @@ test('Home: conclusão direta e refeição atualizam dados persistidos',async({p
   const errors=await login(page,request);
   await post(request,'/supplements',{name:'Suplemento E2E',dailyFrequency:1,times:['08:00']});
   await request.put(apiURL+'/nutrition/goal',{headers,data:{targetCalories:2000}});
-  await page.goto('/');await page.getByRole('button',{name:/atividades de hoje/i}).click();
+  await page.goto('/');await page.getByRole('button',{name:/rotina de hoje/i}).click();
   await page.route('**/supplements/*/intakes', route => route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({code:'INTERNAL_ERROR',message:'Falha simulada'})}),{times:1});
   await page.getByRole('checkbox',{name:'Registrar tomada de Suplemento E2E'}).click();
   await expect(page.getByText(/Não foi possível confirmar a alteração/)).toBeVisible();
   expect((await(await request.get(apiURL+`/supplements/today?date=${date()}`,{headers})).json()).consumed).toBe(0);
   await page.getByRole('checkbox',{name:'Registrar tomada de Suplemento E2E'}).click();
   await expect(page.getByRole('checkbox',{name:'Desfazer tomada de Suplemento E2E'})).toBeChecked();
-  await page.getByLabel('Fechar atividades de hoje').click();await page.getByRole('button',{name:'Adicionar refeição',exact:true}).click();
-  await expect(page.getByRole('radio',{name:'Informar calorias',exact:true})).toBeChecked();
+  await page.getByLabel('Fechar rotina de hoje').click();await page.getByRole('button',{name:'Adicionar refeição',exact:true}).click();
+  await expect(page.getByRole('radio',{name:'Adição rápida',exact:true})).toBeChecked();
   await expect(page.getByLabel('Proteínas (g)',{exact:true})).toHaveCount(0);
-  await page.getByRole('checkbox',{name:/Informar proteínas, carboidratos e gorduras/}).click();
+  await page.getByRole('checkbox',{name:/Informar macronutrientes/}).click();
   await expect(page.getByLabel('Proteínas (g)',{exact:true})).toBeVisible();
   await page.getByLabel('Proteínas (g)',{exact:true}).fill('35');
-  await page.getByRole('checkbox',{name:/Informar proteínas, carboidratos e gorduras/}).click();
+  await page.getByRole('checkbox',{name:/Informar macronutrientes/}).click();
   await page.getByLabel('Nome da refeição',{exact:true}).fill('Almoço E2E');
   await page.getByLabel('Calorias (kcal)',{exact:true}).fill('500');
   await page.getByRole('button',{name:'Salvar',exact:true}).click();
@@ -267,5 +276,40 @@ test('Grupos: avatar e badge legíveis nos temas claro e escuro', async ({page,r
     expect(await contrast(avatar)).toBeGreaterThanOrEqual(4.5);
     await page.screenshot({path:`artifacts/ux-review/group-contrast-${theme}-390.png`,animations:'disabled'});
   }
+  expect(errors).toEqual([]);
+});
+test('Rotina de hoje: doses sem horário, dispensar e desfazer atualizam o contador',async({page,request})=>{
+  const errors=await login(page,request);
+  await post(request,'/supplements',{name:'Creatina livre',dailyFrequency:1,times:[]});
+  await post(request,'/medications',{name:'Remédio E2E',dailyFrequency:1,times:['08:00']});
+  await page.goto('/');
+  // Two doses plus the mental check-in.
+  await expect(page.getByText('3 restantes',{exact:true})).toBeVisible({timeout:30000});
+  await page.getByRole('button',{name:/rotina de hoje/i}).click();
+  await expect(page.getByText(/A qualquer hora · 1 item/)).toBeVisible();
+  await page.getByRole('button',{name:'Dispensar Remédio E2E hoje',exact:true}).click();
+  await expect(page.getByText('Dispensadas hoje · 1',{exact:true})).toBeVisible();
+  await expect(page.getByText('0/2 concluídas · 1 dispensada',{exact:true})).toBeVisible();
+  expect((await(await request.get(apiURL+`/medications/today?date=${date()}`,{headers})).json()).dismissed).toBe(1);
+  await page.getByRole('button',{name:/Dispensadas hoje/}).click();
+  await page.getByRole('button',{name:'Desfazer dispensa de Remédio E2E',exact:true}).click();
+  await expect(page.getByText('Dispensadas hoje · 1',{exact:true})).toHaveCount(0);
+  await page.getByRole('checkbox',{name:'Registrar tomada de Creatina livre'}).click();
+  await expect(page.getByText('1/3 concluídas',{exact:true})).toBeVisible();
+  expect(errors).toEqual([]);
+});
+test('Refeição: categoria nomeia e horários personalizados persistem na conta',async({page,request})=>{
+  const errors=await login(page,request);
+  await page.goto('/');await page.getByRole('button',{name:'Adicionar refeição',exact:true}).click();
+  await page.getByRole('button',{name:'Personalizar horários das categorias',exact:true}).click();
+  await page.getByLabel('Horário de Café da manhã',{exact:true}).fill('0930');
+  await page.getByRole('button',{name:'Salvar horários',exact:true}).click();
+  await expect(page.getByText('Horários das refeições',{exact:true})).toHaveCount(0);
+  expect((await(await request.get(apiURL+'/me/preferences',{headers})).json()).mealCategoryTimes).toEqual({breakfast:'09:30'});
+  await page.getByRole('radio',{name:'Café da manhã',exact:true}).click();
+  await expect(page.getByLabel('Nome da refeição',{exact:true})).toHaveValue('Café da manhã');
+  await expect(page.getByLabel('Horário exato (HH:MM)',{exact:true})).toHaveValue('09:30');
+  await page.reload();await page.getByRole('button',{name:'Adicionar refeição',exact:true}).click();
+  await expect(page.getByRole('radio',{name:'Café da manhã',exact:true})).toContainText('09:30');
   expect(errors).toEqual([]);
 });

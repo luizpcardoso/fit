@@ -222,18 +222,26 @@ const supplementBaseSchema = z.strictObject({
   amount: z.number().positive().max(10000).nullable().optional(),
   unit: supplementUnitSchema.nullable().optional(),
   dailyFrequency: z.number().int().min(1).max(6).default(1),
-  times: z.array(z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/)).min(1).max(6).default(['07:00']),
+  // Empty times = untimed doses: listed in the day's routine, never notified.
+  times: z.array(z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/)).max(6).default(['07:00']),
+  // Monday = 1 … Sunday = 7; null/omitted = every day.
+  weekdays: z.array(z.number().int().min(1).max(7)).min(1).max(7).nullable().optional(),
+  // Per-item local reminder switch; omitted = on.
+  remind: z.boolean().optional(),
   notes: z.string().trim().max(500).nullable().optional(),
   strength: z.string().trim().max(100).nullable().optional(),
 });
-export const supplementInputSchema = supplementBaseSchema.superRefine((value, context) => { if (value.times.length !== value.dailyFrequency) context.addIssue({ code:'custom', message:'Informe um horário para cada dose.', path:['times'] }); if (new Set(value.times).size !== value.times.length) context.addIssue({ code:'custom', message:'Os horários não podem se repetir.', path:['times'] }); });
-export const updateSupplementSchema = supplementBaseSchema.partial().extend({ dailyFrequency: z.number().int().min(1).max(6).optional(), times: z.array(z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/)).min(1).max(6).optional(), active: z.boolean().optional() }).superRefine((value, context) => { if (!Object.keys(value).length) context.addIssue({ code:'custom', message:'Informe ao menos um campo.' }); if (value.dailyFrequency !== undefined && value.times !== undefined && value.times.length !== value.dailyFrequency) context.addIssue({ code:'custom', message:'Informe um horário para cada dose.', path:['times'] }); if (value.times && new Set(value.times).size !== value.times.length) context.addIssue({ code:'custom', message:'Os horários não podem se repetir.', path:['times'] }); });
+const checkWeekdays = (weekdays: number[] | null | undefined, context: z.RefinementCtx) => { if (weekdays && new Set(weekdays).size !== weekdays.length) context.addIssue({ code:'custom', message:'Os dias não podem se repetir.', path:['weekdays'] }); };
+export const supplementInputSchema = supplementBaseSchema.superRefine((value, context) => { checkWeekdays(value.weekdays, context); if (value.times.length && value.times.length !== value.dailyFrequency) context.addIssue({ code:'custom', message:'Informe um horário para cada dose.', path:['times'] }); if (new Set(value.times).size !== value.times.length) context.addIssue({ code:'custom', message:'Os horários não podem se repetir.', path:['times'] }); });
+export const updateSupplementSchema = supplementBaseSchema.partial().extend({ dailyFrequency: z.number().int().min(1).max(6).optional(), times: z.array(z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/)).max(6).optional(), active: z.boolean().optional() }).superRefine((value, context) => { if (!Object.keys(value).length) context.addIssue({ code:'custom', message:'Informe ao menos um campo.' }); checkWeekdays(value.weekdays, context); if (value.dailyFrequency !== undefined && value.times?.length && value.times.length !== value.dailyFrequency) context.addIssue({ code:'custom', message:'Informe um horário para cada dose.', path:['times'] }); if (value.times && new Set(value.times).size !== value.times.length) context.addIssue({ code:'custom', message:'Os horários não podem se repetir.', path:['times'] }); });
 export const supplementIntakeInputSchema = z.strictObject({ slot: z.number().int().min(0).max(5), date: z.string().date() });
+export const supplementDismissalInputSchema = supplementIntakeInputSchema;
 export type SupplementInput = z.infer<typeof supplementInputSchema>;
 export type UpdateSupplementInput = z.infer<typeof updateSupplementSchema>;
-export type Supplement = SupplementInput & { id: string; active: boolean; createdAt: string; updatedAt: string };
-export type SupplementTodayItem = { supplement: Supplement; slot: number; time: string | null; consumedAt: string | null };
-export type SupplementToday = { date: string; total: number; consumed: number; remaining: number; items: SupplementTodayItem[] };
+export type Supplement = SupplementInput & { weekdays: number[] | null; remind: boolean; id: string; active: boolean; createdAt: string; updatedAt: string };
+// Dismissed slots stay in `items` (to allow undo) but are excluded from total/consumed/remaining.
+export type SupplementTodayItem = { supplement: Supplement; slot: number; time: string | null; consumedAt: string | null; dismissedAt: string | null };
+export type SupplementToday = { date: string; total: number; consumed: number; remaining: number; dismissed: number; items: SupplementTodayItem[] };
 
 // Shared public fields; legacy supplement responses retain their existing shape.
 export type HealthItem = Supplement;
@@ -396,8 +404,9 @@ export type InjectableInput = z.infer<typeof injectableInputSchema>;
 export type UpdateInjectableInput = z.infer<typeof updateInjectableSchema>;
 export type Injectable = InjectableInput & { id:string;active:boolean;createdAt:string;updatedAt:string };
 export type InjectableApplication = { id:string;injectableId:string;date:string;dose:number;unit:InjectableUnit;customUnit:string|null;appliedAt:string };
-export type InjectableTodayItem = { injectable:Injectable;application:InjectableApplication|null };
-export type InjectableToday = { date:string;total:number;applied:number;remaining:number;items:InjectableTodayItem[] };
+// Dismissed applications stay in `items` (to allow undo) but are excluded from total/applied/remaining.
+export type InjectableTodayItem = { injectable:Injectable;application:InjectableApplication|null;dismissedAt:string|null };
+export type InjectableToday = { date:string;total:number;applied:number;remaining:number;dismissed:number;items:InjectableTodayItem[] };
 export type InjectableEstimatePoint = { at:string;amount:number };
 export type InjectableEstimate = { injectableId:string;asOf:string;halfLifeDays:number;unit:InjectableUnit;customUnit:string|null;estimatedAmount:number;excludedApplications:number;points:InjectableEstimatePoint[];applications:InjectableApplication[] };
 
@@ -405,6 +414,18 @@ export const homeShortcutSchema = z.enum(['workout', 'meal', 'cardio', 'weight',
 export const homeShortcutsInputSchema = z.strictObject({ items: z.array(homeShortcutSchema).max(5).refine(items => new Set(items).size === items.length, 'Os atalhos não podem se repetir.') });
 export type HomeShortcut = z.infer<typeof homeShortcutSchema>;
 export type HomeShortcuts = z.infer<typeof homeShortcutsInputSchema>;
+
+// Per-account preferences shared by the app and the web build. Each key is optional so new
+// preferences can be added without migrating stored rows; absent values use product defaults.
+export const userPreferencesSchema = z.strictObject({
+  mealCategoryTimes: z.partialRecord(mealCategorySchema, localTimeSchema).default({}),
+});
+/** Top-level keys present replace the stored value (send the whole map to edit one category). */
+export const updateUserPreferencesSchema = z.strictObject({
+  mealCategoryTimes: z.partialRecord(mealCategorySchema, localTimeSchema).optional(),
+}).refine(value => Object.keys(value).length > 0, 'Informe ao menos uma preferência.');
+export type UserPreferences = z.infer<typeof userPreferencesSchema>;
+export type UpdateUserPreferences = z.infer<typeof updateUserPreferencesSchema>;
 
 export const userJsonSchema = {
   type: 'object', required: ['id', 'email', 'phone', 'firstName', 'lastName', 'birthDate', 'gender', 'estimationSex', 'heightCm', 'activityLevel', 'primaryGoal', 'username', 'displayName', 'avatarUrl'], additionalProperties: false,

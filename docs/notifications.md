@@ -22,7 +22,7 @@ O agendamento usa [Expo Notifications](https://docs.expo.dev/versions/latest/sdk
 
 ## API e segurança
 
-`GET /me/reminder-agenda?from=YYYY-MM-DD&to=YYYY-MM-DD` exige sessão, aceita no máximo sete dias e usa exclusivamente o usuário autenticado. Retorna categorias, horários e quantidades pendentes; não expõe nomes nem detalhes pessoais. Campos de consulta extras são rejeitados e a resposta usa `private, no-store`.
+Doses dispensadas no dia, doses sem horário e itens com `remind=false` não entram na agenda. `GET /me/reminder-agenda?from=YYYY-MM-DD&to=YYYY-MM-DD` exige sessão, aceita no máximo sete dias e usa exclusivamente o usuário autenticado. Retorna categorias, horários e quantidades pendentes; não expõe nomes nem detalhes pessoais. Campos de consulta extras são rejeitados e a resposta usa `private, no-store`.
 
 `GET /me/daily-summary` passa a incluir agregados opcionais por categoria, mantendo os campos anteriores. A preferência de contabilizar o check-in continua respeitada. Não há migração nova de banco para estes lembretes.
 
@@ -62,13 +62,13 @@ O resumo fixo consulta a API sem reutilizar cache ou requisições pendentes ant
 
 ## Lembretes independentes de peso e medidas — 02/11/2026
 
-Corpo e medidas oferece dois controles opcionais de lembrete diário ou semanal, com horários e dias próprios e desligados inicialmente. Usam avisos locais sem valores corporais, fotos ou observações. A ativação de um não ativa o outro e não impõe uma frequência de registro. O app instalado solicita permissão; no navegador os controles ficam indisponíveis com explicação.
+Corpo e medidas oferece dois lembretes opcionais (peso e medidas), com dias da semana e horário próprios e desligados inicialmente. Cada um aparece como uma linha compacta com resumo (“Seg, Qua, Sex · 08:00” ou “Desligado”); ligar ou tocar em Editar abre uma folha com o mesmo seletor de dias dos injetáveis (atalhos Todos os dias/Dias úteis) e o horário, e nada é agendado antes de confirmar. Usam avisos locais sem valores corporais, fotos ou observações. A ativação de um não ativa o outro e não impõe uma frequência de registro. O app instalado solicita permissão; no navegador os controles ficam indisponíveis com explicação.
 
 `BodyRemindersProvider` vive dentro da autenticação e lê preferências por conta em SecureStore. `body-reminder-plan.ts` contém parsing seguro e sincronização serializada/injetável; `body-reminders.ts` integra Expo. IDs estáveis evitam duplicação; apenas notificações com `bodyReminder=true` são canceladas. Salvar falhando restaura o agendamento anterior quando possível; logout limpa os avisos e respostas atrasadas não reintroduzem a conta antiga. `addBodyReminderResponseListener` valida tipo/payload e trata toque normal ou abertura a frio, abrindo `/body-measurements` com o modo de registro correspondente. Não há dados corporais no payload da notificação.
 
 Sempre atualizar este contexto junto do código. Os testes automatizados cobrem independência dos registros, preferências/horários, substituição sem duplicação, logout e agendamento atrasado. Entrega real no Android/iOS ainda requer homologação física; não gerar build nesta rodada.
 
-Atualização de periodicidade: peso e medidas permitem escolher Diário ou Semanal de forma independente. No semanal, escolher um dia (domingo=1 até sábado=7, padrão Expo) e horário, confirmando em Salvar lembrete. Preferências antigas sem frequência continuam diárias, preservando os agendamentos anteriores. A sincronização substitui o aviso existente com trigger DAILY ou WEEKLY, sem duplicar. Testes cobrem compatibilidade e envio dos dias/horários independentes ao agendador. Não foi gerado build.
+Periodicidade: `weekdays` (segunda=1 … domingo=7, a mesma convenção da API). Os sete dias geram um trigger DAILY; os demais, um WEEKLY por dia (convertido para domingo=1 do Expo). Preferências antigas são lidas sem perda: sem frequência ou diárias viram os sete dias; semanais convertem o dia do formato Expo. A sincronização cancela os avisos próprios antes de reagendar, sem duplicar. Testes em `apps/api/test/body-record.test.ts` cobrem conversão e agendamento por dia.
 
 ## Alerta de medicamento com horário passado
 

@@ -11,6 +11,7 @@ import { SupplementRepository } from './supplement-repository.js';
 import { NutritionRepository } from './nutrition-repository.js';
 import { CardioRepository } from './cardio-repository.js';
 import { ShortcutRepository } from './shortcut-repository.js';
+import { PreferenceRepository } from './preference-repository.js';
 import { MentalWellbeingRepository } from './mental-wellbeing-repository.js';
 import { InjectableRepository } from './injectable-repository.js';
 import { GroupRepository } from './group-repository.js';
@@ -43,7 +44,7 @@ photoCleanup.unref();
 const analyticsPolicy = observabilityRetention(process.env);
 const analyticsEnabled = observabilityEnabled(process.env);
 const analyticsStore = new SequelizeObservabilityStore(database, analyticsPolicy, Date.now, analyticsEnabled);
-const app = await buildApp({ observabilityStore: analyticsStore, observabilityRetention: analyticsPolicy, observabilityEnabled: analyticsEnabled, repository: new SequelizeAuthRepository(database), workoutRepository: new WorkoutRepository(database), supplementRepository: new SupplementRepository(database), medicationRepository: new SupplementRepository(database, 'medication'), nutritionRepository: new NutritionRepository(database), cardioRepository: new CardioRepository(database), shortcutRepository: new ShortcutRepository(database), mentalWellbeingRepository: new MentalWellbeingRepository(database), injectableRepository: new InjectableRepository(database),groupRepository, feedbackRepository:new FeedbackRepository(database), jwtSecret });
+const app = await buildApp({ observabilityStore: analyticsStore, observabilityRetention: analyticsPolicy, observabilityEnabled: analyticsEnabled, repository: new SequelizeAuthRepository(database), workoutRepository: new WorkoutRepository(database), supplementRepository: new SupplementRepository(database), medicationRepository: new SupplementRepository(database, 'medication'), nutritionRepository: new NutritionRepository(database), cardioRepository: new CardioRepository(database), shortcutRepository: new ShortcutRepository(database), preferenceRepository: new PreferenceRepository(database), mentalWellbeingRepository: new MentalWellbeingRepository(database), injectableRepository: new InjectableRepository(database),groupRepository, feedbackRepository:new FeedbackRepository(database), jwtSecret });
 if (process.env.UPDATES_DIR) registerUpdateRoutes(app, process.env.UPDATES_DIR, await readFile(new URL('../../mobile/certs/updates.pem', import.meta.url), 'utf8'));
 await (await import('./portal.js')).registerPortalRoutes(app, new SequelizePortalStore(database), async (request, reply) => {
   try { await request.jwtVerify(); } catch { return reply.code(401).send({ code: 'UNAUTHORIZED', message: 'Sessão inválida ou expirada.' }); }

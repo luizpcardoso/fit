@@ -18,7 +18,7 @@ O administrador define quais tipos de conteúdo o grupo aceita. Cada usuário de
 
 - Preferências começam desativadas (`opt-in`).
 - Uma atividade só é publicada automaticamente quando o grupo permite o evento **e** o usuário o habilitou naquele grupo.
-- Quando o compartilhamento automático está desativado, o usuário ainda pode escolher grupos permitidos no modal exibido após concluir a atividade.
+- Quando o compartilhamento automático está desativado, o modal exibido após concluir a atividade oferece postar nos grupos permitidos (todos marcados por padrão) ou escolher quais.
 - Um mesmo evento possui uma identidade de origem e não gera publicações duplicadas no mesmo grupo.
 - Cancelar ou excluir a atividade original não apaga silenciosamente a interação social já ocorrida, mas impede recriar outra publicação para a mesma origem.
 
@@ -92,7 +92,7 @@ As migrations `016-create-groups-and-social-feed` e `017-preserve-group-timestam
 
 ## Compartilhamento após conclusão de treino
 
-O app atual envia `shareAutomatically=false` ao concluir um treino e abre um modal sem grupo pré-selecionado. O usuário escolhe explicitamente os destinos. Consumidores antigos que omitem esse campo continuam usando preferências previamente autorizadas.
+Ao finalizar um treino (assim que existir a sessão de histórico) ou salvar um cardio, o app abre “Postar nos seus grupos?” com **todos os grupos elegíveis já marcados** (grupos cujo administrador aceita aquele tipo). A ação principal é “Postar em todos os grupos (N)” (ou “Postar em <grupo>” com um só); “Escolher grupos” abre a lista para desmarcar e “Não postar” fecha. Nada é publicado sem esse toque: a pré-seleção só muda o padrão, não o consentimento. O botão “Postar nos grupos” do resultado reabre o modal. O app envia `shareAutomatically=false` ao concluir um treino. Consumidores antigos que omitem esse campo continuam usando preferências previamente autorizadas.
 
 O conteúdo do modal é desmontado antes de limpar a atividade, evitando acesso a `activity.eventType` quando null. Uma falha social não transforma um treino já persistido em resposta de erro de conclusão. O compartilhamento manual valida propriedade da sessão e participação/permissão em todos os grupos dentro de uma transação; o índice único de origem/grupo existente impede publicações duplicadas por repetição e concorrência. Não há publicação parcial se um dos grupos selecionados não for autorizado.
 

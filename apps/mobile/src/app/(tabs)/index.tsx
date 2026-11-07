@@ -57,6 +57,9 @@ type DailyActivity = {
   time?: string;
   /** Records the dose without refreshing, so a whole time slot is saved before one refresh. */
   markDone?(): Promise<unknown>;
+  /** Skipped for today: kept visible for undo, left out of the progress count. */
+  dismissed?: boolean;
+  setDismissed?(dismissed: boolean): Promise<void>;
 };
 
 const weekdays = [
@@ -100,6 +103,7 @@ export default function HomeScreen() {
     if (!open && showChecks === '1') router.setParams({ showChecks: undefined });
   };
   const actionLock = useRef(false);
+  const [dismissedOpen, setDismissedOpen] = useState(false);
   const [activityBusy, setActivityBusy] = useState('');
   const [activityError, setActivityError] = useState('');
   const [mentalDone, setMentalDone] = useState<boolean | "error" | null>(null);
@@ -223,6 +227,8 @@ export default function HomeScreen() {
       done: Boolean(entry.consumedAt),
       time: entry.time ?? undefined,
       markDone: () => api.setHealthIntake('medication', entry.item.id, todayKey, entry.slot, true),
+      dismissed: Boolean(entry.dismissedAt),
+      setDismissed: async (dismissed: boolean) => { await api.setHealthDismissal('medication', entry.item.id, todayKey, entry.slot, dismissed); if (!await medications.refresh()) throw new Error('refresh'); },
       open: () => setHealthOpen("medication"),
       toggle: async () => { await api.setHealthIntake('medication', entry.item.id, todayKey, entry.slot, !entry.consumedAt); if (!await medications.refresh()) throw new Error('refresh'); },
     })) ?? []),
@@ -234,6 +240,8 @@ export default function HomeScreen() {
       done: Boolean(entry.consumedAt),
       time: entry.time ?? undefined,
       markDone: () => api.setHealthIntake('supplement', entry.item.id, todayKey, entry.slot, true),
+      dismissed: Boolean(entry.dismissedAt),
+      setDismissed: async (dismissed: boolean) => { await api.setHealthDismissal('supplement', entry.item.id, todayKey, entry.slot, dismissed); if (!await supplements.refresh()) throw new Error('refresh'); },
       open: () => setHealthOpen("supplement"),
       toggle: async () => { await api.setHealthIntake('supplement', entry.item.id, todayKey, entry.slot, !entry.consumedAt); if (!await supplements.refresh()) throw new Error('refresh'); },
     })) ?? []),
@@ -243,6 +251,8 @@ export default function HomeScreen() {
       detail: "Aplicação prevista",
       icon: "needle" as IconName,
       done: Boolean(entry.application),
+      dismissed: Boolean(entry.dismissedAt),
+      setDismissed: async (dismissed: boolean) => { await api.setInjectableDismissal(entry.injectable.id, todayKey, dismissed); if (!await injectables.refresh()) throw new Error('refresh'); },
       open: () => setInjectablesOpen(true),
     })) ?? []),
     ...(user?.countMentalCheckIn !== false ? [{
@@ -263,23 +273,36 @@ export default function HomeScreen() {
     catch { setActivityError('Não foi possível confirmar a alteração. Atualize a rotina antes de tentar novamente.'); await Promise.all([medications.refresh(), supplements.refresh()]); }
     finally { actionLock.current = false; setActivityBusy(''); }
   };
-  const markGroup = async (items: DailyActivity[]) => {
+  const dismissActivity = async (activity: DailyActivity, dismissed: boolean) => {
+    if (actionLock.current || !activity.setDismissed) return;
+    if (localDay() !== todayKey) { setActivityError('O dia mudou. Aguarde a atualização antes de registrar.'); return; }
+    actionLock.current = true; setActivityBusy(`dismiss:${activity.id}`); setActivityError('');
+    try { await activity.setDismissed(dismissed); showToast(dismissed ? `${activity.title} dispensado hoje. Desfaça em “Dispensadas hoje”.` : `${activity.title} voltou para a rotina de hoje.`); }
+    catch { setActivityError('Não foi possível atualizar a atividade. Confira a lista e tente novamente.'); await Promise.all([medications.refresh(), supplements.refresh(), injectables.refresh()]); }
+    finally { actionLock.current = false; setActivityBusy(''); }
+  };
+  const markGroup = async (key: string, items: DailyActivity[]) => {
     const pending = items.filter(item => !item.done && item.markDone);
     if (actionLock.current || !pending.length) return;
     if (localDay() !== todayKey) { setActivityError('O dia mudou. Aguarde a atualização antes de registrar.'); return; }
-    actionLock.current = true; setActivityBusy(`group:${items[0].time}`); setActivityError('');
+    actionLock.current = true; setActivityBusy(`group:${key}`); setActivityError('');
     try { for (const item of pending) await item.markDone!(); showToast(`${pending.length} ${pending.length === 1 ? 'dose registrada' : 'doses registradas'}. Toque em uma para desfazer.`); }
     catch { setActivityError('Nem todas as doses foram registradas. Confira a lista e tente novamente.'); }
     finally { await Promise.all([medications.refresh(), supplements.refresh()]); actionLock.current = false; setActivityBusy(''); }
   };
+  const dismissedActivities = dailyActivities.filter(item => item.dismissed);
+  const routineActivities = dailyActivities.filter(item => !item.dismissed);
   // Doses with the same time are taken together: group them so a slot can be checked at once.
-  const activityGroups = dailyActivities.reduce<{ key: string; time?: string; items: DailyActivity[] }[]>((groups, activity) => {
-    const key = activity.markDone && activity.time ? activity.time : 'other';
+  // Untimed doses ("a qualquer hora") can also be checked together; injectables/check-in stay apart.
+  const groupOrder = (key: string) => key === 'anytime' ? '99:98' : key === 'other' ? '99:99' : key;
+  const activityGroups = routineActivities.reduce<{ key: string; time?: string; items: DailyActivity[] }[]>((groups, activity) => {
+    const key = activity.markDone ? activity.time ?? 'anytime' : 'other';
     const group = groups.find(item => item.key === key);
-    if (group) group.items.push(activity); else groups.push({ key, time: key === 'other' ? undefined : key, items: [activity] });
+    if (group) group.items.push(activity); else groups.push({ key, time: key === 'other' || key === 'anytime' ? undefined : key, items: [activity] });
     return groups;
-  }, []).sort((a, b) => (a.time ?? '99:99').localeCompare(b.time ?? '99:99'));
-  const completedActivities = dailyActivities.filter(
+  }, []).sort((a, b) => groupOrder(a.key).localeCompare(groupOrder(b.key)));
+  const groupTitle = (group: { key: string; time?: string; items: DailyActivity[] }) => group.key === 'anytime' ? `A qualquer hora · ${group.items.length} ${group.items.length === 1 ? 'item' : 'itens'}` : group.time ? `${group.time} · ${group.items.length} ${group.items.length === 1 ? 'item' : 'itens'}` : 'Outras';
+  const completedActivities = routineActivities.filter(
     (item) => item.done,
   ).length;
   const activitiesLoading =
@@ -287,9 +310,10 @@ export default function HomeScreen() {
     supplements.loading ||
     injectables.loading ||
     (user?.countMentalCheckIn !== false && mentalDone === null);
-  const nextActivity = dailyActivities.find((item) => !item.done);
-  const activityProgress = dailyActivities.length
-    ? completedActivities / dailyActivities.length
+  const nextActivity = routineActivities.find((item) => !item.done);
+  const remainingActivities = routineActivities.length - completedActivities;
+  const activityProgress = routineActivities.length
+    ? completedActivities / routineActivities.length
     : 0;
   const openDailyActivity = (activity: DailyActivity) => {
     setActivitiesOpen(false);
@@ -329,14 +353,14 @@ export default function HomeScreen() {
             </Pressable>
             <Pressable accessibilityRole="button" accessibilityLabel={`Notificações, ${professionalUnread + groupDashboard.notificationsUnread} não lidas${notificationError ? ', atualização indisponível' : ''}`} onPress={() => router.push('/group-notifications')} style={s.menuButton}>
               <MaterialCommunityIcons name="bell-outline" size={25} color={c.link}/>
-              {professionalUnread + groupDashboard.notificationsUnread > 0 ? <View style={{position:'absolute',right:0,top:0,minWidth:18,height:18,borderRadius:9,backgroundColor:c.danger,alignItems:'center',justifyContent:'center'}}><Text style={{color:c.onPrimary,fontSize:10,fontWeight:'800'}}>{professionalUnread + groupDashboard.notificationsUnread > 99 ? '99+' : professionalUnread + groupDashboard.notificationsUnread}</Text></View> : notificationError ? <Text style={{color:c.warning,position:'absolute',right:0,top:0}}>!</Text> : null}
+              <GroupUpdatesBadge count={professionalUnread + groupDashboard.notificationsUnread} focused={false} stale={notificationError}/>
             </Pressable>
           </View>
 
           <View style={s.todayOverview}>
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Ver atividades de hoje"
+              accessibilityLabel={`Ver rotina de hoje, ${completedActivities} de ${routineActivities.length} feitas`}
               onPress={() => setActivitiesOpen(true)}
               style={[s.todayCard, CardShadow]}
             >
@@ -349,13 +373,20 @@ export default function HomeScreen() {
                   />
                 </View>
                 <View style={s.flex}>
-                  <Text style={s.todayLabel}>Pendências de hoje</Text>
+                  <Text style={s.todayLabel}>Rotina de hoje</Text>
                   <Text style={s.todayTitle}>
                     {activitiesLoading
                       ? "Atualizando…"
-                      : `${completedActivities} de ${dailyActivities.length} feitas`}
+                      : !routineActivities.length
+                        ? "Nada programado"
+                        : remainingActivities
+                          ? `${remainingActivities} ${remainingActivities === 1 ? "restante" : "restantes"}`
+                          : "Tudo feito hoje"}
                   </Text>
                 </View>
+                {!activitiesLoading && routineActivities.length ? (
+                  <Text style={s.todayCount}>{completedActivities}/{routineActivities.length}</Text>
+                ) : null}
                 <MaterialCommunityIcons
                   name="chevron-right"
                   size={20}
@@ -696,15 +727,15 @@ export default function HomeScreen() {
                 <View style={s.sheetHandle} />
                 <View style={s.activitiesHeader}>
                   <View style={s.flex}>
-                    <Text style={s.activitiesTitle}>Pendências de hoje</Text>
+                    <Text style={s.activitiesTitle}>Rotina de hoje</Text>
                     <Text style={s.activitiesSubtitle}>
                       {activitiesLoading
                         ? "Atualizando sua rotina…"
-                        : `${completedActivities} de ${dailyActivities.length} ${dailyActivities.length === 1 ? "concluída" : "concluídas"}`}
+                        : `${completedActivities}/${routineActivities.length} ${routineActivities.length === 1 ? "concluída" : "concluídas"}${dismissedActivities.length ? ` · ${dismissedActivities.length} ${dismissedActivities.length === 1 ? "dispensada" : "dispensadas"}` : ""}`}
                     </Text>
                   </View>
                   <Pressable accessibilityRole="button"
-                    accessibilityLabel="Fechar atividades de hoje"
+                    accessibilityLabel="Fechar rotina de hoje"
                     onPress={() => setActivitiesOpen(false)}
                     style={s.activitiesClose}
                   >
@@ -719,19 +750,23 @@ export default function HomeScreen() {
                   {activityError ? <Text accessibilityRole="alert" style={{ color: c.danger, paddingVertical: 12 }}>{activityError}</Text> : null}
                   {medications.error || supplements.error ? <Text accessibilityRole="alert" style={{ color: c.danger }}>{medications.error || supplements.error}</Text> : null}
                   {activityGroups.map(group => <View key={group.key}>
-                    {activityGroups.length > 1 || group.time ? <View style={s.activityGroupHeader}><Text style={s.activityGroupTitle}>{group.time ? `${group.time} · ${group.items.length} ${group.items.length === 1 ? 'item' : 'itens'}` : 'Outras pendências'}</Text>{group.time && group.items.filter(item => !item.done).length > 1 ? <Pressable accessibilityRole="button" accessibilityLabel={`Marcar todas as doses das ${group.time}`} disabled={Boolean(activityBusy) || Boolean(medications.error || supplements.error)} onPress={() => void markGroup(group.items)} style={s.activityGroupAction}>{activityBusy === `group:${group.time}` ? <ActivityIndicator color={c.link}/> : <Text style={s.activityGroupActionText}>Marcar todos</Text>}</Pressable> : null}</View> : null}
+                    {activityGroups.length > 1 || group.key !== 'other' ? <View style={s.activityGroupHeader}><Text style={s.activityGroupTitle}>{groupTitle(group)}</Text>{group.key !== 'other' && group.items.filter(item => !item.done).length > 1 ? <Pressable accessibilityRole="button" accessibilityLabel={group.time ? `Marcar todas as doses das ${group.time}` : 'Marcar todas as doses sem horário'} disabled={Boolean(activityBusy) || Boolean(medications.error || supplements.error)} onPress={() => void markGroup(group.key, group.items)} style={s.activityGroupAction}>{activityBusy === `group:${group.key}` ? <ActivityIndicator color={c.link}/> : <Text style={s.activityGroupActionText}>Marcar todos</Text>}</Pressable> : null}</View> : null}
                   {group.items.map((activity) => (
                     <View key={activity.id} style={s.activityRow}>
                       <Pressable accessibilityRole="button" accessibilityLabel={`Ver ${activity.title}`} onPress={() => openDailyActivity(activity)} style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 11, minHeight: 60 }}>
                         <View style={[s.activityIcon, activity.done && s.activityIconDone]}><MaterialCommunityIcons name={activity.done ? 'check' : activity.icon} size={20} color={activity.done ? c.background : c.link} /></View>
                         <View style={s.flex}><Text style={[s.activityTitle, activity.done && s.activityTitleDone]}>{activity.title}</Text><Text style={s.activityDetail}>{activity.done ? 'Concluído' : activity.detail}</Text></View>
                       </Pressable>
+                      {!activity.done && activity.setDismissed ? <Pressable accessibilityRole="button" accessibilityLabel={`Dispensar ${activity.title} hoje`} disabled={Boolean(activityBusy)} onPress={() => void dismissActivity(activity, true)} style={{ minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' }}>
+                        {activityBusy === `dismiss:${activity.id}` ? <ActivityIndicator color={c.textMuted} /> : <MaterialCommunityIcons name="calendar-remove-outline" size={22} color={c.textMuted} />}
+                      </Pressable> : null}
                       {activity.toggle ? <Pressable accessibilityRole="checkbox" aria-checked={activity.done} accessibilityLabel={`${activity.done ? 'Desfazer tomada de' : 'Registrar tomada de'} ${activity.title}`} aria-disabled={Boolean(activityBusy)} disabled={Boolean(activityBusy) || Boolean(medications.error || supplements.error)} onPress={() => void toggleActivity(activity)} style={{ minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' }}>
                         {activityBusy === activity.id ? <ActivityIndicator color={c.link} /> : <MaterialCommunityIcons name={activity.done ? 'checkbox-marked-circle' : 'checkbox-blank-circle-outline'} size={28} color={activity.done ? c.success : c.link} />}
                       </Pressable> : <MaterialCommunityIcons name="chevron-right" size={20} color={c.textMuted} />}
                     </View>
                   ))}
                   </View>)}
+                  {dismissedActivities.length ? <DismissedActivities items={dismissedActivities} open={dismissedOpen} busy={activityBusy} styles={s} onToggle={() => setDismissedOpen(open => !open)} onRestore={activity => void dismissActivity(activity, false)} /> : null}
                   {!dailyActivities.length && !activitiesLoading ? (
                     <View style={s.activitiesEmpty}>
                       <MaterialCommunityIcons
@@ -740,7 +775,7 @@ export default function HomeScreen() {
                         color={c.success}
                       />
                       <Text style={s.activitiesEmptyTitle}>
-                        Nenhuma atividade pendente
+                        Nada programado para hoje
                       </Text>
                       <Text style={s.activitiesEmptyText}>
                         Sua agenda está livre por enquanto.
@@ -875,6 +910,25 @@ export default function HomeScreen() {
       </SafeAreaView>
     </View>
   );
+}
+
+
+/** Skipped items stay reachable for undo without counting toward today's progress. */
+function DismissedActivities({ items, open, busy, styles: s, onToggle, onRestore }: { items: DailyActivity[]; open: boolean; busy: string; styles: ReturnType<typeof createStyles>; onToggle(): void; onRestore(activity: DailyActivity): void }) {
+  const { colors: c } = useAppTheme();
+  return <View>
+    <Pressable accessibilityRole="button" aria-expanded={open} onPress={onToggle} style={s.activityGroupHeader}>
+      <Text style={s.activityGroupTitle}>Dispensadas hoje · {items.length}</Text>
+      <MaterialCommunityIcons name={open ? 'chevron-up' : 'chevron-down'} size={20} color={c.textMuted} />
+    </Pressable>
+    {open ? items.map(activity => <View key={activity.id} style={s.activityRow}>
+      <View style={[s.activityIcon, { opacity: 0.5 }]}><MaterialCommunityIcons name={activity.icon} size={20} color={c.textMuted} /></View>
+      <View style={s.flex}><Text style={[s.activityTitle, s.activityTitleDone]}>{activity.title}</Text><Text style={s.activityDetail}>Dispensada · {activity.detail}</Text></View>
+      <Pressable accessibilityRole="button" accessibilityLabel={`Desfazer dispensa de ${activity.title}`} disabled={Boolean(busy)} onPress={() => onRestore(activity)} style={s.activityGroupAction}>
+        {busy === `dismiss:${activity.id}` ? <ActivityIndicator color={c.link} /> : <Text style={s.activityGroupActionText}>Desfazer</Text>}
+      </Pressable>
+    </View>) : null}
+  </View>;
 }
 
 const createStyles = (c: AppPalette, scheme: "light" | "dark") =>
@@ -1228,6 +1282,7 @@ const createStyles = (c: AppPalette, scheme: "light" | "dark") =>
     // Sem encolher, a lista ultrapassa o maxHeight da folha e o último item fica fora da tela.
     shrink: { flexShrink: 1 },
     activitiesList: { paddingHorizontal: 18, paddingBottom: 18 },
+    todayCount: { fontSize: 20, fontWeight: '800', color: c.link, fontVariant: ['tabular-nums'] },
     activityGroupHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, paddingTop: 12, paddingBottom: 4 },
     activityGroupTitle: { fontSize: 12, fontWeight: '800', letterSpacing: .4, color: c.textMuted, textTransform: 'uppercase' },
     activityGroupAction: { minHeight: 44, paddingHorizontal: 12, borderRadius: 12, justifyContent: 'center', backgroundColor: c.primarySoft },

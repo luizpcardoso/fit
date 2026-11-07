@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { weekdayFromDate } from "./weekday.js";
 import { QueryTypes, type Sequelize, type Transaction } from "sequelize";
 import type {
   Injectable,
@@ -73,10 +74,6 @@ const mapApplication = (row: ApplicationRow): InjectableApplication => ({
   customUnit: row.custom_unit,
   appliedAt: new Date(row.applied_at).toISOString(),
 });
-const weekdayFromDate = (date: string) => {
-  const day = new Date(`${date}T12:00:00Z`).getUTCDay();
-  return day === 0 ? 7 : day;
-};
 
 export function estimateRemaining(
   dose: number,
@@ -100,6 +97,8 @@ export interface InjectableStore {
   today(userId: string, date: string): Promise<InjectableToday>;
   apply(userId: string, id: string, date: string): Promise<boolean>;
   undo(userId: string, id: string, date: string): Promise<boolean>;
+  dismiss(userId: string, id: string, date: string): Promise<boolean>;
+  restore(userId: string, id: string, date: string): Promise<boolean>;
   estimate(
     userId: string,
     id: string,
@@ -190,27 +189,37 @@ export class InjectableRepository implements InjectableStore {
       (item) => item.active && item.weekdays.includes(weekday),
     );
     if (!items.length)
-      return { date, total: 0, applied: 0, remaining: 0, items: [] };
-    const rows = await this.db.query<ApplicationRow>(
-      `SELECT ${applicationColumns} FROM injectable_applications WHERE user_id=? AND application_date=? AND injectable_id IN (?)`,
-      {
-        replacements: [userId, date, items.map((item) => item.id)],
-        type: QueryTypes.SELECT,
-      },
-    );
+      return { date, total: 0, applied: 0, remaining: 0, dismissed: 0, items: [] };
+    const ids = items.map((item) => item.id);
+    const [rows, dismissals] = await Promise.all([
+      this.db.query<ApplicationRow>(
+        `SELECT ${applicationColumns} FROM injectable_applications WHERE user_id=? AND application_date=? AND injectable_id IN (?)`,
+        { replacements: [userId, date, ids], type: QueryTypes.SELECT },
+      ),
+      this.db.query<{ injectable_id: string; dismissed_at: Date }>(
+        "SELECT injectable_id,dismissed_at FROM injectable_dismissals WHERE user_id=? AND activity_date=? AND injectable_id IN (?)",
+        { replacements: [userId, date, ids], type: QueryTypes.SELECT },
+      ),
+    ]);
     const byId = new Map(
       rows.map((row) => [row.injectable_id, mapApplication(row)]),
+    );
+    const dismissedById = new Map(
+      dismissals.map((row) => [row.injectable_id, new Date(row.dismissed_at).toISOString()]),
     );
     const result = items.map((injectable) => ({
       injectable,
       application: byId.get(injectable.id) ?? null,
+      dismissedAt: dismissedById.get(injectable.id) ?? null,
     }));
-    const applied = result.filter((entry) => entry.application).length;
+    const counted = result.filter((entry) => !entry.dismissedAt);
+    const applied = counted.filter((entry) => entry.application).length;
     return {
       date,
-      total: result.length,
+      total: counted.length,
       applied,
-      remaining: result.length - applied,
+      remaining: counted.length - applied,
+      dismissed: result.length - counted.length,
       items: result,
     };
   }
@@ -248,6 +257,28 @@ export class InjectableRepository implements InjectableStore {
           type: QueryTypes.DELETE,
           transaction,
         },
+      );
+      return true;
+    });
+  }
+  async dismiss(userId: string, id: string, date: string) {
+    return this.db.transaction(async (transaction) => {
+      const item = await this.owned(userId, id, transaction);
+      if (!item?.active || !item.weekdays.includes(weekdayFromDate(date)))
+        return false;
+      await this.db.query(
+        "INSERT INTO injectable_dismissals (id,user_id,injectable_id,activity_date,dismissed_at) VALUES (?,?,?,?,UTC_TIMESTAMP()) ON DUPLICATE KEY UPDATE id=id",
+        { replacements: [randomUUID(), userId, id, date], type: QueryTypes.INSERT, transaction },
+      );
+      return true;
+    });
+  }
+  async restore(userId: string, id: string, date: string) {
+    return this.db.transaction(async (transaction) => {
+      if (!(await this.owned(userId, id, transaction))) return false;
+      await this.db.query(
+        "DELETE FROM injectable_dismissals WHERE user_id=? AND injectable_id=? AND activity_date=?",
+        { replacements: [userId, id, date], type: QueryTypes.DELETE, transaction },
       );
       return true;
     });

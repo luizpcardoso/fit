@@ -15,7 +15,7 @@ export function registerReminderAgendaRoutes(app:FastifyInstance,sources:Pick<Da
       const groups=new Map<string,{kind:ReminderKind;time:string|null;pending:number}>();
       const add=(kind:ReminderKind,time:string|null,pending=1)=>{if(!pending)return;const key=`${kind}:${time??''}`;const existing=groups.get(key);if(existing)existing.pending+=pending;else groups.set(key,{kind,time,pending});};
       for(const [kind,routine] of [['medication',medications],['supplement',supplements]] as const){
-        for(const item of routine.items) if(!item.consumedAt&&item.time) add(kind,item.time);
+        for(const item of routine.items) if(!item.consumedAt&&!item.dismissedAt&&item.time&&item.supplement.remind!==false) add(kind,item.time);
       }
       add('injectable',null,injectables.total-injectables.applied);
       const weekday=((new Date(`${date}T12:00:00Z`).getUTCDay()+6)%7)+1;

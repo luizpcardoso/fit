@@ -1,6 +1,7 @@
 import { FormScrollView as ScrollView } from '@/components/form-scroll-view';
 import { FormInput as TextInput } from '@/components/form-input';
 import { InformationModal } from "@/components/information-modal";
+import { WeekdayPicker } from "@/components/weekday-picker";
 import type { AppPalette } from "@/constants/theme";
 import { useAppTheme } from "@/theme/theme-provider";
 import { formatDecimalInput, formatDecimalValue } from "@/utils/input-format";
@@ -23,15 +24,6 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-const weekdays = [
-  ["Seg", 1],
-  ["Ter", 2],
-  ["Qua", 3],
-  ["Qui", 4],
-  ["Sex", 5],
-  ["Sáb", 6],
-  ["Dom", 7],
-] as const;
 const units: { key: InjectableUnit; label: string }[] = [
   { key: "mg", label: "mg" },
   { key: "ml", label: "mL" },
@@ -67,12 +59,6 @@ export function InjectableForm({
   const [error, setError] = useState("");
   const [info, setInfo] = useState(false);
   const tirzepatide = name.trim().toLocaleLowerCase("pt-BR").includes("tirzep");
-  const toggleDay = (day: number) =>
-    setSelectedDays((current) =>
-      current.includes(day)
-        ? current.filter((value) => value !== day)
-        : [...current, day].sort(),
-    );
   const submit = async () => {
     const parsed = injectableInputSchema.safeParse({
       name,
@@ -229,28 +215,7 @@ export function InjectableForm({
               Selecione apenas os dias definidos na sua prescrição.
             </Text>
           </View>
-          <View accessibilityRole="radiogroup" style={s.week}>
-            {weekdays.map(([label, day]) => {
-              const selected = selectedDays.includes(day);
-              return (
-                <Pressable
-                  key={day}
-                  accessibilityRole="checkbox"
-                  accessibilityLabel={label}
-                  aria-checked={selected}
-                  onPress={() => toggleDay(day)}
-                  style={[s.day, selected && s.daySelected]}
-                >
-                  <Text style={[s.dayText, selected && s.dayTextSelected]}>
-                    {label.slice(0, 1)}
-                  </Text>
-                  <Text style={[s.daySmall, selected && s.dayTextSelected]}>
-                    {label}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
+          <WeekdayPicker value={selectedDays} onChange={setSelectedDays} />
           {tirzepatide ? (
             <View style={s.tirzepatide}>
               <MaterialCommunityIcons
@@ -487,24 +452,6 @@ const styles = (c: AppPalette) =>
     },
     hintText: { flex: 1, color: c.link, fontSize: 12, lineHeight: 16 },
     sectionTitle: { fontSize: 16, fontWeight: "800", color: c.text },
-    week: { flexDirection: "row", gap: 6, justifyContent: "space-between" },
-    day: {
-      flex: 1,
-      minWidth: 39,
-      maxWidth: 70,
-      aspectRatio: 0.9,
-      borderRadius: 16,
-      backgroundColor: c.surface,
-      borderWidth: 1,
-      borderColor: c.border,
-      alignItems: "center",
-      justifyContent: "center",
-      gap: 2,
-    },
-    daySelected: { backgroundColor: c.primary, borderColor: c.primary },
-    dayText: { color: c.text, fontSize: 14, fontWeight: "800" },
-    daySmall: { color: c.textMuted, fontSize: 12, fontWeight: "700" },
-    dayTextSelected: { color: c.onPrimary },
     tirzepatide: {
       flexDirection: "row",
       alignItems: "flex-start",

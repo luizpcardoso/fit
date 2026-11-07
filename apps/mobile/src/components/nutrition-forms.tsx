@@ -1,4 +1,5 @@
-import { MealCategoryPicker, MealWhenFields } from '@/components/meal-details-fields';
+import { MealCategoryPicker, MealWhenFields, nameForCategory } from '@/components/meal-details-fields';
+import { useMealCategoryTimes } from '@/hooks/use-user-preferences';
 import { formatNumber } from '@/utils/numbers';
 import { useMealWhen } from '@/hooks/use-meal-when';
 import { bodyValuesForEntry } from '@/utils/body-record';
@@ -12,7 +13,6 @@ import {
   dailyExpenditureInputSchema,
   foodInputSchema,
   mealInputSchema,
-  mealCategoryTime,
   type MealCategory,
   type BodyMeasurement,
   type DailyExpenditure,
@@ -537,17 +537,17 @@ export function MealForm({
       onSave={() => void save()}
     >
       <View accessibilityRole="radiogroup" accessibilityLabel="Como registrar" style={{ gap: 8 }}>
-        <OptionCard value="quick" current={entryMode} label="Informar calorias" description="Digite o nome e as calorias da refeição." onPress={() => setEntryMode("quick")} />
+        <OptionCard value="quick" current={entryMode} label="Adição rápida" description="Informe o nome, as calorias e, se quiser, os macronutrientes." onPress={() => setEntryMode("quick")} />
         <OptionCard value="items" current={entryMode} label="Escolher alimentos" description="Selecione os alimentos e informe as porções. Calculamos os nutrientes." onPress={() => setEntryMode("items")} />
         {!initial && onDietSave ? <OptionCard value="diet" current={entryMode} label="Usar minha dieta" description="Registre uma refeição do plano enviado pelo seu profissional." onPress={() => setDietOpen(true)} /> : null}
       </View>
       <Text style={s.helper}>
         {entryMode === "quick"
-          ? "Nome e calorias bastam. Proteínas, carboidratos e gorduras são opcionais."
+          ? "Nome e calorias bastam. Os macronutrientes são opcionais."
           : "Informe quanto comeu de alimentos já cadastrados; os nutrientes são calculados."}
       </Text>
       {dietState?.loading ? <Text style={s.helper}>Buscando dieta vinculada…</Text> : dietState?.error ? <Pressable accessibilityRole="button" onPress={dietState.retry} style={{minHeight:44,justifyContent:'center'}}><Text style={s.error}>Não foi possível consultar sua dieta. Tentar novamente</Text></Pressable> : null}
-      <MealCategoryPicker value={category} disabled={busy} onChange={value => { setCategory(value); const reference = mealCategoryTime(value); if (reference) when.suggest(reference); }}/>
+      <MealCategoryPicker value={category} disabled={busy} onChange={(value, reference) => { setName(current => nameForCategory(current, category, value)); setCategory(value); if (reference) when.suggest(reference); }}/>
       <Field
         label="Nome da refeição"
         value={name}
@@ -626,9 +626,10 @@ export function MealForm({
             <View style={[s.checkbox, showMacros && s.checkboxChecked]}>
               {showMacros ? <Text style={s.checkMark}>✓</Text> : null}
             </View>
-            <Text style={[s.itemTitle, s.grow]}>Informar proteínas, carboidratos e gorduras</Text>
+            <Text style={[s.itemTitle, s.grow]}>Informar macronutrientes</Text>
           </Pressable>
           {showMacros ? <>
+          <Text style={s.helper}>Todos opcionais: preencha só o que souber.</Text>
           <Field
             label="Proteínas (g)"
             value={protein}
@@ -651,7 +652,7 @@ export function MealForm({
             numericField
           />
           <Field
-            label="Fibras (g) · opcional"
+            label="Fibras (g)"
             value={fiber}
             onChange={(value) => setFiber(formatDecimalInput(value))}
             placeholder="Ex.: 8"
@@ -1088,7 +1089,8 @@ export function FavoriteForm({
 }) {
   const [name, setName] = useState(favorite.name);
   const [category, setCategory] = useState<MealCategory | null>(favorite.category ?? null);
-  const when = useMealWhen(date, mealCategoryTime(favorite.category) ?? undefined, false);
+  const { timeFor } = useMealCategoryTimes();
+  const when = useMealWhen(date, timeFor(favorite.category) ?? undefined, false);
   const [multiplier, setMultiplier] = useState("1");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -1158,7 +1160,7 @@ export function FavoriteForm({
             Ajuste a quantidade de porções; calorias e nutrientes acompanham
             na mesma proporção. A favorita e os registros anteriores não mudam.
           </Text>
-          <MealCategoryPicker value={category} disabled={busy} onChange={value => { setCategory(value); const reference = mealCategoryTime(value); if (reference) when.suggest(reference); }}/>
+          <MealCategoryPicker value={category} disabled={busy} onChange={(value, reference) => { setCategory(value); if (reference) when.suggest(reference); }}/>
           <MealWhenFields value={when} category={category} disabled={busy}/>
           <Field
             label="Porções"

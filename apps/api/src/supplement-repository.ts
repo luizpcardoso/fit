@@ -1,11 +1,15 @@
 import { pageWindow, type HealthPageQuery, type Page } from '@fit/contracts';
 import { randomUUID } from 'node:crypto';
 import { QueryTypes, type Sequelize, type Transaction } from 'sequelize';
+import { weekdayFromDate } from './weekday.js';
 import { supplementInputSchema, type HealthKind, type Supplement, type SupplementInput, type SupplementToday, type UpdateSupplementInput } from '@fit/contracts';
 
-type Row = { id: string; name: string; amount: string | null; unit: Supplement['unit']; strength: string | null; daily_frequency: number; times: string[] | string; notes: string | null; active: number; created_at: Date; updated_at: Date };
-const columns = 'id,name,amount,unit,strength,daily_frequency,times,notes,active,created_at,updated_at';
-const map = (row: Row): Supplement => ({ id: row.id, name: row.name, amount: row.amount === null ? null : Number(row.amount), unit: row.unit, strength: row.strength, dailyFrequency: row.daily_frequency, times: Array.isArray(row.times) ? row.times : JSON.parse(row.times), notes: row.notes, active: Boolean(row.active), createdAt: new Date(row.created_at).toISOString(), updatedAt: new Date(row.updated_at).toISOString() });
+type Row = { id: string; name: string; amount: string | null; unit: Supplement['unit']; strength: string | null; daily_frequency: number; times: string[] | string; weekdays_json: string | null; remind: number; notes: string | null; active: number; created_at: Date; updated_at: Date };
+const columns = 'id,name,amount,unit,strength,daily_frequency,times,weekdays_json,remind,notes,active,created_at,updated_at';
+const parseWeekdays = (value: string | null) => { if (!value) return null; try { const days = JSON.parse(value); return Array.isArray(days) && days.length ? days.map(Number) : null; } catch { return null; } };
+const map = (row: Row): Supplement => ({ id: row.id, name: row.name, amount: row.amount === null ? null : Number(row.amount), unit: row.unit, strength: row.strength, dailyFrequency: row.daily_frequency, times: Array.isArray(row.times) ? row.times : JSON.parse(row.times), weekdays: parseWeekdays(row.weekdays_json), remind: Boolean(row.remind), notes: row.notes, active: Boolean(row.active), createdAt: new Date(row.created_at).toISOString(), updatedAt: new Date(row.updated_at).toISOString() });
+
+const serializeWeekdays = (days: number[] | null | undefined) => days?.length && days.length < 7 ? JSON.stringify([...days].sort((a, b) => a - b)) : null;
 
 // Type is fixed by the server route, never by a user-supplied owner/type field.
 export class SupplementRepository {
@@ -29,7 +33,7 @@ export class SupplementRepository {
 
   async create(userId: string, input: SupplementInput) {
     const id = randomUUID();
-    await this.db.query('INSERT INTO supplements (id,user_id,kind,name,amount,unit,strength,daily_frequency,times,notes,active,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,1,UTC_TIMESTAMP(),UTC_TIMESTAMP())', { replacements: [id, userId, this.kind, input.name, input.amount ?? null, input.unit ?? null, input.strength ?? null, input.dailyFrequency, JSON.stringify(input.times), input.notes ?? null], type: QueryTypes.INSERT });
+    await this.db.query('INSERT INTO supplements (id,user_id,kind,name,amount,unit,strength,daily_frequency,times,weekdays_json,remind,notes,active,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,1,UTC_TIMESTAMP(),UTC_TIMESTAMP())', { replacements: [id, userId, this.kind, input.name, input.amount ?? null, input.unit ?? null, input.strength ?? null, input.dailyFrequency, JSON.stringify(input.times), serializeWeekdays(input.weekdays), input.remind ?? true, input.notes ?? null], type: QueryTypes.INSERT });
     return id;
   }
 
@@ -46,9 +50,9 @@ export class SupplementRepository {
       // Validate merged schedules too: PATCH of frequency alone must not silently lose slots.
       // Legacy optional schedules are preserved by pause/name-only changes.
       if (input.times !== undefined || input.dailyFrequency !== undefined) {
-        supplementInputSchema.parse({ name: next.name, amount: next.amount, unit: next.unit, strength: next.strength, dailyFrequency: next.dailyFrequency, times: next.times, notes: next.notes });
+        supplementInputSchema.parse({ name: next.name, amount: next.amount, unit: next.unit, strength: next.strength, dailyFrequency: next.dailyFrequency, times: next.times, weekdays: next.weekdays, notes: next.notes });
       }
-      await this.db.query('UPDATE supplements SET name=?,amount=?,unit=?,strength=?,daily_frequency=?,times=?,notes=?,active=?,updated_at=UTC_TIMESTAMP() WHERE id=? AND user_id=? AND kind=?', { replacements: [next.name, next.amount ?? null, next.unit ?? null, next.strength ?? null, next.dailyFrequency, JSON.stringify(next.times), next.notes ?? null, next.active, id, userId, this.kind], type: QueryTypes.UPDATE, transaction });
+      await this.db.query('UPDATE supplements SET name=?,amount=?,unit=?,strength=?,daily_frequency=?,times=?,weekdays_json=?,remind=?,notes=?,active=?,updated_at=UTC_TIMESTAMP() WHERE id=? AND user_id=? AND kind=?', { replacements: [next.name, next.amount ?? null, next.unit ?? null, next.strength ?? null, next.dailyFrequency, JSON.stringify(next.times), serializeWeekdays(next.weekdays), next.remind, next.notes ?? null, next.active, id, userId, this.kind], type: QueryTypes.UPDATE, transaction });
       return true;
     });
   }
@@ -62,14 +66,37 @@ export class SupplementRepository {
   }
 
   async today(userId: string, date: string): Promise<SupplementToday> {
-    const supplements = (await this.list(userId)).filter(item => item.active);
-    const intakes = await this.db.query<{ supplement_id: string; slot: number; consumed_at: Date }>('SELECT i.supplement_id,i.slot,i.consumed_at FROM supplement_intakes i JOIN supplements s ON s.id=i.supplement_id WHERE i.user_id=? AND s.user_id=? AND s.kind=? AND i.intake_date=?', { replacements: [userId, userId, this.kind, date], type: QueryTypes.SELECT });
+    const weekday = weekdayFromDate(date);
+    const supplements = (await this.list(userId)).filter(item => item.active && (!item.weekdays || item.weekdays.includes(weekday)));
+    const [intakes, dismissals] = await Promise.all([
+      this.db.query<{ supplement_id: string; slot: number; consumed_at: Date }>('SELECT i.supplement_id,i.slot,i.consumed_at FROM supplement_intakes i JOIN supplements s ON s.id=i.supplement_id WHERE i.user_id=? AND s.user_id=? AND s.kind=? AND i.intake_date=?', { replacements: [userId, userId, this.kind, date], type: QueryTypes.SELECT }),
+      this.db.query<{ supplement_id: string; slot: number; dismissed_at: Date }>('SELECT d.supplement_id,d.slot,d.dismissed_at FROM supplement_dismissals d JOIN supplements s ON s.id=d.supplement_id WHERE d.user_id=? AND s.user_id=? AND s.kind=? AND d.activity_date=?', { replacements: [userId, userId, this.kind, date], type: QueryTypes.SELECT }),
+    ]);
     const items = supplements.flatMap(supplement => Array.from({ length: supplement.dailyFrequency }, (_, slot) => {
       const intake = intakes.find(item => item.supplement_id === supplement.id && item.slot === slot);
-      return { supplement, slot, time: supplement.times[slot] ?? null, consumedAt: intake ? new Date(intake.consumed_at).toISOString() : null };
+      const dismissal = dismissals.find(item => item.supplement_id === supplement.id && item.slot === slot);
+      return { supplement, slot, time: supplement.times[slot] ?? null, consumedAt: intake ? new Date(intake.consumed_at).toISOString() : null, dismissedAt: dismissal ? new Date(dismissal.dismissed_at).toISOString() : null };
     }));
-    const consumed = items.filter(item => item.consumedAt).length;
-    return { date, total: items.length, consumed, remaining: items.length - consumed, items };
+    const counted = items.filter(item => !item.dismissedAt);
+    const consumed = counted.filter(item => item.consumedAt).length;
+    return { date, total: counted.length, consumed, remaining: counted.length - consumed, dismissed: items.length - counted.length, items };
+  }
+
+  async dismiss(userId: string, id: string, date: string, slot: number) {
+    return this.db.transaction(async transaction => {
+      const item = await this.owned(userId, id, transaction);
+      if (!item?.active || slot >= item.dailyFrequency) return false;
+      await this.db.query('INSERT INTO supplement_dismissals (id,user_id,supplement_id,activity_date,slot,dismissed_at) VALUES (?,?,?,?,?,UTC_TIMESTAMP()) ON DUPLICATE KEY UPDATE id=id', { replacements: [randomUUID(), userId, id, date, slot], type: QueryTypes.INSERT, transaction });
+      return true;
+    });
+  }
+
+  async restore(userId: string, id: string, date: string, slot: number) {
+    return this.db.transaction(async transaction => {
+      if (!await this.owned(userId, id, transaction)) return false;
+      await this.db.query('DELETE FROM supplement_dismissals WHERE user_id=? AND supplement_id=? AND activity_date=? AND slot=?', { replacements: [userId, id, date, slot], type: QueryTypes.DELETE, transaction });
+      return true;
+    });
   }
 
   async consume(userId: string, id: string, date: string, slot: number) {

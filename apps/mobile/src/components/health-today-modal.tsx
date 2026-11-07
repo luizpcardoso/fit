@@ -55,10 +55,10 @@ export function HealthTodayModal({ kind, daily, date, now, loading, error, onlyI
           return <View key={item.id} style={s.card}>
             <View style={s.groupHeader}><View style={s.flex}><Text style={s.heading}>{item.name}</Text><Text style={s.muted}>{healthDose(item)}</Text></View><Text style={s.count}>{entries.length - pending.length}/{entries.length}</Text></View>
             {entries.map(entry => {
-              const late = isHealthIntakeLate(entry, date, now);
+              const late = !entry.dismissedAt && isHealthIntakeLate(entry, date, now);
               return <Pressable key={entry.slot} accessibilityRole="checkbox" accessibilityLabel={`${item.name}, ${entry.time ?? `tomada ${entry.slot + 1}`}`} aria-checked={Boolean(entry.consumedAt)} aria-disabled={Boolean(busy) || Boolean(error)} disabled={Boolean(busy) || Boolean(error)} onPress={() => void register([entry], !entry.consumedAt)} style={[s.slot, entry.consumedAt && s.done, late && s.late]}>
                 <View style={[s.check, entry.consumedAt && s.checked]}><Text style={s.checkText}>{entry.consumedAt ? '✓' : ''}</Text></View>
-                <View style={s.flex}><Text style={s.slotTitle}>{entry.time ?? `Tomada ${entry.slot + 1}`}</Text><Text style={[s.muted, late && s.lateText]}>{entry.consumedAt ? 'Tomado · toque para desfazer' : late ? 'Horário passou · marcar como tomado' : 'Marcar como tomado'}</Text></View>
+                <View style={s.flex}><Text style={s.slotTitle}>{entry.time ?? `Tomada ${entry.slot + 1}`}</Text><Text style={[s.muted, late && s.lateText]}>{entry.consumedAt ? 'Tomado · toque para desfazer' : entry.dismissedAt ? 'Dispensada hoje · marcar como tomado' : late ? 'Horário passou · marcar como tomado' : 'Marcar como tomado'}</Text></View>
               </Pressable>;
             })}
             {busy === item.id ? <ActivityIndicator color={c.link} /> : pending.length ? <>

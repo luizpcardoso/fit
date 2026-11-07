@@ -48,7 +48,7 @@ test('dieta: Home registra prescrição e Minha dieta apresenta o dia em linhas 
     await page.getByRole('button',{name:'Adicionar refeição',exact:true}).click();
     await page.getByRole('radio',{name:'Usar minha dieta',exact:true}).click();
     await page.getByRole('button',{name:'Abrir Almoço às 11:00',exact:true}).click();
-    await expect(page.getByLabel('Nome da refeição',{exact:true})).toHaveValue('');
+    await expect(page.getByLabel('Nome da refeição',{exact:true})).toHaveValue('Almoço');
     await page.getByLabel('Nome da refeição',{exact:true}).fill('Marmita da dieta E2E');
     await page.getByRole('button',{name:'Aumentar horário em 30 minutos',exact:true}).click();
     await page.getByRole('radio',{name:'Almoço B',exact:true}).click();

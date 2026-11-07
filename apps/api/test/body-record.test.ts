@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { bodyMeasurementInputSchema } from '@fit/contracts';
 import { bodyValuesForEntry } from '../../mobile/src/utils/body-record.js';
-import { createBodyReminderSynchronizer, defaultBodyReminders, readBodyReminders, validBodyReminderTime } from '../../mobile/src/utils/body-reminder-plan.js';
+import { createBodyReminderSynchronizer, defaultBodyReminders, expoWeekday, readBodyReminders, validBodyReminderTime, validBodyReminderWeekdays } from '../../mobile/src/utils/body-reminder-plan.js';
 test('peso e medidas possuem payloads independentes, mantendo a leitura de registros mistos antigos', () => {
   const values = { weightKg: 75, waistCm: 80, hipsCm: null };
   assert.deepEqual(bodyValuesForEntry(values, 'weight'), { weightKg: 75, waistCm: null, hipsCm: null });
@@ -37,13 +37,19 @@ test('sincronização substitui horários sem duplicar, cancela logout e descart
   await sync('other', defaultBodyReminders()); assert.equal(notifications.size, 0);
 });
 
-test('lembretes semanais preservam dia/horário independentes e preferências antigas continuam diárias', async () => {
+test('lembretes por dias da semana agendam um gatilho por dia e convertem preferências antigas', async () => {
   const legacy = readBodyReminders(JSON.stringify({ weight: { enabled: true, time: '08:00' } }));
-  assert.equal(legacy.weight.frequency, 'daily');
-  const prefs = readBodyReminders(JSON.stringify({ weight: { enabled: true, time: '09:15', frequency: 'weekly', weekday: 2 }, measurements: { enabled: true, time: '10:30', frequency: 'weekly', weekday: 7 } }));
+  assert.deepEqual(legacy.weight.weekdays, [1, 2, 3, 4, 5, 6, 7]);
+  // Legacy weekly values used Expo numbering (domingo = 1): 2 = segunda, 7 = sábado.
+  const migrated = readBodyReminders(JSON.stringify({ weight: { enabled: true, time: '09:15', frequency: 'weekly', weekday: 2 }, measurements: { enabled: true, time: '10:30', frequency: 'weekly', weekday: 1 } }));
+  assert.deepEqual([migrated.weight.weekdays, migrated.measurements.weekdays], [[1], [7]]);
+  assert.deepEqual(readBodyReminders(JSON.stringify({weight:{enabled:true,time:'08:00',frequency:'weekly',weekday:8}})).weight.weekdays,[7]);
+  assert.deepEqual(readBodyReminders(JSON.stringify({weight:{enabled:true,time:'08:00',weekdays:[5,1,3]}})).weight.weekdays,[1,3,5]);
+  assert.deepEqual(readBodyReminders(JSON.stringify({weight:{enabled:true,time:'08:00',weekdays:[0,9]}})).weight.weekdays,[1,2,3,4,5,6,7]);
+  assert.equal(validBodyReminderWeekdays([]), false);
+  assert.deepEqual([1, 6, 7].map(expoWeekday), [2, 7, 1]);
   const calls: unknown[] = [];
-  const sync = createBodyReminderSynchronizer({ listOwned: async () => [], cancel: async () => {}, prepare: async () => {}, schedule: async (_user, kind, time, schedule) => { calls.push({ kind, time, frequency: schedule.frequency, weekday: schedule.weekday }); return kind; } });
-  await sync('owner', prefs);
-  assert.deepEqual(calls, [{kind:'weight',time:'09:15',frequency:'weekly',weekday:2},{kind:'measurements',time:'10:30',frequency:'weekly',weekday:7}]);
-  assert.equal(readBodyReminders(JSON.stringify({weight:{enabled:true,time:'08:00',frequency:'weekly',weekday:8}})).weight.weekday,1);
+  const sync = createBodyReminderSynchronizer({ listOwned: async () => [], cancel: async () => {}, prepare: async () => {}, schedule: async (_user, kind, time, weekday) => { calls.push({ kind, time, weekday }); return `${kind}:${weekday}`; } });
+  await sync('owner', { weight: { enabled: true, time: '09:15', weekdays: [1, 3, 5] }, measurements: { enabled: true, time: '10:30', weekdays: [1, 2, 3, 4, 5, 6, 7] } });
+  assert.deepEqual(calls, [{kind:'weight',time:'09:15',weekday:1},{kind:'weight',time:'09:15',weekday:3},{kind:'weight',time:'09:15',weekday:5},{kind:'measurements',time:'10:30',weekday:null}]);
 });

@@ -120,3 +120,11 @@ A atualização do módulo nativo exige novo APK (`versionCode` 10). Não public
 - Typecheck, lint mobile, suíte da API com todas as integrações MySQL em banco dedicado, E2E do portal e build Android aprovados. Banco dedicado removido após a suíte. Validação em aparelho físico permanece pendente: nenhum dispositivo Android estava conectado.
 
 Downloads integrais de `orami-1.0.7-android.apk` e do alias `/downloads/fit.apk` pelo domínio público conferidos: tamanho e SHA-256 idênticos ao APK local assinado.
+
+### Atualização automática da 1.07 — 07/11/2026
+
+- Update ID: `f8d0e770-2b88-41a8-aa32-23a83b49fece`, compatível com o runtime `2ba246dc9393399f3e8794010784b4ccf724497c` do APK 1.07. Sem novo APK e sem mudança de versão: `expo.extra.releaseName` entra no fingerprint, então alterá-lo em um OTA quebraria a compatibilidade com o APK instalado.
+- Conteúdo: dock flutuante com Registrar global e mini-player de treino, rotina de hoje com dispensas, preferências de refeição e lembretes por dia da semana, ilustrações nos cartões das áreas/atalhos/estados vazios e cabeçalho da Início em dois níveis para telas estreitas.
+- API atualizada antes do OTA (o bundle depende de `/me/preferences` e das dispensas), com migrações `046-health-item-schedule`, `047-daily-dismissals` e `048-user-preferences` aplicadas pelo migrador; contagens de usuários e suplementos preservadas. `/health`, home e portal respondem 200; rotas novas sem sessão e login inválido respondem 401.
+- Backup privado de banco, mídia, fontes e manifesto em `/home/luizserver/apps/fit/deploy/backups/ota-1.07-20261107T025020Z` e `~/.local/share/fit/deployment-backups/ota-1.07-20261107T025020Z`; imagem anterior da API preservada como `fit-server-api:before-ota-1.07-20261107T025020Z`.
+- Manifesto público conferido com os cabeçalhos de um aparelho 1.07: assinatura verificada com `certs/updates.pem` e SHA-256 do bundle idêntico ao manifesto. Typecheck, lint mobile e `npm test` aprovados; cabeçalho validado no app web em 320/360/412 px. Validação em aparelho físico pendente.

@@ -34,11 +34,11 @@ export default function HealthScreen() {
       </View>
 
       <FeatureCategoryGrid items={[
-        { key: 'body', title: 'Corpo e medidas', description: 'Peso, medidas e evolução corporal', icon: 'human-male-height-variant', onPress: () => router.push('/body-measurements') },
-        { key: 'medication', title: 'Medicamentos', description: 'Cadastros, horários e tomadas', icon: 'pill', onPress: () => router.push({ pathname: '/health-routine', params: { kind: 'medication' } }) },
-        { key: 'supplement', title: 'Suplementos', description: 'Doses e rotina de suplementação', icon: 'shaker-outline', onPress: () => router.push({ pathname: '/health-routine', params: { kind: 'supplement' } }) },
-        { key: 'injectable', title: 'Injetáveis', description: 'Agenda, aplicações e meia-vida', icon: 'needle', badge: 'Novo', onPress: () => router.push('/injectables') },
-        { key: 'mind', title: 'Mente', description: 'Check-in emocional, diário e apoio', icon: 'head-heart-outline', badge: 'Novo', onPress: () => router.push('/mental-wellbeing') },
+        { key: 'body', title: 'Corpo e medidas', description: 'Peso, medidas e evolução corporal', icon: 'human-male-height-variant', scene: 'cardBody', onPress: () => router.push('/body-measurements') },
+        { key: 'medication', title: 'Medicamentos', description: 'Cadastros, horários e tomadas', icon: 'pill', scene: 'cardMedication', onPress: () => router.push({ pathname: '/health-routine', params: { kind: 'medication' } }) },
+        { key: 'supplement', title: 'Suplementos', description: 'Doses e rotina de suplementação', icon: 'bottle-tonic-outline', scene: 'cardSupplement', onPress: () => router.push({ pathname: '/health-routine', params: { kind: 'supplement' } }) },
+        { key: 'injectable', title: 'Injetáveis', description: 'Agenda, aplicações e meia-vida', icon: 'needle', scene: 'cardInjectable', badge: 'Novo', onPress: () => router.push('/injectables') },
+        { key: 'mind', title: 'Mente', description: 'Check-in emocional, diário e apoio', icon: 'head-heart-outline', scene: 'cardMind', badge: 'Novo', onPress: () => router.push('/mental-wellbeing') },
       ]} />
 
     </ScrollView>

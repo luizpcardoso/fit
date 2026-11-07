@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
 import { useFocusEffect } from "expo-router";
 import MaterialCommunityIcons from '@/components/icon';
+import { SceneThumb } from '@/components/scene';
 import {
   ActivityIndicator,
   Pressable,
@@ -168,7 +169,7 @@ export default function MyProfessionals() {
         ) : null}
         {!loading && !error && !rows.length ? (
           <View style={s.empty}>
-            <MaterialCommunityIcons name="account-tie-outline" size={30} color={c.link} />
+            <SceneThumb scene="thumbProfessional" size={88} />
             <Text style={s.emptyTitle}>Nenhum profissional por aqui</Text>
             <Text style={s.emptyText}>
               Quando um profissional convidar você pelo e-mail da sua conta, o convite aparecerá aqui para você decidir o que autorizar.

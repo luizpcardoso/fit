@@ -1,6 +1,6 @@
 import { FormScrollView as ScrollView } from '@/components/form-scroll-view';
 import { FormInput as TextInput } from '@/components/form-input';
-import { SceneBanner } from '@/components/scene';
+import { SceneBanner, SceneThumb } from '@/components/scene';
 import MaterialCommunityIcons from '@/components/icon';
 import { ScreenHeader } from '@/components/screen-header';
 import { ContextHelp } from "@/components/context-help";
@@ -213,13 +213,7 @@ export default function SocialGroups() {
         {groups.length?<Pressable accessibilityRole="button" accessibilityLabel="Publicar em grupos. Uma publicação, vários grupos" onPress={()=>router.push('/group-post')} style={[s.primary,s.publishRow]}><MaterialCommunityIcons name="pencil-plus-outline" size={22} color={c.onPrimary}/><View style={s.flex}><Text style={s.primaryText}>Publicar em grupos</Text><Text style={s.primarySubtext}>Uma publicação, vários grupos</Text></View></Pressable>:null}
         {!loading && !groups.length && !error ? (
           <View style={[s.empty, CardShadow]}>
-            <View style={s.emptyIcon}>
-              <MaterialCommunityIcons
-                name="forum-outline"
-                size={32}
-                color={c.link}
-              />
-            </View>
+            <SceneThumb scene="thumbGroups" size={88} />
             <Text style={s.emptyTitle}>Sua comunidade começa com uma conexão</Text>
             <Text style={s.emptyText}>
               Crie um grupo privado ou aceite um convite para trocar experiências,
@@ -500,14 +494,6 @@ const styles = (c: AppPalette) =>
       borderRadius: 24,
       padding: 26,
       gap: 10,
-    },
-    emptyIcon: {
-      width: 65,
-      height: 65,
-      borderRadius: 24,
-      backgroundColor: c.primarySoft,
-      alignItems: "center",
-      justifyContent: "center",
     },
     emptyTitle: { fontSize: 19, fontWeight: "800", color: c.text },
     emptyText: {

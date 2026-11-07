@@ -1,4 +1,5 @@
 import { FormKeyboardAvoidingView } from '@/components/form-keyboard-avoiding-view';
+import { SceneThumb } from '@/components/scene';
 import { FormScrollView as ScrollView } from '@/components/form-scroll-view';
 import { FormInput as TextInput } from '@/components/form-input';
 import MaterialCommunityIcons from '@/components/icon';
@@ -349,6 +350,7 @@ export default function SocialFeedScreen({ groupId: id }: { groupId?: string }) 
         </View> : null}</View>}
         ListEmptyComponent={loading ? <ActivityIndicator accessibilityLabel="Carregando publicações" color={c.link} size="large" style={s.loading}/> : !error ? <View style={s.empty}>
           <MaterialCommunityIcons name="post-outline" size={30} color={c.link}/>
+          {unified ? <SceneThumb scene="thumbGroups" size={88}/> : null}
           <Text style={s.emptyTitle}>{unified ? "Aqui começam suas conexões" : "O feed está tranquilo"}</Text>
           <Text style={s.emptyText}>{unified ? 'As publicações dos seus grupos aparecem aqui. Crie um grupo ou aceite um convite para começar.' : canPost ? 'Compartilhe a primeira publicação pelo menu inferior.' : 'As próximas publicações e conquistas aparecerão aqui.'}</Text>
         {unified ? <Pressable accessibilityRole="button" onPress={()=>router.push('/social-groups')} style={s.feedPill}><Text style={s.link}>Explorar meus grupos e convites</Text></Pressable> : null}</View> : undefined}

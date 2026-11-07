@@ -174,6 +174,8 @@ export default function HomeScreen() {
   const activeRoutine = healthOpen === "medication" ? medications : supplements;
   const activeGroup =
     groups.find((group) => group.id === activeGroupId) ?? groups[0];
+  // No group yet (and nothing loading or failing): the card becomes an illustrated invitation.
+  const inviteGroup = !activeGroup && groupsState !== "loading" && groupsState !== "error";
   const firstName = user?.firstName.trim().split(/\s+/)[0] || "Atleta";
   // Never show a target the person did not choose: an unconfigured goal is an invitation, not "0/3".
   const goalConfigured = Boolean(goal?.configured);
@@ -236,7 +238,7 @@ export default function HomeScreen() {
       id: `supplement:${entry.item.id}:${entry.slot}`,
       title: entry.item.name,
       detail: `Suplemento${entry.time ? ` · ${entry.time}` : ""}`,
-      icon: "shaker-outline" as IconName,
+      icon: "bottle-tonic-outline" as IconName,
       done: Boolean(entry.consumedAt),
       time: entry.time ?? undefined,
       markDone: () => api.setHealthIntake('supplement', entry.item.id, todayKey, entry.slot, true),
@@ -565,7 +567,8 @@ export default function HomeScreen() {
               </Text>
             </View>
           </View>
-          <View style={[s.communityCard, CardShadow]}>
+          <View style={[s.communityCard, inviteGroup && s.communityInvite, CardShadow]}>
+            {inviteGroup ? <SceneBackdrop scene="groups" /> : null}
             {groupsState === "loading" && !groups.length ? (
               <ActivityIndicator color={c.link} accessibilityLabel="Carregando grupos" />
             ) : groupsState === "error" && !groups.length ? (
@@ -662,23 +665,17 @@ export default function HomeScreen() {
                 onPress={() => router.push("/groups")}
                 style={s.communityTop}
               >
-                <View style={s.groupIcon}>
-                  <MaterialCommunityIcons
-                    name="account-group-outline"
-                    size={24}
-                    color={c.link}
-                  />
-                </View>
-                <View style={s.flex}>
-                  <Text style={s.routineTitle}>Crie seu primeiro grupo</Text>
-                  <Text style={s.routineStatus}>
+                <View style={s.inviteCopy}>
+                  <Text style={[s.routineTitle, s.inviteTitle]}>Crie seu primeiro grupo</Text>
+                  <Text style={[s.routineStatus, s.inviteText]}>
                     Compartilhe conquistas com pessoas de confiança
                   </Text>
                 </View>
+                <View style={s.flex} />
                 <MaterialCommunityIcons
                   name="arrow-right"
                   size={20}
-                  color={c.link}
+                  color={c.onHero}
                 />
               </Pressable>
             )}
@@ -1194,6 +1191,10 @@ const createStyles = (c: AppPalette, scheme: "light" | "dark") =>
       gap: 12,
     },
     communityTop: { flexDirection: "row", alignItems: "center", gap: 11 },
+    communityInvite: { backgroundColor: c.primaryStrong, borderWidth: 0, overflow: "hidden", minHeight: 112, justifyContent: "center" },
+    inviteCopy: { maxWidth: "62%" },
+    inviteTitle: { color: c.onHero },
+    inviteText: { color: c.heroMuted },
     groupIcon: {
       width: 44,
       height: 44,

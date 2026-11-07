@@ -1,4 +1,5 @@
 import { RetroactiveHealthModal } from '@/components/retroactive-health-modal';
+import { SceneThumb } from '@/components/scene';
 import { formatWeekdays } from '@/components/weekday-picker';
 import { renderFormListScroll } from '@/components/form-list-scroll';
 import { FormInput as TextInput } from '@/components/form-input';
@@ -109,7 +110,7 @@ function HealthRoutineView({ kind }: { kind: HealthKind }) {
       onRefresh={() => void refresh()}
 
       ListEmptyComponent={paged.loading ? <ActivityIndicator color={c.link} style={s.empty} /> : paged.error ? undefined : <View style={s.empty}>
-        <View style={s.emptyIcon}><MaterialCommunityIcons name={medication ? 'pill' : 'shaker-outline'} size={27} color={c.link} /></View>
+        {search || filter !== 'all' ? <View style={s.emptyIcon}><MaterialCommunityIcons name="magnify" size={27} color={c.link} /></View> : <SceneThumb scene={medication ? 'thumbMedication' : 'thumbSupplement'} size={88} />}
         <Text style={s.emptyTitle}>{search || filter !== 'all' ? 'Nenhum resultado' : `Seu primeiro ${singular}`}</Text>
         <Text style={s.muted}>{search || filter !== 'all' ? 'Tente outro nome ou filtro.' : 'Cadastre os itens da sua rotina. Depois, use o + para registrar as tomadas.'}</Text>
         {!(search || filter !== 'all') ? <Pressable accessibilityRole="button" style={s.emptyButton} onPress={() => setForm({ item: null })}><Text style={s.addText}>Cadastrar {singular}</Text></Pressable> : null}
@@ -117,16 +118,18 @@ function HealthRoutineView({ kind }: { kind: HealthKind }) {
       renderItem={({ item }) => {
         const entries = routine.daily?.items.filter(entry => entry.item.id === item.id) ?? [];
         const taken = entries.filter(entry => entry.consumedAt).length;
+        // Weekday-limited items have no doses outside their days: no counter and nothing to register today.
+        const offToday = item.active && Boolean(routine.daily) && !entries.length;
         return <View style={[s.itemRow, CardShadow]}>
-          <View style={[s.itemIcon, !item.active && s.pausedIcon]}><MaterialCommunityIcons name={medication ? 'pill' : 'shaker-outline'} size={20} color={c.link} /></View>
+          <View style={[s.itemIcon, !item.active && s.pausedIcon]}><MaterialCommunityIcons name={medication ? 'pill' : 'bottle-tonic-outline'} size={20} color={c.link} /></View>
           <Pressable accessibilityRole="button" accessibilityLabel={`Editar ${item.name}`} style={s.itemBody} onPress={() => setForm({ item })}>
             <Text numberOfLines={1} style={s.itemName}>{item.name}</Text>
             <Text numberOfLines={1} style={s.itemDose}>{healthDose(item)}</Text>
             <Text numberOfLines={1} style={s.itemTimes}>{[item.times.length ? [...item.times].sort().join(' · ') : `${item.dailyFrequency} tomada(s) · sem horário`, ...(item.weekdays ? [formatWeekdays(item.weekdays)] : [])].join(' · ')}</Text>
-            <Text style={item.active ? s.itemStatus : s.paused}>{item.active ? `${taken}/${item.dailyFrequency} ${item.dailyFrequency === 1 ? 'dose' : 'doses'} hoje` : 'Pausado · toque para editar'}</Text>
+            <Text style={offToday ? s.offToday : item.active ? s.itemStatus : s.paused}>{offToday ? 'Não previsto para hoje' : item.active ? `${taken}/${item.dailyFrequency} ${item.dailyFrequency === 1 ? 'dose' : 'doses'} hoje` : 'Pausado · toque para editar'}</Text>
           </Pressable>
           <View style={s.itemActions}>
-            {item.active ? <Pressable accessibilityRole="button" accessibilityLabel={`Registrar tomada de ${item.name}`} style={s.smallPlus} onPress={() => setRegister({ id: item.id })}><MaterialCommunityIcons name="plus" size={21} color={c.onPrimary} /></Pressable> : null}
+            {item.active && !offToday ? <Pressable accessibilityRole="button" accessibilityLabel={`Registrar tomada de ${item.name}`} style={s.smallPlus} onPress={() => setRegister({ id: item.id })}><MaterialCommunityIcons name="plus" size={21} color={c.onPrimary} /></Pressable> : null}
           </View>
         </View>;
       }}
@@ -185,6 +188,7 @@ const styles = (c: AppPalette) => StyleSheet.create({
   itemTimes: { fontSize: 12, color: c.textMuted },
   itemStatus: { fontSize: 12, color: c.success },
   paused: { color: c.warning, fontSize: 12 },
+  offToday: { color: c.textMuted, fontSize: 12 },
   itemActions: { alignItems: 'center', gap: 2 },
   smallPlus: { width: 44, height: 44, borderRadius: 16, backgroundColor: c.primary, alignItems: 'center', justifyContent: 'center' },
   editText: { color: c.link, fontSize: 12, fontWeight: '700' },

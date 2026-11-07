@@ -1,4 +1,5 @@
 import { RetroactiveHealthModal } from '@/components/retroactive-health-modal';
+import { SceneThumb } from '@/components/scene';
 import { useAuth } from "@/auth/auth-context";
 import { InjectableForm } from "@/components/injectable-form";
 import { InformationModal } from "@/components/information-modal";
@@ -383,13 +384,7 @@ export default function InjectablesScreen() {
               </View>
             ) : (
               <View style={s.empty}>
-                <View style={s.emptyIcon}>
-                  <MaterialCommunityIcons
-                    name="needle"
-                    size={28}
-                    color={c.link}
-                  />
-                </View>
+                <SceneThumb scene="thumbInjectable" size={88} />
                 <Text style={s.emptyTitle}>Nenhum injetável cadastrado</Text>
                 <Text style={s.muted}>
                   Cadastre somente produtos prescritos e use os dias informados
@@ -842,14 +837,6 @@ const styles = (c: AppPalette) =>
       borderRadius: 20,
       padding: 20,
       gap: 9,
-    },
-    emptyIcon: {
-      width: 50,
-      height: 50,
-      borderRadius: 16,
-      backgroundColor: c.primarySoft,
-      alignItems: "center",
-      justifyContent: "center",
     },
     emptyTitle: { color: c.text, fontSize: 17, fontWeight: "800" },
     outline: {

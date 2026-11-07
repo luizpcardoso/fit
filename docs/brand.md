@@ -42,8 +42,12 @@ Cenas vetoriais em `design/scenes/*.svg`, geradas por `node scripts/generate-sce
 
 - `SceneBanner`: faixa decorativa com texto curto, colocada **depois** dos dados principais da tela (antes das seções/atalhos), nunca no lugar de uma ação.
 - `SceneBackdrop`: fundo de cartões de destaque escuros (meta semanal no Início, ficha ativa, check-in de Mente). Use `dim` quando o texto ocupa a largura inteira.
+- `FeatureCategoryGrid` com `scene`: cartões das áreas nas abas Saúde, Nutrição e Fitness. A cena `card*` cobre o cartão; título, descrição e chevron ficam brancos na base. Sem `scene` o cartão volta ao ícone sobre superfície clara.
 
-Regras: imagens são decorativas (`aria-hidden`), o assunto fica à direita e o lado esquerdo já vem escurecido para o texto branco; pessoas aparecem como pictogramas, sem rosto nem corpo idealizado (evita comparação corporal).
+Os cartões usam canvas próprio (600×520, exportado com 720 px de largura): o objeto fica no alto, à direita, perto do centro vertical para sobreviver ao corte em cartões largos, e o véu escurece de baixo para cima. Para regenerar só os cartões, use `node scripts/generate-scenes.mjs --cards-only`.
+- `SceneThumb`: miniatura quadrada `thumb*` de tamanho fixo (não encolhe em linhas apertadas). Usada nos atalhos do Início, na folha “O que deseja registrar?”, no editor de atalhos (40–42 px) e nos estados vazios de primeiro uso (72–88 px). O gerador mede os pixels do desenho do cartão e o recentraliza num quadrado com brilho ao fundo, então o objeto nunca fica deslocado nem encosta na borda arredondada; os pontinhos decorativos ficam de fora.
+
+Regras: imagens são decorativas (`aria-hidden`), o assunto fica à direita e o lado do texto (esquerda nas faixas, base nos cartões) já vem escurecido para o texto branco; pessoas aparecem como pictogramas, sem rosto nem corpo idealizado (evita comparação corporal).
 
 | Cena | Onde |
 | --- | --- |
@@ -53,7 +57,12 @@ Regras: imagens são decorativas (`aria-hidden`), o assunto fica à direita e o 
 | `mind` | check-in de Mente |
 | `health` | aba Saúde |
 | `nutrition` | aba Nutrição |
-| `groups` | aba Grupos |
+| `groups` | aba Grupos; convite “Crie seu primeiro grupo” no Início |
+| `cardBody`, `cardMedication`, `cardSupplement`, `cardInjectable`, `cardMind` | cartões das áreas da aba Saúde |
+| `cardFood`, `cardDiet` | cartões Alimentação e Minha dieta |
+| `cardPlans`, `cardHistory`, `cardCardio` | cartões Fichas, Histórico e Cardio do Fitness |
+| `thumbMind`, `thumbPlans`, `thumbFood`, `thumbCardio`, `thumbBody`, `thumbMedication`, `thumbSupplement`, `thumbInjectable` | atalhos, folha Registrar, editor de atalhos e estado vazio da área correspondente |
+| `thumbDiet`, `thumbGroups`, `thumbProfessional` | estados vazios de Minha dieta, Grupos/feed e Meus profissionais |
 
 ## Nome e voz
 

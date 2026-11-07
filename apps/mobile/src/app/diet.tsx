@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import { formatNumber } from '@/utils/numbers';
 import { router, useFocusEffect } from 'expo-router';
 import MaterialCommunityIcons from '@/components/icon';
+import { SceneThumb } from '@/components/scene';
 import { ActivityIndicator, Modal, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { DietView } from '@fit/contracts';
@@ -53,7 +54,7 @@ export default function DietScreen() {
           <Text style={{color:c.textMuted,fontSize:12,lineHeight:18}}>Toque em uma refeição para ver alimentos e alternativas. O planejamento não conta como consumo.</Text>
         </View>
         <DietMealRows diet={diet} options={options} onSelect={setMealIndex}/>
-      </> : !loading && !error ? <View style={{paddingVertical:24,gap:12}}><Text style={{color:c.text,fontWeight:'800',fontSize:18}}>Nenhuma dieta disponível</Text><Text style={{color:c.textMuted,lineHeight:20}}>Seu profissional pode enviar uma dieta. Aceite as sugestões para consultar o planejamento aqui.</Text><Pressable accessibilityRole="button" onPress={() => router.push('/my-professionals')} style={{minHeight:44,justifyContent:'center'}}><Text style={{color:c.link}}>Abrir meus profissionais</Text></Pressable></View> : null}
+      </> : !loading && !error ? <View style={{paddingVertical:24,gap:12}}><SceneThumb scene="thumbDiet" size={88}/><Text style={{color:c.text,fontWeight:'800',fontSize:18}}>Nenhuma dieta disponível</Text><Text style={{color:c.textMuted,lineHeight:20}}>Seu profissional pode enviar uma dieta. Aceite as sugestões para consultar o planejamento aqui.</Text><Pressable accessibilityRole="button" onPress={() => router.push('/my-professionals')} style={{minHeight:44,justifyContent:'center'}}><Text style={{color:c.link}}>Abrir meus profissionais</Text></Pressable></View> : null}
       <Pressable accessibilityRole="button" onPress={() => {setHistory(value => !value);setMealIndex(null);}} style={{minHeight:44,justifyContent:'center'}}><Text style={{color:c.link}}>{history ? 'Mostrar apenas dietas atuais' : 'Ver também dietas anteriores'}</Text></Pressable>
     </ScrollView>
     {diet && meal && option && mealIndex != null ? <Modal visible animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setMealIndex(null)}>

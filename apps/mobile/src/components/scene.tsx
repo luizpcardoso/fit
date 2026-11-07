@@ -16,17 +16,48 @@ export const SceneImages = {
   // Recortes verticais para cartões altos (meta semanal do Início e ficha ativa).
   pulseTall: require('../../assets/images/scenes/pulse-tall.webp'),
   workoutSquare: require('../../assets/images/scenes/workout-square.webp'),
+  // Cartões das áreas (FeatureCategoryGrid): véu de baixo para cima, onde ficam título e descrição.
+  cardBody: require('../../assets/images/scenes/card-body.webp'),
+  cardMedication: require('../../assets/images/scenes/card-medication.webp'),
+  cardSupplement: require('../../assets/images/scenes/card-supplement.webp'),
+  cardInjectable: require('../../assets/images/scenes/card-injectable.webp'),
+  cardMind: require('../../assets/images/scenes/card-mind.webp'),
+  cardFood: require('../../assets/images/scenes/card-food.webp'),
+  cardDiet: require('../../assets/images/scenes/card-diet.webp'),
+  cardPlans: require('../../assets/images/scenes/card-plans.webp'),
+  cardHistory: require('../../assets/images/scenes/card-history.webp'),
+  cardCardio: require('../../assets/images/scenes/card-cardio.webp'),
+  // Miniaturas quadradas e centralizadas (SceneThumb): atalhos, folha Registrar e estados vazios.
+  thumbMind: require('../../assets/images/scenes/thumb-mind.webp'),
+  thumbPlans: require('../../assets/images/scenes/thumb-plans.webp'),
+  thumbFood: require('../../assets/images/scenes/thumb-food.webp'),
+  thumbCardio: require('../../assets/images/scenes/thumb-cardio.webp'),
+  thumbBody: require('../../assets/images/scenes/thumb-body.webp'),
+  thumbMedication: require('../../assets/images/scenes/thumb-medication.webp'),
+  thumbSupplement: require('../../assets/images/scenes/thumb-supplement.webp'),
+  thumbInjectable: require('../../assets/images/scenes/thumb-injectable.webp'),
+  thumbDiet: require('../../assets/images/scenes/thumb-diet.webp'),
+  thumbGroups: require('../../assets/images/scenes/thumb-groups.webp'),
+  thumbProfessional: require('../../assets/images/scenes/thumb-professional.webp'),
 } as const;
 export type SceneName = keyof typeof SceneImages;
 
-/** Imagem decorativa que preenche o cartão pai (que deve ter overflow hidden). `dim` escurece tudo quando o texto ocupa a largura inteira. */
-export function SceneBackdrop({ scene, dim = 0 }: { scene: SceneName; dim?: number }) {
+/** Imagem decorativa que preenche o cartão pai (que deve ter overflow hidden). `dim` escurece tudo quando o texto ocupa a largura inteira; `align="top"` mantém o alto da cena quando o cartão é mais largo que a imagem. */
+export function SceneBackdrop({ scene, dim = 0, align = 'center' }: { scene: SceneName; dim?: number; align?: 'center' | 'top' }) {
   // Below 360 px the text reaches the drawing; darken it enough for the copy to stay readable.
   const narrow = useWindowDimensions().width < 360;
   const shade = narrow ? Math.max(dim, .5) : dim;
   return <View aria-hidden pointerEvents="none" style={StyleSheet.absoluteFill}>
-    <Image source={SceneImages[scene]} contentFit="cover" contentPosition="right center" transition={0} style={StyleSheet.absoluteFill} accessible={false} />
+    <Image source={SceneImages[scene]} contentFit="cover" contentPosition={`right ${align}`} transition={0} style={StyleSheet.absoluteFill} accessible={false} />
     {shade ? <View style={[StyleSheet.absoluteFill, { backgroundColor: `rgba(11,30,40,${shade})` }]} /> : null}
+  </View>;
+}
+
+/** Miniatura quadrada de uma cena `thumb*`. Tamanho fixo e sem encolher, para a imagem nunca ser achatada numa linha apertada. */
+export function SceneThumb({ scene, size = 40 }: { scene: SceneName; size?: number }) {
+  const { colors: c } = useAppTheme();
+  return <View aria-hidden pointerEvents="none" style={{ width: size, height: size, flexShrink: 0, borderRadius: Math.round(size * .3), overflow: 'hidden', backgroundColor: c.primaryStrong }}>
+    <Image source={SceneImages[scene]} contentFit="cover" transition={0} style={{ width: size, height: size }} accessible={false} />
   </View>;
 }
 

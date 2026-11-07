@@ -1,6 +1,7 @@
 import { mealCategoryLabel } from '@fit/contracts';
 import { formatNumber } from '@/utils/numbers';
 import { useShowMore, ShowMore } from '@/components/load-more';
+import { SceneThumb, type SceneName } from '@/components/scene';
 import { DailyNutritionCard } from '@/components/daily-nutrition-card';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { showToast } from '@/components/app-dialog';
@@ -340,6 +341,7 @@ function Meals({
       ) : (
         <Empty
           title="Nenhuma refeição"
+          scene="thumbFood"
           text="Registre por alimentos ou informe os totais nutricionais."
           action="Registrar refeição"
           onPress={onNew}
@@ -450,15 +452,18 @@ function Empty({
   text,
   action,
   onPress,
+  scene,
 }: {
   title: string;
   text: string;
   action?: string;
   onPress?(): void;
+  scene?: SceneName;
 }) {
   const s = styles(useAppTheme().colors);
   return (
     <View style={s.empty}>
+      {scene ? <SceneThumb scene={scene} size={88} /> : null}
       <Text style={s.emptyTitle}>{title}</Text>
       <Text style={s.muted}>{text}</Text>
       {action && onPress ? (

@@ -1,6 +1,7 @@
 import {waitForApiBudget} from './helpers/api-budget';
 import {test,expect} from '@playwright/test';
 import {randomUUID} from 'node:crypto';
+import sharp from 'sharp';
 const apiURL=process.env.FIT_E2E_API_URL??'http://127.0.0.1:33318';
 test('Social reúne grupos, preserva interações e oferece gestão e publicação com destino explícito',async({page,request})=>{
  test.skip(process.env.FIT_SOCIAL_ISOLATED!=='1','Requer API efêmera isolada.');
@@ -16,6 +17,8 @@ test('Social reúne grupos, preserva interações e oferece gestão e publicaç�
   expect(res.status()).toBe(201);return res.json();
  };
  const owner=await register('Marina'),viewer=await register('Luiz');const ownerHeaders={authorization:`Bearer ${owner.accessToken}`},viewerHeaders={authorization:`Bearer ${viewer.accessToken}`};
+ const photoDataUrl=`data:image/png;base64,${(await sharp({create:{width:128,height:128,channels:3,background:'#0891B2'}}).png().toBuffer()).toString('base64')}`;
+ for(const headers of [ownerHeaders,viewerHeaders]) expect((await request.put(apiURL+'/me/avatar',{headers,data:{photoDataUrl}})).status()).toBe(200);
  const groups=[];
  for(const name of ['Amigos em movimento','Equipe da manhã']){
   const res=await request.post(apiURL+'/groups',{headers:ownerHeaders,data:{name}});expect(res.status()).toBe(201);const id=(await res.json()).id;groups.push({id,name});
@@ -37,14 +40,54 @@ test('Social reúne grupos, preserva interações e oferece gestão e publicaç�
  await page.getByRole('button',{name:'Reagir: Curtir',exact:true}).first().click();
  await expect(page.getByRole('button',{name:'Reagir: Curtir',exact:true}).first()).toHaveAttribute('aria-selected','true');
  expect((await post.boundingBox())!.height).toBe(beforeLike!.height);
+ await page.getByRole('button',{name:`Ampliar foto de ${owner.user.displayName}`,exact:true}).first().click();
+ await expect(page.getByTestId('social-avatar-preview')).toBeVisible();
+ await expect(page.getByRole('heading',{name:`Foto de ${owner.user.displayName}`,exact:true})).toBeVisible();
+ await page.getByRole('button',{name:'Fechar foto de perfil',exact:true}).click();
  await page.getByRole('button',{name:'Comentar',exact:true}).first().click();
  await expect(page.getByText('Comentários',{exact:true})).toBeVisible();
  await page.getByRole('textbox',{name:'Escrever comentário',exact:true}).fill('Vamos juntos nessa!');
  await page.getByRole('button',{name:'Enviar comentário',exact:true}).click();
  await expect(page.getByText('Vamos juntos nessa!',{exact:true})).toBeVisible();
  await page.getByRole('button',{name:'Fechar comentários',exact:true}).click();
+ await post.getByRole('button',{name:'Abrir conversa (1 comentário)',exact:true}).click();
+ await expect(page.getByText('Vamos juntos nessa!',{exact:true})).toBeVisible();
+ await page.getByRole('button',{name:`Responder a ${viewer.user.displayName}`,exact:true}).click();
+ await expect(page.getByText(/Respondendo a/)).toBeVisible();
+ await page.getByRole('textbox',{name:'Escrever comentário',exact:true}).fill('Uma resposta na conversa');
+ await page.getByRole('button',{name:'Enviar comentário',exact:true}).click();
+ await expect(page.getByText('Uma resposta na conversa',{exact:true})).toBeVisible();
+ await expect(page.getByTestId(/^social-comment-/).getByRole('button',{name:`Ampliar foto de ${viewer.user.displayName}`,exact:true})).toHaveCount(2);
+ await page.getByRole('button',{name:`Ampliar foto de ${viewer.user.displayName}`,exact:true}).last().click();
+ await expect(page.getByTestId('social-avatar-preview')).toBeVisible();
+ for(const width of [320,390]) {
+  await page.setViewportSize({width,height:844});
+  await expect(page.getByRole('button',{name:'Fechar foto de perfil',exact:true})).toBeInViewport();
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBeTruthy();
+ }
+ await page.getByRole('button',{name:'Fechar foto de perfil',exact:true}).click();
+ await expect(page.getByText('Uma resposta na conversa',{exact:true})).toBeVisible();
+
+ await expect(page.getByRole('button',{name:/^Responder a /})).toHaveCount(1);
+ await page.getByRole('button',{name:'Reagir ao comentário: Curtir',exact:true}).last().click();
+ await expect(page.getByRole('button',{name:'Reagir ao comentário: Curtir (1)',exact:true})).toHaveAttribute('aria-pressed','true');
+ await page.getByRole('button',{name:'Fechar comentários',exact:true}).click();
  expect((await post.boundingBox())!.height).toBe(beforeLike!.height);
+ await post.getByRole('button',{name:'Abrir conversa (2 comentários)',exact:true}).click();
+ await expect(page.getByText('Vamos juntos nessa!',{exact:true})).toBeVisible();
+ await expect(page.getByText('Uma resposta na conversa',{exact:true})).toBeVisible();
+ await page.getByRole('button',{name:'Fechar comentários',exact:true}).click();
  for(const scheme of ['light','dark'] as const){await page.emulateMedia({colorScheme:scheme});for(const width of [320,390]){await page.setViewportSize({width,height:844});await page.screenshot({path:`artifacts/ux-review/social-${scheme}-${width}.png`});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBeTruthy();}}
+ const postId=(await post.getAttribute('data-testid'))!.replace('feed-post-','');
+ const feed=(await (await request.get(apiURL+'/social/feed',{headers:ownerHeaders})).json()).items;
+ const currentPost=feed.find((item:{id:string})=>item.id===postId);
+ expect((await request.patch(apiURL+`/groups/${currentPost.groupId}/posts/${postId}`,{headers:ownerHeaders,data:{text:currentPost.text,commentsEnabled:false}})).status()).toBe(204);
+ await page.reload();
+ await post.getByRole('button',{name:'Abrir conversa (2 comentários)',exact:true}).click();
+ await expect(page.getByText('Vamos juntos nessa!',{exact:true})).toBeVisible();
+ await expect(page.getByText('Novos comentários estão desativados nesta publicação.',{exact:true})).toBeVisible();
+ await expect(page.getByRole('textbox',{name:'Escrever comentário',exact:true})).toHaveCount(0);
+ await page.getByRole('button',{name:'Fechar comentários',exact:true}).click();
  await page.getByRole('button',{name:'Configurações do Social',exact:true}).click();
  await expect(page.getByRole('heading',{name:'Configurações do Social',exact:true})).toBeVisible();
  await expect(page.getByRole('button',{name:'Pessoas ocultadas',exact:false})).toBeVisible();

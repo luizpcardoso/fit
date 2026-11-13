@@ -4,7 +4,7 @@ import { randomUUID } from 'node:crypto';
 import type { createApiClient } from '@fit/api-client';
 import type { DailyNutritionSummary, Meal, MealSyncEntry, MealSyncResult } from '@fit/contracts';
 import { createDeferredSync } from '../../mobile/src/utils/deferred-sync.js';
-import { createMealSync, overlayMeals, type StoredMeals } from '../../mobile/src/utils/meal-sync-core.js';
+import { affectsNutritionSummary, createMealSync, overlayMeals, type StoredMeals } from '../../mobile/src/utils/meal-sync-core.js';
 
 const settle = () => new Promise<void>(resolve => setImmediate(resolve));
 function fakeClock() {
@@ -185,4 +185,11 @@ test('refeições: falha ao preparar envio mantém fila durável e informa armaz
   f.failWrites(false); await controller.sync();
   assert.equal(controller.snapshot().entries.length,0);
   controller.dispose();
+});
+
+test('refeições: perfil, peso, treino e cardio invalidam o resumo; a própria sincronização e áreas alheias não', () => {
+  for (const path of ['/nutrition/meals', '/nutrition/meals/abc', '/body-measurements', '/auth/me', '/workout-sessions', '/workout-sessions/abc', '/cardio-sessions', '/cardio-sessions/abc', '/portal/professional-assignments/abc'])
+    assert.equal(affectsNutritionSummary(path), true, path);
+  for (const path of ['/nutrition/meal-sync', '/auth/login', '/auth/me/avatar', '/workout-goal', '/workout-runs/abc', '/groups', '/supplements/abc/intake'])
+    assert.equal(affectsNutritionSummary(path), false, path);
 });

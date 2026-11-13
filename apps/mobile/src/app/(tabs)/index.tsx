@@ -1,17 +1,21 @@
+import { RELEASE_VERSION } from '@/constants/release-version';
+import { InjectableIllustration } from '@/components/injectable-illustration';
+import { HealthIllustration } from '@/components/health-illustration';
 import { showToast } from '@/components/app-dialog';
 import { useWorkoutRun } from '@/components/workout-run-provider';
 import { isWorkoutRunOpen } from '@fit/contracts';
-import Constants from 'expo-constants';
 import {useGroupUpdates} from '@/components/group-updates-provider';
 import {GroupUpdatesBadge} from '@/components/group-updates-badge';
+import { HomeAccompanimentCard } from '@/components/home-accompaniment-card';
 import { HomeNutrition } from '@/components/home-nutrition';
 import { useAppTheme } from "@/theme/theme-provider";
 import { Scrim, Type, type AppPalette } from "@/constants/theme";
-import { SceneBackdrop } from "@/components/scene";
+import { SceneThumb, type SceneName } from "@/components/scene";
 import MaterialCommunityIcons from '@/components/icon';
 import type {
-  GroupSummary,
   HealthKind,
+  HealthItem,
+  Injectable,
   WorkoutGoalInput,
   WorkoutGoalSummary,
   WorkoutPlan,
@@ -22,9 +26,11 @@ import {
   ActivityIndicator,
   Modal,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from "react-native";
 import {Image} from 'expo-image';
@@ -38,11 +44,9 @@ import {
   useHealthRoutine,
 } from "@/hooks/use-health-routine";
 import { WorkoutGoalForm } from "@/components/workout-goal-form";
-import { CardioSection } from "@/components/cardio-section";
-import { HomeShortcuts } from "@/components/home-shortcuts";
+import { HomeCommunity } from "@/components/home-community";
 import { useInjectablesToday } from "@/hooks/use-injectables-today";
 import { InjectablesTodayModal } from "@/components/injectables-today-modal";
-import { useHomePreferences } from "@/utils/home-preferences";
 
 type IconName = keyof typeof MaterialCommunityIcons.glyphMap;
 type DailyActivity = {
@@ -50,6 +54,10 @@ type DailyActivity = {
   title: string;
   detail: string;
   icon: IconName;
+  injectableItem?: Injectable;
+  healthItem?: HealthItem;
+  healthKind?: HealthKind;
+  scene?: SceneName;
   done: boolean;
   open(): void;
   toggle?(): Promise<void>;
@@ -60,6 +68,8 @@ type DailyActivity = {
   /** Skipped for today: kept visible for undo, left out of the progress count. */
   dismissed?: boolean;
   setDismissed?(dismissed: boolean): Promise<void>;
+  /** Its state could not be read: listed, but never counted as pending or done. */
+  unverified?: boolean;
 };
 
 const weekdays = [
@@ -74,28 +84,29 @@ const weekdays = [
 
 export default function HomeScreen() {
   const { showChecks } = useLocalSearchParams<{ showChecks?: string }>();
-  const { colors: c, scheme } = useAppTheme();
-  const s = createStyles(c, scheme);
+  const { colors: c } = useAppTheme();
+  const s = createStyles(c);
+  // Tablets and desktop web get a wider column so the three panels fit side by side.
+  const wide = useWindowDimensions().width >= 1000;
   const { run: workoutRun } = useWorkoutRun();
   const openRun = workoutRun && isWorkoutRunOpen(workoutRun.progress) ? workoutRun : null;
-  const { showEnergyBalance, showShortcuts } = useHomePreferences();
 
   const { user, api, logout } = useAuth();
-  const [nutritionRevision, setNutritionRevision] = useState(0);
   const [goal, setGoal] = useState<WorkoutGoalSummary | null>(null);
   const [plans, setPlans] = useState<WorkoutPlan[]>([]);
   const [goalOpen, setGoalOpen] = useState(false);
   const [goalSaving, setGoalSaving] = useState(false);
   const [goalError, setGoalError] = useState("");
+  // Kept apart from the load error so a failed refresh never shows up inside the goal form.
+  const [goalSaveError, setGoalSaveError] = useState("");
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshSignal, setRefreshSignal] = useState(0);
   const [healthOpen, setHealthOpen] = useState<HealthKind | null>(null);
   const [injectablesOpen, setInjectablesOpen] = useState(false);
   const [professionalUnread, setProfessionalUnread] = useState(0);
   const [notificationError, setNotificationError] = useState(false);
-  const [groups, setGroups] = useState<GroupSummary[]>([]);
   const groupDashboard=useGroupUpdates();
   const postsUnseen=groupDashboard.postsUnseen??0;
-  const [activeGroupId, setActiveGroupId] = useState("");
-  const [groupPickerOpen, setGroupPickerOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [activitiesOpen, setActivitiesOpenState] = useState(false);
   const setActivitiesOpen = (open: boolean) => {
@@ -107,7 +118,6 @@ export default function HomeScreen() {
   const [activityBusy, setActivityBusy] = useState('');
   const [activityError, setActivityError] = useState('');
   const [mentalDone, setMentalDone] = useState<boolean | "error" | null>(null);
-  const [groupsState, setGroupsState] = useState<"loading" | "ready" | "error">("loading");
   const today = useHealthClock();
   const todayKey = localDay(today);
   const refreshGoal = useCallback(async () => {
@@ -142,40 +152,19 @@ export default function HomeScreen() {
       void refreshMental();
     }, [refreshMental]),
   );
-  useFocusEffect(useCallback(() => {
-    let active = true;
-    const refresh = () => api.listProfessionalNotifications().then(result => { if (active) { setProfessionalUnread(result.unreadCount); setNotificationError(false); } }).catch(() => { if (active) setNotificationError(true); });
-    void refresh();
-    const timer = setInterval(() => { void refresh(); }, 60000);
-    return () => { active = false; clearInterval(timer); };
-  }, [api]));
-  const refreshGroups = useCallback(async () => {
-    try {
-      const items = await api.listGroups();
-      setGroups(items);
-      setGroupsState("ready");
-      setActiveGroupId((current) =>
-        items.some((group) => group.id === current)
-          ? current
-          : (items[0]?.id ?? ""),
-      );
-    } catch {
-      setGroupsState("error");
-    }
+  const refreshNotifications = useCallback(async () => {
+    try { setProfessionalUnread((await api.listProfessionalNotifications()).unreadCount); setNotificationError(false); }
+    catch { setNotificationError(true); }
   }, [api]);
-  useFocusEffect(
-    useCallback(() => {
-      void refreshGroups();
-    }, [refreshGroups]),
-  );
+  useFocusEffect(useCallback(() => {
+    void refreshNotifications();
+    const timer = setInterval(() => { void refreshNotifications(); }, 60000);
+    return () => clearInterval(timer);
+  }, [refreshNotifications]));
   const supplements = useHealthRoutine("supplement", todayKey);
   const medications = useHealthRoutine("medication", todayKey);
   const injectables = useInjectablesToday(todayKey);
   const activeRoutine = healthOpen === "medication" ? medications : supplements;
-  const activeGroup =
-    groups.find((group) => group.id === activeGroupId) ?? groups[0];
-  // No group yet (and nothing loading or failing): the card becomes an illustrated invitation.
-  const inviteGroup = !activeGroup && groupsState !== "loading" && groupsState !== "error";
   const firstName = user?.firstName.trim().split(/\s+/)[0] || "Atleta";
   // Never show a target the person did not choose: an unconfigured goal is an invitation, not "0/3".
   const goalConfigured = Boolean(goal?.configured);
@@ -203,15 +192,16 @@ export default function HomeScreen() {
       plan.divisions.map((division) => [division.id, division] as const),
     ),
   );
+  const openGoalForm = () => { setGoalSaveError(""); setGoalOpen(true); };
   const saveGoal = async (input: WorkoutGoalInput) => {
     setGoalSaving(true);
-    setGoalError("");
+    setGoalSaveError("");
     try {
       await api.updateWorkoutGoal(input);
       await refreshGoal();
       setGoalOpen(false);
     } catch (error) {
-      setGoalError(
+      setGoalSaveError(
         error instanceof Error
           ? error.message
           : "Não foi possível salvar sua meta.",
@@ -220,12 +210,21 @@ export default function HomeScreen() {
       setGoalSaving(false);
     }
   };
+  // Plans load together with the goal: until then, starting or creating a workout is a guess.
+  const workoutUnknown = !goal && !openRun;
+  const todaySessions = goal?.sessionsByDate[todayKey] ?? 0;
+  const nextPlanned = goalConfigured && !openRun ? goal?.nextPlanned ?? null : null;
+  const plannedToday = nextPlanned?.date === todayKey && !todaySessions ? nextPlanned : null;
+  const plannedName = (item: NonNullable<typeof nextPlanned>) => `${item.divisionLabel ? `Treino ${item.divisionLabel}` : "Treino planejado"}${item.divisionName ? ` · ${item.divisionName}` : ""}`;
+  const missedDates = new Set(goal?.missedPlanned.map((item) => item.date) ?? []);
   const dailyActivities: DailyActivity[] = [
     ...(medications.daily?.items.map((entry) => ({
       id: `medication:${entry.item.id}:${entry.slot}`,
       title: entry.item.name,
+      healthItem: entry.item,
       detail: `Medicamento${entry.time ? ` · ${entry.time}` : ""}`,
       icon: "pill" as IconName,
+      healthKind: 'medication' as const,
       done: Boolean(entry.consumedAt),
       time: entry.time ?? undefined,
       markDone: () => api.setHealthIntake('medication', entry.item.id, todayKey, entry.slot, true),
@@ -237,8 +236,10 @@ export default function HomeScreen() {
     ...(supplements.daily?.items.map((entry) => ({
       id: `supplement:${entry.item.id}:${entry.slot}`,
       title: entry.item.name,
+      healthItem: entry.item,
       detail: `Suplemento${entry.time ? ` · ${entry.time}` : ""}`,
       icon: "bottle-tonic-outline" as IconName,
+      healthKind: 'supplement' as const,
       done: Boolean(entry.consumedAt),
       time: entry.time ?? undefined,
       markDone: () => api.setHealthIntake('supplement', entry.item.id, todayKey, entry.slot, true),
@@ -250,8 +251,10 @@ export default function HomeScreen() {
     ...(injectables.daily?.items.map((entry) => ({
       id: `injectable:${entry.injectable.id}`,
       title: entry.injectable.name,
+      injectableItem: entry.injectable,
       detail: "Aplicação prevista",
       icon: "needle" as IconName,
+      scene: 'thumbInjectable' as const,
       done: Boolean(entry.application),
       dismissed: Boolean(entry.dismissedAt),
       setDismissed: async (dismissed: boolean) => { await api.setInjectableDismissal(entry.injectable.id, todayKey, dismissed); if (!await injectables.refresh()) throw new Error('refresh'); },
@@ -262,7 +265,9 @@ export default function HomeScreen() {
       title: "Como você está se sentindo?",
       detail: mentalDone === "error" ? "Não foi possível verificar agora" : "Check-in da Mente",
       icon: "head-heart-outline" as IconName,
+      scene: 'thumbMind' as const,
       done: mentalDone === true,
+      unverified: mentalDone === "error",
       open: () => router.push("/mental-wellbeing"),
     }] : []),
 
@@ -293,6 +298,7 @@ export default function HomeScreen() {
     finally { await Promise.all([medications.refresh(), supplements.refresh()]); actionLock.current = false; setActivityBusy(''); }
   };
   const dismissedActivities = dailyActivities.filter(item => item.dismissed);
+  const occasionalCount = (medications.occasional?.count ?? 0) + (supplements.occasional?.count ?? 0);
   const routineActivities = dailyActivities.filter(item => !item.dismissed);
   // Doses with the same time are taken together: group them so a slot can be checked at once.
   // Untimed doses ("a qualquer hora") can also be checked together; injectables/check-in stay apart.
@@ -304,7 +310,8 @@ export default function HomeScreen() {
     return groups;
   }, []).sort((a, b) => groupOrder(a.key).localeCompare(groupOrder(b.key)));
   const groupTitle = (group: { key: string; time?: string; items: DailyActivity[] }) => group.key === 'anytime' ? `A qualquer hora · ${group.items.length} ${group.items.length === 1 ? 'item' : 'itens'}` : group.time ? `${group.time} · ${group.items.length} ${group.items.length === 1 ? 'item' : 'itens'}` : 'Outras';
-  const completedActivities = routineActivities.filter(
+  const countedActivities = routineActivities.filter((item) => !item.unverified);
+  const completedActivities = countedActivities.filter(
     (item) => item.done,
   ).length;
   const activitiesLoading =
@@ -312,11 +319,29 @@ export default function HomeScreen() {
     supplements.loading ||
     injectables.loading ||
     (user?.countMentalCheckIn !== false && mentalDone === null);
-  const nextActivity = routineActivities.find((item) => !item.done);
-  const remainingActivities = routineActivities.length - completedActivities;
-  const activityProgress = routineActivities.length
-    ? completedActivities / routineActivities.length
+  // Earliest scheduled dose first, so an overdue one is never hidden behind a later item.
+  const nextActivity = countedActivities
+    .filter((item) => !item.done)
+    .sort((a, b) => (a.time ?? "99:99").localeCompare(b.time ?? "99:99"))[0];
+  const nowTime = `${String(today.getHours()).padStart(2, "0")}:${String(today.getMinutes()).padStart(2, "0")}`;
+  const nextLate = Boolean(nextActivity?.time && nextActivity.time < nowTime);
+  const remainingActivities = countedActivities.length - completedActivities;
+  const activityProgress = countedActivities.length
+    ? completedActivities / countedActivities.length
     : 0;
+  const routineSources = [medications, supplements, injectables];
+  const routineErrorText = medications.error || supplements.error || injectables.error || (mentalDone === "error" ? "Não foi possível verificar seu check-in da Mente." : "");
+  // A failed load is never presented as an empty or untouched day.
+  const routineUnavailable = !activitiesLoading && !countedActivities.length && routineSources.some((source) => source.error && !source.daily);
+  const routinePartial = !activitiesLoading && Boolean(routineErrorText) && !routineUnavailable;
+  const retryRoutine = () => { void Promise.all([medications.refresh(), supplements.refresh(), injectables.refresh(), refreshMental()]); };
+  const refreshAll = async () => {
+    setRefreshing(true);
+    setRefreshSignal((value) => value + 1);
+    await Promise.allSettled([refreshGoal(), refreshMental(), refreshNotifications(), medications.refresh(), supplements.refresh(), injectables.refresh()]);
+    setRefreshing(false);
+  };
+  const unreadNotifications = professionalUnread + groupDashboard.notificationsUnread;
   const openDailyActivity = (activity: DailyActivity) => {
     setActivitiesOpen(false);
     activity.open();
@@ -327,8 +352,9 @@ export default function HomeScreen() {
       <SafeAreaView style={s.safe} edges={["top"]}>
         <ScrollView
           testID="home-scroll"
-          contentContainerStyle={s.content}
+          contentContainerStyle={[s.content, wide && s.contentWide]}
           showsVerticalScrollIndicator={false}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void refreshAll()} tintColor={c.link} colors={[c.link]} />}
         >
           {/* Two tiers: on narrow phones avatar + actions on one row left ~150px for the greeting. */}
           <View style={s.header}>
@@ -345,13 +371,14 @@ export default function HomeScreen() {
                 </Text>}
               </Pressable>
               <View style={s.headerActions}>
-                <Pressable accessibilityRole="button" accessibilityLabel={postsUnseen > 0 ? `Social, ${postsUnseen} ${postsUnseen === 1 ? 'post não lido' : 'posts não lidos'}` : 'Social'} onPress={() => router.push('/groups')} style={s.menuButton}>
+                <Pressable accessibilityRole="button" accessibilityLabel={postsUnseen > 0 ? `Comunidade, ${postsUnseen} ${postsUnseen === 1 ? 'post não lido' : 'posts não lidos'}` : 'Comunidade'} onPress={() => router.push('/groups')} style={[s.menuButton, s.communityHeaderButton]}>
+                  <Text style={s.communityHeaderLabel}>Comunidade</Text>
                   <MaterialCommunityIcons name="account-group-outline" size={25} color={c.link}/>
                   <GroupUpdatesBadge count={postsUnseen} focused={false}/>
                 </Pressable>
-                <Pressable accessibilityRole="button" accessibilityLabel={`Notificações, ${professionalUnread + groupDashboard.notificationsUnread} não lidas${notificationError ? ', atualização indisponível' : ''}`} onPress={() => router.push('/group-notifications')} style={s.menuButton}>
+                <Pressable accessibilityRole="button" accessibilityLabel={`Notificações, ${unreadNotifications === 0 ? 'nenhuma não lida' : unreadNotifications === 1 ? '1 não lida' : `${unreadNotifications} não lidas`}${notificationError ? ', atualização indisponível' : ''}`} onPress={() => router.push('/group-notifications')} style={s.menuButton}>
                   <MaterialCommunityIcons name="bell-outline" size={25} color={c.link}/>
-                  <GroupUpdatesBadge count={professionalUnread + groupDashboard.notificationsUnread} focused={false} stale={notificationError}/>
+                  <GroupUpdatesBadge count={unreadNotifications} focused={false} stale={notificationError}/>
                 </Pressable>
               </View>
             </View>
@@ -360,15 +387,18 @@ export default function HomeScreen() {
               <Text accessibilityRole="header" style={s.greeting}>
                 Olá, {firstName}
               </Text>
-              <Text style={s.subtitle}>Vamos cuidar da sua rotina hoje?</Text>
             </View>
           </View>
 
           <View style={s.todayOverview}>
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel={`Ver rotina de hoje, ${completedActivities} de ${routineActivities.length} feitas`}
-              onPress={() => setActivitiesOpen(true)}
+              accessibilityLabel={activitiesLoading
+                ? "Rotina de hoje, atualizando"
+                : routineUnavailable
+                  ? "Rotina de hoje indisponível. Tentar novamente"
+                  : `Ver rotina de hoje, ${completedActivities} de ${countedActivities.length} feitas${routinePartial ? ", atualização incompleta" : ""}`}
+              onPress={() => routineUnavailable ? retryRoutine() : setActivitiesOpen(true)}
               style={[s.todayCard, CardShadow]}
             >
               <View style={s.todayTop}>
@@ -381,66 +411,52 @@ export default function HomeScreen() {
                 </View>
                 <View style={s.flex}>
                   <Text style={s.todayLabel}>Rotina de hoje</Text>
-                  <Text style={s.todayTitle}>
+                  <Text numberOfLines={1} style={[s.todayTitle, nextLate && !activitiesLoading && s.todayTitleLate]}>
                     {activitiesLoading
                       ? "Atualizando…"
-                      : !routineActivities.length
-                        ? "Nada programado"
-                        : remainingActivities
-                          ? `${remainingActivities} ${remainingActivities === 1 ? "restante" : "restantes"}`
-                          : "Tudo feito hoje"}
+                      : routineUnavailable
+                        ? "Não foi possível atualizar"
+                        : !countedActivities.length
+                          ? "Nada programado"
+                          : nextActivity
+                            ? `${nextLate ? "Atrasada" : "Próxima"}: ${nextActivity.time ? `${nextActivity.time} · ` : ""}${nextActivity.title}`
+                            : "Tudo feito hoje"}
                   </Text>
                 </View>
-                {!activitiesLoading && routineActivities.length ? (
-                  <Text style={s.todayCount}>{completedActivities}/{routineActivities.length}</Text>
+                {!activitiesLoading && countedActivities.length ? (
+                  <Text style={s.todayCount}>{completedActivities}/{countedActivities.length}</Text>
                 ) : null}
                 <MaterialCommunityIcons
-                  name="chevron-right"
+                  name={routineUnavailable ? "refresh" : "chevron-right"}
                   size={20}
                   color={c.textMuted}
                 />
               </View>
+              {occasionalCount ? <Text style={s.todayNext}>{occasionalCount} {occasionalCount === 1 ? 'tomada eventual' : 'tomadas eventuais'}</Text> : null}
               <View style={s.todayTrack}>
                 <View
                   style={[s.todayFill, { width: `${activityProgress * 100}%` }]}
                 />
               </View>
-              <Text numberOfLines={1} style={s.todayNext}>
+              <Text numberOfLines={1} style={[s.todayNext, (routineUnavailable || routinePartial) && s.todayNextError]}>
                 {activitiesLoading
                   ? "Buscando sua rotina do dia"
-                  : nextActivity
-                    ? `Próxima: ${nextActivity.title}`
-                    : "Tudo concluído por hoje ✓"}
+                  : routineUnavailable
+                    ? "Toque para tentar novamente"
+                    : routinePartial
+                      ? "Parte da rotina não foi atualizada"
+                      : remainingActivities
+                        ? `${remainingActivities} ${remainingActivities === 1 ? "restante" : "restantes"}`
+                        : !countedActivities.length ? "Suas atividades programadas aparecem aqui" : "Tudo concluído por hoje ✓"}
               </Text>
             </Pressable>
           </View>
 
-          <View style={s.hero}>
-            <SceneBackdrop scene="pulseTall" />
-            <View style={s.heroTop}>
-              <View style={s.heroIcon}>
-                <MaterialCommunityIcons
-                  name="dumbbell"
-                  size={21}
-                  color={c.primaryStrong}
-                />
-              </View>
-              <View style={s.flex}>
-                <Text style={s.heroEyebrow}>Fitness</Text>
-                <Text style={s.heroTitle}>Treinos e cardio</Text>
-              </View>
-              <Pressable accessibilityRole="button"
-                accessibilityLabel={goalConfigured ? "Ajustar meta semanal" : "Definir meta semanal"}
-                onPress={() => setGoalOpen(true)}
-                style={s.heroAdjust}
-              >
-                <MaterialCommunityIcons
-                  name="tune-variant"
-                  size={20}
-                  color={c.onHero}
-                />
-              </Pressable>
-            </View>
+          <HomeNutrition date={todayKey} refreshSignal={refreshSignal} workout={<HomeAccompanimentCard topic="workout" title="Seu treino" icon="dumbbell" testID="home-workout-card" action={
+            <Pressable accessibilityRole="button" accessibilityLabel={goalConfigured ? "Ajustar meta semanal" : "Definir meta semanal"} onPress={openGoalForm} style={s.heroAdjust}>
+              <MaterialCommunityIcons name="tune-variant" size={20} color={c.link}/>
+            </Pressable>
+          }>
             {!goal && goalError ? (
               <View style={s.heroNotice}>
                 <Text accessibilityRole="alert" style={s.heroCaption}>{goalError}</Text>
@@ -456,7 +472,7 @@ export default function HomeScreen() {
                     : "Quantas vezes por semana você quer treinar?"}
                 </Text>
                 <Text style={s.heroHint}>Defina uma meta semanal para acompanhar seu ritmo. Treinos em qualquer dia da semana contam.</Text>
-                <Pressable accessibilityRole="button" onPress={() => setGoalOpen(true)} style={s.heroInlineAction}>
+                <Pressable accessibilityRole="button" onPress={openGoalForm} style={s.heroInlineAction}>
                   <Text style={s.heroInlineActionText}>Definir meta semanal</Text>
                 </Pressable>
               </View>
@@ -496,6 +512,7 @@ export default function HomeScreen() {
                   : null;
                 const planLabel = division?.label ?? "";
                 const doneLabel = sessions > 1 ? `${sessions} treinos realizados` : sessions === 1 ? "treino realizado" : "";
+                const missed = sessions === 0 && missedDates.has(date);
                 const status =
                   sessions > 1
                     ? `${sessions}×`
@@ -509,23 +526,26 @@ export default function HomeScreen() {
                     accessibilityLabel={[
                       isToday ? `${day.full}, hoje` : day.full,
                       division ? `treino ${division.label} planejado: ${division.name}` : scheduled ? "treino planejado" : "",
-                      doneLabel || (scheduled ? "ainda não realizado" : "sem treino"),
+                      doneLabel || (missed ? "não realizado" : scheduled ? "ainda não realizado" : "sem treino"),
                     ].filter(Boolean).join(", ")}
                     style={[
                       s.day,
                       sessions > 0 && s.dayDone,
                       scheduled && sessions === 0 && s.dayPlanned,
+                      missed && s.dayMissed,
                       isToday && s.dayToday,
                     ]}
                   >
-                    <Text style={[s.dayText, sessions > 0 && s.dayTextDone]}>
+                    <Text maxFontSizeMultiplier={1.2} style={[s.dayText, sessions > 0 && s.dayTextDone]}>
                       {day.short}
                     </Text>
                     <Text
+                      maxFontSizeMultiplier={1.2}
                       style={[
                         s.dayStatus,
                         sessions > 0 && s.dayStatusDone,
                         planLabel && sessions === 0 && s.dayStatusPlanned,
+                        missed && s.dayStatusMissed,
                       ]}
                     >
                       {status}
@@ -534,18 +554,33 @@ export default function HomeScreen() {
                 );
               })}
             </View>
+            {nextPlanned ? (
+              <Text style={s.heroPlanned}>
+                {plannedToday ? "Hoje: " : `Próximo, ${weekdays[nextPlanned.weekday - 1].full}: `}
+                <Text style={s.heroPlannedName}>{plannedName(nextPlanned)}</Text>
+              </Text>
+            ) : null}
             <View style={s.fitnessActions}>
-              <Pressable accessibilityRole="button"
-                onPress={() => router.push(openRun || hasPlans || !goal ? "/workout-run" : "/workout-create")}
-                style={s.heroButton}
-              >
-                <MaterialCommunityIcons
-                  name={openRun || hasPlans || !goal ? "play" : "plus"}
-                  size={18}
-                  color={c.primaryStrong}
-                />
-                <Text style={s.heroButtonText}>{openRun ? `Continuar treino ${openRun.divisionLabel}` : hasPlans || !goal ? "Iniciar treino" : "Criar ficha"}</Text>
-              </Pressable>
+              {workoutUnknown ? (
+                // The error notice above already offers the retry; never guess between start and create.
+                goalError ? null : (
+                  <View style={[s.heroButton, s.heroButtonBusy]}>
+                    <ActivityIndicator accessibilityLabel="Carregando seus treinos" color={c.onPrimary} />
+                  </View>
+                )
+              ) : (
+                <Pressable accessibilityRole="button"
+                  onPress={() => router.push(openRun || hasPlans ? "/workout-run" : "/workout-create")}
+                  style={s.heroButton}
+                >
+                  <MaterialCommunityIcons
+                    name={openRun || hasPlans ? "play" : "plus"}
+                    size={18}
+                    color={c.onPrimary}
+                  />
+                  <Text style={s.heroButtonText}>{openRun ? `Continuar treino ${openRun.divisionLabel}` : hasPlans ? "Iniciar treino" : "Criar ficha"}</Text>
+                </Pressable>
+              )}
               <Pressable accessibilityRole="button"
                 onPress={() => router.push("/workouts")}
                 style={s.fitnessLink}
@@ -554,166 +589,13 @@ export default function HomeScreen() {
                 <MaterialCommunityIcons
                   name="arrow-right"
                   size={16}
-                  color={c.heroMuted}
+                  color={c.link}
                 />
               </Pressable>
             </View>
-            <CardioSection date={todayKey} compact onChanged={() => setNutritionRevision(value => value + 1)} />
-          </View>
+          </HomeAccompanimentCard>} />
 
-          {showEnergyBalance ? <HomeNutrition key={`${todayKey}:${nutritionRevision}`} date={todayKey} /> : null}
-          {showShortcuts ? <HomeShortcuts /> : null}
-
-          <View style={s.sectionHeading}>
-            <View>
-              <Text style={s.sectionTitle}>Sua comunidade</Text>
-              <Text style={s.sectionSubtitle}>
-                Treinar junto ajuda a manter o ritmo
-              </Text>
-            </View>
-          </View>
-          <View style={[s.communityCard, inviteGroup && s.communityInvite, CardShadow]}>
-            {inviteGroup ? <SceneBackdrop scene="groups" /> : null}
-            {groupsState === "loading" && !groups.length ? (
-              <ActivityIndicator color={c.link} accessibilityLabel="Carregando grupos" />
-            ) : groupsState === "error" && !groups.length ? (
-              <View style={s.communityTop}>
-                <View style={s.flex}>
-                  <Text accessibilityRole="alert" style={s.routineTitle}>Não foi possível carregar seus grupos</Text>
-                  <Text style={s.routineStatus}>Confira a conexão e tente novamente.</Text>
-                </View>
-                <Pressable accessibilityRole="button" onPress={() => void refreshGroups()} style={s.inlineRetry}>
-                  <Text style={s.communityActionText}>Tentar novamente</Text>
-                </Pressable>
-              </View>
-            ) : activeGroup ? (
-              <>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Trocar grupo ativo"
-                  aria-expanded={groupPickerOpen}
-                  onPress={() => setGroupPickerOpen((open) => !open)}
-                  style={s.communityTop}
-                >
-                  <View style={s.groupIcon}>
-                    <MaterialCommunityIcons
-                      name="account-group-outline"
-                      size={24}
-                      color={c.link}
-                    />
-                  </View>
-                  <View style={s.flex}>
-                    <Text style={s.routineTitle}>{activeGroup.name}</Text>
-                    <Text style={s.routineStatus}>
-                      {activeGroup.memberCount} {activeGroup.memberCount === 1 ? "participante" : "participantes"}
-                      {activeGroup.unseenCount
-                        ? ` · ${activeGroup.unseenCount} ${activeGroup.unseenCount === 1 ? "novidade" : "novidades"}`
-                        : ""}
-                    </Text>
-                  </View>
-                  <MaterialCommunityIcons
-                    name={groupPickerOpen ? "chevron-up" : "chevron-down"}
-                    size={23}
-                    color={c.textMuted}
-                  />
-                </Pressable>
-                {groupPickerOpen ? (
-                  <View style={s.groupOptions}>
-                    {groups.map((group) => (
-                      <Pressable accessibilityRole="radio"
-                        aria-selected={group.id === activeGroupId}
-                        accessibilityLabel={`${group.name}${group.unseenCount ? `, ${group.unseenCount} novidades` : ""}`}
-                        key={group.id}
-                        onPress={() => {
-                          setActiveGroupId(group.id);
-                          setGroupPickerOpen(false);
-                        }}
-                        style={[
-                          s.groupOption,
-                          group.id === activeGroupId && s.groupOptionSelected,
-                        ]}
-                      >
-                        <Text style={s.groupOptionText}>{group.name}</Text>
-                        <Text style={s.groupOptionCount}>
-                          {group.unseenCount || ""}
-                        </Text>
-                        {group.id === activeGroupId ? (
-                          <MaterialCommunityIcons
-                            name="check"
-                            size={18}
-                            color={c.link}
-                          />
-                        ) : null}
-                      </Pressable>
-                    ))}
-                  </View>
-                ) : null}
-                <Pressable accessibilityRole="button"
-                  onPress={() =>
-                    router.push({
-                      pathname: "/group-detail",
-                      params: { id: activeGroup.id },
-                    })
-                  }
-                  style={s.communityAction}
-                >
-                  <Text style={s.communityActionText}>Abrir feed do grupo</Text>
-                  <MaterialCommunityIcons
-                    name="arrow-right"
-                    size={18}
-                    color={c.link}
-                  />
-                </Pressable>
-              </>
-            ) : (
-              <Pressable accessibilityRole="button"
-                onPress={() => router.push("/groups")}
-                style={s.communityTop}
-              >
-                <View style={s.inviteCopy}>
-                  <Text style={[s.routineTitle, s.inviteTitle]}>Crie seu primeiro grupo</Text>
-                  <Text style={[s.routineStatus, s.inviteText]}>
-                    Compartilhe conquistas com pessoas de confiança
-                  </Text>
-                </View>
-                <View style={s.flex} />
-                <MaterialCommunityIcons
-                  name="arrow-right"
-                  size={20}
-                  color={c.onHero}
-                />
-              </Pressable>
-            )}
-          </View>
-          {groupDashboard.totalUnseen ||
-          groupDashboard.pendingInvites ||
-          groupDashboard.notificationsUnread ? (
-            <Pressable accessibilityRole="button"
-              onPress={() => router.push("/group-notifications")}
-              style={s.socialUpdates}
-            >
-              <MaterialCommunityIcons
-                name="bell-outline"
-                size={20}
-                color={c.notificationText}
-              />
-              <Text style={s.socialUpdatesText}>
-                {groupDashboard.totalUnseen} {groupDashboard.totalUnseen === 1 ? "nova atualização" : "novas atualizações"}
-                {groupDashboard.pendingInvites
-                  ? ` · ${groupDashboard.pendingInvites} convite${groupDashboard.pendingInvites > 1 ? "s" : ""}`
-                  : ""}
-              </Text>
-              <MaterialCommunityIcons
-                name="chevron-right"
-                size={18}
-                color={c.notificationText}
-              />
-            </Pressable>
-          ) : null}
-          <Text style={s.disclaimer}>
-            Apenas atividades autorizadas por você e pelo grupo aparecem no
-            feed.
-          </Text>
+          <HomeCommunity refreshSignal={refreshSignal} />
         </ScrollView>
         <Modal
           transparent
@@ -724,7 +606,7 @@ export default function HomeScreen() {
           <View style={s.activitiesOverlay}>
             {/* Backdrop is a sibling, not a parent, so sheet controls are never nested buttons. */}
             <Pressable accessibilityRole="button" accessibilityLabel="Fechar atividades" style={StyleSheet.absoluteFill} onPress={() => setActivitiesOpen(false)} />
-            <SafeAreaView style={s.activitiesSheet} edges={["bottom"]}>
+            <SafeAreaView testID="home-routine-sheet" style={s.activitiesSheet} edges={["bottom"]}>
               <View style={s.shrink}>
                 <View style={s.sheetHandle} />
                 <View style={s.activitiesHeader}>
@@ -733,7 +615,7 @@ export default function HomeScreen() {
                     <Text style={s.activitiesSubtitle}>
                       {activitiesLoading
                         ? "Atualizando sua rotina…"
-                        : `${completedActivities}/${routineActivities.length} ${routineActivities.length === 1 ? "concluída" : "concluídas"}${dismissedActivities.length ? ` · ${dismissedActivities.length} ${dismissedActivities.length === 1 ? "dispensada" : "dispensadas"}` : ""}`}
+                        : `${completedActivities}/${countedActivities.length} ${countedActivities.length === 1 ? "concluída" : "concluídas"}${dismissedActivities.length ? ` · ${dismissedActivities.length} ${dismissedActivities.length === 1 ? "dispensada" : "dispensadas"}` : ""}`}
                     </Text>
                   </View>
                   <Pressable accessibilityRole="button"
@@ -750,13 +632,16 @@ export default function HomeScreen() {
                 </View>
                 <ScrollView style={s.shrink} contentContainerStyle={s.activitiesList}>
                   {activityError ? <Text accessibilityRole="alert" style={{ color: c.danger, paddingVertical: 12 }}>{activityError}</Text> : null}
-                  {medications.error || supplements.error ? <Text accessibilityRole="alert" style={{ color: c.danger }}>{medications.error || supplements.error}</Text> : null}
+                  {routineErrorText ? <View style={s.activitiesNotice}>
+                    <Text accessibilityRole="alert" style={{ color: c.danger }}>{routineErrorText}</Text>
+                    <Pressable accessibilityRole="button" accessibilityLabel="Tentar atualizar a rotina novamente" onPress={retryRoutine} style={s.heroInlineAction}><Text style={s.heroInlineActionText}>Tentar novamente</Text></Pressable>
+                  </View> : null}
                   {activityGroups.map(group => <View key={group.key}>
                     {activityGroups.length > 1 || group.key !== 'other' ? <View style={s.activityGroupHeader}><Text style={s.activityGroupTitle}>{groupTitle(group)}</Text>{group.key !== 'other' && group.items.filter(item => !item.done).length > 1 ? <Pressable accessibilityRole="button" accessibilityLabel={group.time ? `Marcar todas as doses das ${group.time}` : 'Marcar todas as doses sem horário'} disabled={Boolean(activityBusy) || Boolean(medications.error || supplements.error)} onPress={() => void markGroup(group.key, group.items)} style={s.activityGroupAction}>{activityBusy === `group:${group.key}` ? <ActivityIndicator color={c.link}/> : <Text style={s.activityGroupActionText}>Marcar todos</Text>}</Pressable> : null}</View> : null}
                   {group.items.map((activity) => (
                     <View key={activity.id} style={s.activityRow}>
                       <Pressable accessibilityRole="button" accessibilityLabel={`Ver ${activity.title}`} onPress={() => openDailyActivity(activity)} style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 11, minHeight: 60 }}>
-                        <View style={[s.activityIcon, activity.done && s.activityIconDone]}><MaterialCommunityIcons name={activity.done ? 'check' : activity.icon} size={20} color={activity.done ? c.background : c.link} /></View>
+                        {activity.injectableItem ? <InjectableIllustration item={activity.injectableItem} size={44}/> : activity.healthItem && activity.healthKind ? <HealthIllustration item={activity.healthItem} kind={activity.healthKind}/> : activity.scene ? <SceneThumb scene={activity.scene} size={44}/> : <View style={[s.activityIcon, activity.done && s.activityIconDone]}><MaterialCommunityIcons name={activity.done ? 'check' : activity.icon} size={20} color={activity.done ? c.background : c.link}/></View>}
                         <View style={s.flex}><Text style={[s.activityTitle, activity.done && s.activityTitleDone]}>{activity.title}</Text><Text style={s.activityDetail}>{activity.done ? 'Concluído' : activity.detail}</Text></View>
                       </Pressable>
                       {!activity.done && activity.setDismissed ? <Pressable accessibilityRole="button" accessibilityLabel={`Dispensar ${activity.title} hoje`} disabled={Boolean(activityBusy)} onPress={() => void dismissActivity(activity, true)} style={{ minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' }}>
@@ -769,7 +654,7 @@ export default function HomeScreen() {
                   ))}
                   </View>)}
                   {dismissedActivities.length ? <DismissedActivities items={dismissedActivities} open={dismissedOpen} busy={activityBusy} styles={s} onToggle={() => setDismissedOpen(open => !open)} onRestore={activity => void dismissActivity(activity, false)} /> : null}
-                  {!dailyActivities.length && !activitiesLoading ? (
+                  {!dailyActivities.length && !activitiesLoading && !routineErrorText ? (
                     <View style={s.activitiesEmpty}>
                       <MaterialCommunityIcons
                         name="check-circle-outline"
@@ -827,7 +712,7 @@ export default function HomeScreen() {
             goal={goal}
             plans={plans}
             saving={goalSaving}
-            error={goalError}
+            error={goalSaveError}
             onClose={() => setGoalOpen(false)}
             onSave={saveGoal}
           />
@@ -905,7 +790,7 @@ export default function HomeScreen() {
                   Sair da conta
                 </Text>
               </Pressable>
-              <Text style={s.menuVersion}>Versão {String(Constants.expoConfig?.extra?.releaseName ?? Constants.expoConfig?.version ?? '—')}</Text>
+              <Text style={s.menuVersion}>Versão {RELEASE_VERSION}</Text>
             </View>
           </View>
         </Modal>
@@ -924,7 +809,7 @@ function DismissedActivities({ items, open, busy, styles: s, onToggle, onRestore
       <MaterialCommunityIcons name={open ? 'chevron-up' : 'chevron-down'} size={20} color={c.textMuted} />
     </Pressable>
     {open ? items.map(activity => <View key={activity.id} style={s.activityRow}>
-      <View style={[s.activityIcon, { opacity: 0.5 }]}><MaterialCommunityIcons name={activity.icon} size={20} color={c.textMuted} /></View>
+      <View style={{ opacity: 0.5 }}>{activity.injectableItem ? <InjectableIllustration item={activity.injectableItem} size={44}/> : activity.healthItem && activity.healthKind ? <HealthIllustration item={activity.healthItem} kind={activity.healthKind}/> : activity.scene ? <SceneThumb scene={activity.scene} size={44}/> : <View style={s.activityIcon}><MaterialCommunityIcons name={activity.icon} size={20} color={c.textMuted}/></View>}</View>
       <View style={s.flex}><Text style={[s.activityTitle, s.activityTitleDone]}>{activity.title}</Text><Text style={s.activityDetail}>Dispensada · {activity.detail}</Text></View>
       <Pressable accessibilityRole="button" accessibilityLabel={`Desfazer dispensa de ${activity.title}`} disabled={Boolean(busy)} onPress={() => onRestore(activity)} style={s.activityGroupAction}>
         {busy === `dismiss:${activity.id}` ? <ActivityIndicator color={c.link} /> : <Text style={s.activityGroupActionText}>Desfazer</Text>}
@@ -933,7 +818,7 @@ function DismissedActivities({ items, open, busy, styles: s, onToggle, onRestore
   </View>;
 }
 
-const createStyles = (c: AppPalette, scheme: "light" | "dark") =>
+const createStyles = (c: AppPalette) =>
   StyleSheet.create({
     root: { flex: 1, backgroundColor: c.background },
     safe: { flex: 1 },
@@ -946,15 +831,18 @@ const createStyles = (c: AppPalette, scheme: "light" | "dark") =>
       alignSelf: "center",
       gap: 18,
     },
+    contentWide: { maxWidth: 1120 },
     flex: { flex: 1, minWidth: 0 },
-    header: { gap: 14, marginBottom: 2 },
+    header: { gap: 8, marginBottom: 2 },
     headerTop: {
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
     },
     headerActions: { flexDirection: "row", gap: 10 },
-    headerCopy: { gap: 4 },
+    headerCopy: { gap: 2 },
+    communityHeaderButton: { width: "auto", paddingHorizontal: 12, flexDirection: "row", gap: 6 },
+    communityHeaderLabel: { ...Type.label, color: c.link, fontWeight: "700" },
     date: {
       fontSize: 12,
       fontWeight: "800",
@@ -963,7 +851,7 @@ const createStyles = (c: AppPalette, scheme: "light" | "dark") =>
       color: c.link,
     },
     greeting: {
-      fontSize: 28,
+      fontSize: 24,
       fontWeight: "800",
       letterSpacing: -0.8,
       color: c.text,
@@ -988,6 +876,10 @@ const createStyles = (c: AppPalette, scheme: "light" | "dark") =>
     avatarText: { fontSize: 19, fontWeight: "800", color: c.link },
     menuOverlay: { flex: 1, backgroundColor: Scrim, justifyContent: "flex-end" },
     menuSheet: {
+      // Sheets keep a phone-sized column on tablets and desktop web.
+      width: "100%",
+      maxWidth: 560,
+      alignSelf: "center",
       backgroundColor: c.surface,
       borderTopLeftRadius: 28,
       borderTopRightRadius: 28,
@@ -1014,94 +906,73 @@ const createStyles = (c: AppPalette, scheme: "light" | "dark") =>
     menuVersion: { fontSize: 11, color: c.textMuted, textAlign: "center", marginTop: 8, marginBottom: 4 },
     menuItemText: { fontSize: 12, color: c.textMuted, marginTop: 2 },
     menuDivider: { height: 1, backgroundColor: c.border, marginVertical: 5 },
-    hero: {
-      backgroundColor: c.primaryStrong,
-      // In dark mode the brand surface sits close to the page background; outline it.
-      borderWidth: scheme === "dark" ? 1 : 0,
-      borderColor: c.notificationBorder,
-      borderRadius: 24,
-      overflow: "hidden",
-      padding: 16,
-      gap: 12,
-      ...CardShadow,
-    },
-    heroTop: { flexDirection: "row", alignItems: "center", gap: 10 },
-    heroIcon: {
-      width: 38,
-      height: 38,
-      borderRadius: 16,
-      backgroundColor: c.heroTint,
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    heroEyebrow: { color: c.heroMuted, fontSize: 12, fontWeight: "700", letterSpacing: 0.5, textTransform: "uppercase" },
-    heroTitle: {
-      color: c.white,
-      fontSize: 16,
-      fontWeight: "800",
-      marginTop: 1,
-    },
-    heroAdjust: { width: 44, height: 44, borderRadius: 12, backgroundColor: "rgba(255,255,255,.14)", alignItems: "center", justifyContent: "center" },
+    heroAdjust: { width: 44, height: 44, borderRadius: 12, backgroundColor: c.surfaceSoft, alignItems: "center", justifyContent: "center" },
     heroProgress: { flexDirection: "row", alignItems: "center", gap: 10 },
     heroNumber: {
       fontSize: 27,
       fontWeight: "800",
       letterSpacing: -1,
-      color: c.white,
+      color: c.text,
     },
-    heroTotal: { fontSize: 15, fontWeight: "700", color: c.heroMuted },
-    heroCaption: { ...Type.label, color: c.onHero, fontWeight: "700" },
+    heroTotal: { fontSize: 15, fontWeight: "700", color: c.textMuted },
+    heroCaption: { ...Type.label, color: c.text, fontWeight: "700" },
     heroNotice: { gap: 8 },
-    heroInlineAction: { alignSelf: "flex-start", minHeight: 44, justifyContent: "center", paddingHorizontal: 16, borderRadius: 12, backgroundColor: c.white },
-    heroInlineActionText: { ...Type.label, fontWeight: "800", color: c.primaryStrong },
-    heroHint: { ...Type.caption, color: c.heroMuted, marginTop: 2 },
+    heroInlineAction: { alignSelf: "flex-start", minHeight: 44, justifyContent: "center", paddingHorizontal: 16, borderRadius: 12, backgroundColor: c.primarySoft },
+    heroInlineActionText: { ...Type.label, fontWeight: "800", color: c.link },
+    heroHint: { ...Type.caption, color: c.textMuted, marginTop: 2 },
+    heroPlanned: { ...Type.label, color: c.textMuted },
+    heroPlannedName: { color: c.text, fontWeight: "700" },
+    heroButtonBusy: { opacity: 0.6 },
     track: {
       height: 5,
       borderRadius: 8,
-      backgroundColor: "rgba(255,255,255,.14)",
+      backgroundColor: c.surfaceSoft,
       overflow: "hidden",
     },
-    fill: { height: "100%", borderRadius: 8, backgroundColor: c.secondary },
+    fill: { height: "100%", borderRadius: 8, backgroundColor: c.primary },
     week: { flexDirection: "row", justifyContent: "space-between", gap: 4 },
     day: {
       flex: 1,
       minWidth: 0,
-      height: 46,
+      // Grows with enlarged system text instead of clipping the second line.
+      minHeight: 46,
+      paddingVertical: 4,
       borderRadius: 12,
-      backgroundColor: "rgba(255,255,255,.08)",
+      backgroundColor: c.surfaceSoft,
       alignItems: "center",
       justifyContent: "center",
       gap: 1,
     },
     dayDone: { backgroundColor: c.secondary },
-    dayToday: { borderWidth: 2, borderColor: c.white },
-    dayPlanned: { borderWidth: 1, borderColor: "rgba(255,255,255,.62)" },
-    dayText: { fontSize: 12, color: c.heroMuted, fontWeight: "700" },
+    dayToday: { borderWidth: 2, borderColor: c.link },
+    dayPlanned: { borderWidth: 1, borderColor: c.fieldBorder },
+    dayMissed: { borderStyle: "dashed", borderColor: c.warning },
+    dayStatusMissed: { color: c.warning },
+    dayText: { fontSize: 12, color: c.textMuted, fontWeight: "700" },
     dayTextDone: { color: c.primaryStrong },
-    dayStatus: { minHeight: 16, fontSize: 12, color: c.heroMuted, fontWeight: "700" },
+    dayStatus: { minHeight: 16, fontSize: 12, color: c.textMuted, fontWeight: "700" },
     dayStatusDone: { color: c.primaryStrong },
-    dayStatusPlanned: { color: c.white },
-    fitnessActions: { flexDirection: "row", alignItems: "center", gap: 9 },
+    dayStatusPlanned: { color: c.link },
+    fitnessActions: { gap: 12, marginTop: "auto" },
     heroButton: {
-      height: 44,
+      minHeight: 48,
       borderRadius: 16,
-      backgroundColor: c.white,
+      backgroundColor: c.primary,
       alignItems: "center",
       justifyContent: "center",
       flexDirection: "row",
       gap: 6,
       paddingHorizontal: 15,
     },
-    heroButtonText: { ...Type.label, fontWeight: "800", color: c.primaryStrong },
+    heroButtonText: { ...Type.label, fontWeight: "800", color: c.onPrimary },
     fitnessLink: {
-      flex: 1,
       minHeight: 44,
       flexDirection: "row",
       alignItems: "center",
-      justifyContent: "flex-end",
+      justifyContent: "center",
       gap: 5,
     },
-    fitnessLinkText: { ...Type.label, fontWeight: "700", color: c.heroMuted },
+    fitnessLinkText: { ...Type.label, fontWeight: "700", color: c.link },
     sectionHeading: {
       flexDirection: "row",
       alignItems: "flex-end",
@@ -1188,72 +1059,14 @@ const createStyles = (c: AppPalette, scheme: "light" | "dark") =>
     },
     todayFill: { height: "100%", borderRadius: 4, backgroundColor: c.success },
     todayNext: { fontSize: 12, color: c.textMuted },
-    communityCard: {
-      backgroundColor: c.surface,
-      borderRadius: 24,
-      borderWidth: 1,
-      borderColor: c.border,
-      padding: 15,
-      gap: 12,
-    },
-    communityTop: { flexDirection: "row", alignItems: "center", gap: 11 },
-    communityInvite: { backgroundColor: c.primaryStrong, borderWidth: 0, overflow: "hidden", minHeight: 112, justifyContent: "center" },
-    inviteCopy: { maxWidth: "62%" },
-    inviteTitle: { color: c.onHero },
-    inviteText: { color: c.heroMuted },
-    groupIcon: {
-      width: 44,
-      height: 44,
-      borderRadius: 16,
-      backgroundColor: c.primarySoft,
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    groupOptions: {
-      borderTopWidth: 1,
-      borderTopColor: c.border,
-      paddingTop: 10,
-      gap: 4,
-    },
-    groupOption: {
-      paddingHorizontal: 10,
-      paddingVertical: 10,
-      borderRadius: 12,
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 8,
-    },
-    groupOptionSelected: { backgroundColor: c.surfaceSoft },
-    groupOptionText: {
-      color: c.text,
-      fontWeight: "700",
-      fontSize: 13,
-      flex: 1,
-    },
-    groupOptionCount: { color: c.link, fontWeight: "800", fontSize: 12 },
-    communityAction: {
-      borderTopWidth: 1,
-      borderTopColor: c.border,
-      paddingTop: 13,
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
-    },
-    communityActionText: { fontSize: 12, fontWeight: "800", color: c.link },
-    socialUpdates: {
-      backgroundColor: c.notificationBackground,
-      borderWidth: 1, borderColor: c.notificationBorder,
-      borderRadius: 16,
-      padding: 13,
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 9,
-    },
-    socialUpdatesText: { ...Type.label, color: c.notificationText, fontWeight: "700", flex: 1 },
-    disclaimer: { ...Type.caption, textAlign: "center", color: c.textMuted, paddingHorizontal: 12 },
-    inlineRetry: { minHeight: 44, justifyContent: "center", paddingHorizontal: 8 },
+    todayNextError: { color: c.danger },
+    todayTitleLate: { color: c.warning },
+    activitiesNotice: { gap: 8, paddingVertical: 12 },
     activitiesOverlay: { flex: 1, backgroundColor: Scrim, justifyContent: "flex-end" },
     activitiesSheet: {
+      width: "100%",
+      maxWidth: 560,
+      alignSelf: "center",
       maxHeight: "82%",
       backgroundColor: c.surface,
       borderTopLeftRadius: 28,

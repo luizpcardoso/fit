@@ -1,3 +1,4 @@
+import { HealthIllustration } from '@/components/health-illustration';
 import { RetroactiveHealthModal } from '@/components/retroactive-health-modal';
 import { SceneThumb } from '@/components/scene';
 import { formatWeekdays } from '@/components/weekday-picker';
@@ -39,7 +40,7 @@ function HealthRoutineView({ kind }: { kind: HealthKind }) {
   const [filter, setFilter] = useState<'all' | 'active' | 'paused'>('all');
   const [form, setForm] = useState<{ item: HealthItem | null } | null>(null);
   const [retroactive, setRetroactive] = useState(false);
-  const [register, setRegister] = useState<{ id?: string } | null>(null);
+  const [register, setRegister] = useState<{ id?: string; section?: 'routine' | 'occasional' } | null>(null);
   const now = useHealthClock();
   const date = localDay(now);
   const routine = useHealthRoutine(kind, date);
@@ -85,6 +86,7 @@ function HealthRoutineView({ kind }: { kind: HealthKind }) {
         </View>
 
         : null}
+        {routine.occasional?.count ? <Text style={s.muted}>{routine.occasional.count} tomadas eventuais hoje · fora da rotina</Text> : null}
         {compact ? <Pressable accessibilityRole="button" onPress={() => setRegister({})} style={s.filter}><Text style={s.link}>Registrar doses de hoje{routine.daily ? ` · ${routine.daily.consumed}/${routine.daily.total}` : ''}{late ? ` · ${late} ${late === 1 ? 'atrasada' : 'atrasadas'}` : ''}</Text></Pressable> : null}
         <Pressable accessibilityRole="button" onPress={()=>setRetroactive(true)} style={s.filter}><Text style={s.link}>Registrar em data anterior</Text></Pressable>
         <View style={s.listHeader}>
@@ -119,17 +121,19 @@ function HealthRoutineView({ kind }: { kind: HealthKind }) {
         const entries = routine.daily?.items.filter(entry => entry.item.id === item.id) ?? [];
         const taken = entries.filter(entry => entry.consumedAt).length;
         // Weekday-limited items have no doses outside their days: no counter and nothing to register today.
-        const offToday = item.active && Boolean(routine.daily) && !entries.length;
+        const eventual = item.usageMode === 'occasional';
+        const eventualTaken = routine.occasional?.intakes.filter(intake => intake.itemId === item.id).length ?? 0;
+        const offToday = !eventual && item.active && Boolean(routine.daily) && !entries.length;
         return <View style={[s.itemRow, CardShadow]}>
-          <View style={[s.itemIcon, !item.active && s.pausedIcon]}><MaterialCommunityIcons name={medication ? 'pill' : 'bottle-tonic-outline'} size={20} color={c.link} /></View>
+          <HealthIllustration item={item} kind={kind}/>
           <Pressable accessibilityRole="button" accessibilityLabel={`Editar ${item.name}`} style={s.itemBody} onPress={() => setForm({ item })}>
             <Text numberOfLines={1} style={s.itemName}>{item.name}</Text>
             <Text numberOfLines={1} style={s.itemDose}>{healthDose(item)}</Text>
-            <Text numberOfLines={1} style={s.itemTimes}>{[item.times.length ? [...item.times].sort().join(' · ') : `${item.dailyFrequency} tomada(s) · sem horário`, ...(item.weekdays ? [formatWeekdays(item.weekdays)] : [])].join(' · ')}</Text>
-            <Text style={offToday ? s.offToday : item.active ? s.itemStatus : s.paused}>{offToday ? 'Não previsto para hoje' : item.active ? `${taken}/${item.dailyFrequency} ${item.dailyFrequency === 1 ? 'dose' : 'doses'} hoje` : 'Pausado · toque para editar'}</Text>
+            <Text numberOfLines={1} style={s.itemTimes}>{eventual ? 'Eventual · registrar quando usar' : [item.times.length ? [...item.times].sort().join(' · ') : `${item.dailyFrequency} tomada(s) · sem horário`, ...(item.weekdays ? [formatWeekdays(item.weekdays)] : [])].join(' · ')}</Text>
+            <Text style={offToday ? s.offToday : item.active ? s.itemStatus : s.paused}>{!item.active ? 'Pausado · toque para editar' : eventual ? `${eventualTaken} tomadas eventuais hoje` : offToday ? 'Não previsto para hoje' : item.active ? `${taken}/${item.dailyFrequency} ${item.dailyFrequency === 1 ? 'dose' : 'doses'} hoje` : 'Pausado · toque para editar'}</Text>
           </Pressable>
           <View style={s.itemActions}>
-            {item.active && !offToday ? <Pressable accessibilityRole="button" accessibilityLabel={`Registrar tomada de ${item.name}`} style={s.smallPlus} onPress={() => setRegister({ id: item.id })}><MaterialCommunityIcons name="plus" size={21} color={c.onPrimary} /></Pressable> : null}
+            {item.active && !offToday ? <Pressable accessibilityRole="button" accessibilityLabel={`Registrar tomada de ${item.name}`} style={s.smallPlus} onPress={() => setRegister({ id: item.id, section: eventual ? 'occasional' : 'routine' })}><MaterialCommunityIcons name="plus" size={21} color={c.onPrimary} /></Pressable> : null}
           </View>
         </View>;
       }}
@@ -144,7 +148,7 @@ function HealthRoutineView({ kind }: { kind: HealthKind }) {
       await refresh();
     }} /> : null}
     {retroactive ? <RetroactiveHealthModal kind={kind} onClose={()=>setRetroactive(false)} onUpdated={refresh}/> : null}
-    {register ? <HealthTodayModal key={`${kind}:${date}`} kind={kind} daily={routine.daily} date={date} now={now} loading={routine.loading} error={routine.error} onlyItemId={register.id} onClose={() => setRegister(null)} onUpdated={routine.refresh} /> : null}
+    {register ? <HealthTodayModal key={`${kind}:${date}`} kind={kind} daily={routine.daily} date={date} now={now} loading={routine.loading} error={routine.error} onlyItemId={register.id} initialSection={register.section} onClose={() => setRegister(null)} onUpdated={routine.refresh} /> : null}
   </SafeAreaView>;
 }
 

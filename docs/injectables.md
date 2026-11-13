@@ -46,3 +46,7 @@ Injetáveis e aplicações são privados e nunca aparecem em grupos.
 
 A meia-vida pode ser omitida ou removida do cadastro. Sem esse dado, aplicações continuam disponíveis e a estimativa não é calculada. Quando informada, a curva de quantidade remanescente usa pontos a cada 12 horas nos últimos 30 dias. Trata-se de decaimento matemático das doses registradas, não de concentração sanguínea medida.
 
+
+## Imagens dos cadastros
+
+A galeria horizontal usa cards uniformes compartilhados com medicamentos e suplementos. Oferece seringa, ampola, vial genérico e vials com os rótulos Reta, Tirze, Sema, Dura, Enan, Testo, prop e PEP, sem volume ou dosagem nas imagens. A escolha é visual e não altera dose, agenda ou estimativas. O campo opcional `illustration` é validado pelo contrato; null mantém a imagem padrão. Edições de clientes antigos que omitem o campo preservam a escolha existente. Migration `050-injectable-illustration.ts` acrescenta a coluna nullable, sem alterar cadastros anteriores. A imagem aparece na lista, nas aplicações de hoje e na rotina da Home, inclusive após concluir. Gerar os vetores e WebP com `node scripts/generate-injectable-illustrations.mjs`.

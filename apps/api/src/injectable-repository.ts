@@ -12,6 +12,7 @@ import type {
 } from "@fit/contracts";
 
 type InjectableRow = {
+  illustration: Injectable["illustration"];
   id: string;
   name: string;
   dose: string;
@@ -34,7 +35,7 @@ type ApplicationRow = {
   applied_at: Date;
 };
 const itemColumns =
-  "id,name,dose,unit,custom_unit,weekdays_json,half_life_days,notes,active,created_at,updated_at";
+  "id,illustration,name,dose,unit,custom_unit,weekdays_json,half_life_days,notes,active,created_at,updated_at";
 const applicationColumns =
   "id,injectable_id,application_date,dose,unit,custom_unit,applied_at";
 const dateOnly = (value: string | Date) =>
@@ -54,6 +55,7 @@ const parseWeekdays = (value: string) => {
 };
 const mapItem = (row: InjectableRow): Injectable => ({
   id: row.id,
+  illustration: row.illustration ?? null,
   name: row.name,
   dose: Number(row.dose),
   unit: row.unit,
@@ -118,11 +120,12 @@ export class InjectableRepository implements InjectableStore {
   async create(userId: string, input: InjectableInput) {
     const id = randomUUID();
     await this.db.query(
-      "INSERT INTO injectables (id,user_id,name,dose,unit,custom_unit,weekdays_json,half_life_days,notes,active,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,1,UTC_TIMESTAMP(),UTC_TIMESTAMP())",
+      "INSERT INTO injectables (id,user_id,illustration,name,dose,unit,custom_unit,weekdays_json,half_life_days,notes,active,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,1,UTC_TIMESTAMP(),UTC_TIMESTAMP())",
       {
         replacements: [
           id,
           userId,
+          input.illustration ?? null,
           input.name,
           input.dose,
           input.unit,
@@ -145,9 +148,11 @@ export class InjectableRepository implements InjectableStore {
   }
   async update(userId: string, id: string, input: UpdateInjectableInput) {
     const [, count] = await this.db.query(
-      "UPDATE injectables SET name=?,dose=?,unit=?,custom_unit=?,weekdays_json=?,half_life_days=?,notes=?,active=?,updated_at=UTC_TIMESTAMP() WHERE id=? AND user_id=?",
+      "UPDATE injectables SET illustration=CASE WHEN ? THEN ? ELSE illustration END,name=?,dose=?,unit=?,custom_unit=?,weekdays_json=?,half_life_days=?,notes=?,active=?,updated_at=UTC_TIMESTAMP() WHERE id=? AND user_id=?",
       {
         replacements: [
+          input.illustration !== undefined,
+          input.illustration ?? null,
           input.name,
           input.dose,
           input.unit,
@@ -162,7 +167,8 @@ export class InjectableRepository implements InjectableStore {
         type: QueryTypes.UPDATE,
       },
     );
-    return Number(count) > 0;
+    // An identical edit can report zero changed rows; ownership still determines success.
+    return Number(count) > 0 || Boolean(await this.owned(userId, id));
   }
   async delete(userId: string, id: string) {
     return this.db.transaction(async (transaction) => {

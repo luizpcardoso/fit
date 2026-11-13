@@ -16,9 +16,9 @@ test('dock flutuante mantém conteúdo acima, troca destinos e abre Registrar e 
   });
   await page.addInitScript(account => { localStorage.setItem('fit.auth.tokens', JSON.stringify(account)); localStorage.setItem('fit.appearance.theme', 'dark'); }, account);
   await page.goto('/');
-  const disclaimer = page.getByText('Apenas atividades autorizadas por você e pelo grupo aparecem no feed.', { exact: true });
-  await expect(disclaimer).toBeAttached();
-  const tabs = page.getByRole('tablist');
+  const disclaimer = page.getByTestId('home-community').getByRole('button', { name: 'Abrir meus grupos', exact: true });
+  await expect(disclaimer).toBeAttached({ timeout: 60000 });
+  const tabs = page.getByRole('tablist', { name: 'Navegação principal' });
   await expect(tabs.getByRole('tab')).toHaveCount(4);
   const dock = tabs.locator('../../..');
   for (const width of [339, 320, 390]) {
@@ -40,12 +40,12 @@ test('dock flutuante mantém conteúdo acima, troca destinos e abre Registrar e 
     await expect(page.getByRole('tab', { name, exact: true })).toHaveAttribute('aria-selected', 'true');
   }
   await page.getByRole('tab', { name: 'Nutrição', exact: true }).click();
-  await page.getByRole('button', { name: 'Registrar: treino, refeição, cardio e mais', exact: true }).click();
-  await expect(page.getByText('O que deseja registrar?', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Ações rápidas: treino, refeição, cardio e mais', exact: true }).click();
+  await expect(page.getByText('Ações rápidas', { exact: true })).toBeVisible();
   await page.screenshot({ path: 'artifacts/ux-review/navigation-register-dark-390.png' });
   await page.getByRole('button', { name: 'Fechar', exact: true }).last().click();
   await page.getByRole('tab', { name: 'Início', exact: true }).click();
-  await page.getByRole('button', { name: 'Social', exact: true }).click();
+  await page.getByRole('button', { name: 'Comunidade', exact: true }).click();
   await expect(page).toHaveURL(/\/groups$/);
   await expect(page.getByRole('tablist')).toHaveCount(0);
   await page.getByRole('button', { name: 'Voltar para Início', exact: true }).click();

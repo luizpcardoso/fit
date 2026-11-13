@@ -2,7 +2,7 @@ import type { WorkoutRun, SaveWorkoutRunInput } from '@fit/contracts';
 import type { AnalyticsBatch, AnalyticsDashboard } from '@fit/contracts';
 import type { NutritionGoalInput, Page, HealthPageQuery, PageQuery } from '@fit/contracts';
 import type { ApiError, AuthResponse, CatalogExercise, CompleteWorkoutInput, CreateWorkoutPlanInput, LoginInput, PublicUser, RegisterInput, SuggestedWorkoutPlan, Supplement, SupplementInput, SupplementToday, UpdateProfileInput, UpdateSupplementInput, UpdateWorkoutPlanInput, UpdateWorkoutSessionInput, WorkoutGoalInput, WorkoutGoalSummary, WorkoutPlan, WorkoutSession } from '@fit/contracts';
-import type { HealthKind, HealthItem, HealthItemInput, HealthToday, UpdateHealthItemInput, MedicationToday } from '@fit/contracts';
+import type { HealthOccasionalDay, OccasionalIntakeInput, HealthKind, HealthItem, HealthItemInput, HealthToday, UpdateHealthItemInput, MedicationToday } from '@fit/contracts';
 import type { BodyMeasurement, BodyMeasurementInput, DailyExpenditure, DailyExpenditureInput, DailyNutritionSummary, FavoriteMeal, Food, FoodInput, Meal, MealSyncEntry, MealSyncResult, MealCategory, MealInput, UpdateFoodInput } from '@fit/contracts';
 import type { CardioSession, CardioSessionInput } from '@fit/contracts';
 import type { HomeShortcuts, UpdateUserPreferences, UserPreferences } from '@fit/contracts';
@@ -124,7 +124,8 @@ export function createApiClient(options: ClientOptions) {
     },
     reactToGroupPost:(groupId:string,postId:string,reaction:GroupReaction|null)=>request<void>(`/groups/${groupId}/posts/${postId}/reaction`,{method:'PUT',body:JSON.stringify({reaction})}),
     listGroupComments:(groupId:string,postId:string)=>request<GroupComment[]>(`/groups/${groupId}/posts/${postId}/comments`),
-    createGroupComment:(groupId:string,postId:string,text:string)=>request<{id:string}>(`/groups/${groupId}/posts/${postId}/comments`,{method:'POST',body:JSON.stringify({text})}),
+    createGroupComment:(groupId:string,postId:string,text:string,parentCommentId?:string)=>request<{id:string}>(`/groups/${groupId}/posts/${postId}/comments`,{method:'POST',body:JSON.stringify({text,parentCommentId})}),
+    reactToGroupComment:(groupId:string,commentId:string,reaction:GroupReaction|null)=>request<void>(`/groups/${groupId}/comments/${commentId}/reaction`,{method:'PUT',body:JSON.stringify({reaction})}),
     updateGroupComment:(groupId:string,commentId:string,text:string)=>request<void>(`/groups/${groupId}/comments/${commentId}`,{method:'PATCH',body:JSON.stringify({text})}),
     deleteGroupComment:(groupId:string,commentId:string)=>request<void>(`/groups/${groupId}/comments/${commentId}`,{method:'DELETE'}),
     markGroupSeen:(groupId:string,postId?:string)=>request<void>(`/groups/${groupId}/seen`,{method:'POST',...(postId?{body:JSON.stringify({postId})}:{})}),
@@ -195,6 +196,9 @@ export function createApiClient(options: ClientOptions) {
       const daily = await request<SupplementToday>(`/supplements/today?date=${encodeURIComponent(date)}`);
       return { ...daily, items: daily.items.map(({ supplement, ...entry }) => ({ ...entry, item: supplement })) };
     },
+    getHealthOccasionalDay: (kind: HealthKind, date: string) => request<HealthOccasionalDay>(`${kind === 'medication' ? '/medications' : '/supplements'}/occasional?date=${encodeURIComponent(date)}`),
+    createHealthOccasionalIntake: (kind: HealthKind, id: string, input: OccasionalIntakeInput) => request<void>(`${kind === 'medication' ? '/medications' : '/supplements'}/${id}/occasional-intakes`, { method: 'POST', body: JSON.stringify(input) }),
+    undoHealthOccasionalIntake: (kind: HealthKind, id: string, intakeId: string) => request<void>(`${kind === 'medication' ? '/medications' : '/supplements'}/${id}/occasional-intakes/${intakeId}`, { method: 'DELETE' }),
     setHealthIntake: (kind: HealthKind, id: string, date: string, slot: number, consumed: boolean) => request<void>(`${kind === 'medication' ? '/medications' : '/supplements'}/${id}/intakes`, { method: consumed ? 'POST' : 'DELETE', body: JSON.stringify({ date, slot }) }),
     setHealthDismissal: (kind: HealthKind, id: string, date: string, slot: number, dismissed: boolean) => request<void>(`${kind === 'medication' ? '/medications' : '/supplements'}/${id}/dismissals`, { method: dismissed ? 'POST' : 'DELETE', body: JSON.stringify({ date, slot }) }),
     register: (input: RegisterInput) => request<AuthResponse>('/auth/register', { method: 'POST', body: JSON.stringify(input) }),

@@ -1,3 +1,4 @@
+import { RELEASE_VERSION } from '@/constants/release-version';
 import { WorkoutNotificationPreference } from '@/components/workout-notification-preference';
 import {RoutineReminderSettings} from '@/components/routine-reminder-settings';
 import MaterialCommunityIcons from '@/components/icon';
@@ -16,7 +17,7 @@ import Constants from 'expo-constants';
 export default function Settings() {
   const { colors: c } = useAppTheme();
   const s = styles(c);
-  const { showEnergyBalance, showShortcuts } = useHomePreferences();
+  const { showEnergyBalance } = useHomePreferences();
   const [error, setError] = useState('');
   const toggleEnergy = async (value: boolean) => {
     setError('');
@@ -44,14 +45,6 @@ export default function Settings() {
             <Switch accessibilityLabel="Mostrar balanço calórico no Início" accessibilityLabelledBy="energy-toggle-label" value={showEnergyBalance} onValueChange={value => void toggleEnergy(value)}
               trackColor={{ false: c.controlTrackOff, true: c.primary }} thumbColor={c.controlThumb} ios_backgroundColor={c.controlTrackOff} />
           </View>
-          <View style={s.row}>
-            <View style={s.copy}>
-              <Text nativeID="shortcuts-toggle-label" style={s.label}>Mostrar atalhos</Text>
-              <Text style={s.detail}>Exibe “Meus atalhos” no Início. As mesmas áreas continuam na barra de abas.</Text>
-            </View>
-            <Switch accessibilityLabel="Mostrar atalhos no Início" accessibilityLabelledBy="shortcuts-toggle-label" value={showShortcuts} onValueChange={value => void setHomePreference('showShortcuts', value).catch(() => setError('Não foi possível salvar esta preferência. Tente novamente.'))}
-              trackColor={{ false: c.controlTrackOff, true: c.primary }} thumbColor={c.controlThumb} ios_backgroundColor={c.controlTrackOff} />
-          </View>
           <Text style={s.detail}>Preferências salvas neste aparelho.</Text>
           {error ? <Text accessibilityRole="alert" style={s.error}>{error}</Text> : null}
         </View>
@@ -73,7 +66,7 @@ export default function Settings() {
           <View style={s.row}>
             <MaterialCommunityIcons name="information-outline" size={22} color={c.link}/>
             <View style={s.copy}>
-              <Text style={s.label}>Versão {String(Constants.expoConfig?.extra?.releaseName??Constants.expoConfig?.version??'')}</Text>
+              <Text style={s.label}>Versão {RELEASE_VERSION}</Text>
               <Text selectable style={s.detail}>Versão técnica {Constants.expoConfig?.version??'—'} · build {Constants.nativeBuildVersion??Constants.expoConfig?.android?.versionCode??'—'}</Text>
             </View>
           </View>

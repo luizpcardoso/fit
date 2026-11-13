@@ -46,8 +46,18 @@ test('MySQL: dias da semana, doses sem horário, dispensas do dia e preferência
     assert.equal((await app.inject({ method: 'PATCH', url: `/medications/${id}`, headers: owner, payload: { weekdays: null, times: ['08:00', '20:00'], remind: true } })).statusCode, 204);
     assert.equal((await today(tuesday)).total, 2);
     // Injectable dismissal.
-    const injectable = await app.inject({ method: 'POST', url: '/injectables', headers: owner, payload: { name: 'Injetável teste', dose: 1, unit: 'mg', weekdays: [1] } });
+    const injectable = await app.inject({ method: 'POST', url: '/injectables', headers: owner, payload: { name: 'Injetável teste', illustration: 'vial-reta', dose: 1, unit: 'mg', weekdays: [1] } });
     assert.equal(injectable.statusCode, 201); const injectableId = injectable.json().id;
+    const readInjectable = async () => (await app.inject({ url: '/injectables', headers: owner })).json().find((item: { id: string }) => item.id === injectableId);
+    assert.equal((await readInjectable()).illustration, 'vial-reta');
+    const edited = { name: 'Injetável teste', dose: 1, unit: 'mg', weekdays: [1], active: true };
+    assert.equal((await app.inject({ method: 'PUT', url: `/injectables/${injectableId}`, headers: owner, payload: edited })).statusCode, 204);
+    assert.equal((await readInjectable()).illustration, 'vial-reta', 'Clientes antigos preservam a imagem ao editar');
+    assert.equal((await app.inject({ method: 'PUT', url: `/injectables/${injectableId}`, headers: other, payload: { ...edited, illustration: 'vial-pep' } })).statusCode, 404);
+    assert.equal((await app.inject({ method: 'PUT', url: `/injectables/${injectableId}`, headers: owner, payload: { ...edited, illustration: 'inválida' } })).statusCode, 400);
+    assert.equal((await app.inject({ method: 'PUT', url: `/injectables/${injectableId}`, headers: owner, payload: { ...edited, illustration: 'vial-pep' } })).statusCode, 204);
+    assert.equal((await readInjectable()).illustration, 'vial-pep');
+
     assert.equal((await app.inject({ method: 'POST', url: `/injectables/${injectableId}/dismissals`, headers: owner, payload: { date: tuesday } })).statusCode, 404);
     assert.equal((await app.inject({ method: 'POST', url: `/injectables/${injectableId}/dismissals`, headers: other, payload: { date: monday } })).statusCode, 404);
     assert.equal((await app.inject({ method: 'POST', url: `/injectables/${injectableId}/dismissals`, headers: owner, payload: { date: monday } })).statusCode, 204);

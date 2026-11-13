@@ -1,3 +1,4 @@
+import { ImageChoiceCard } from '@/components/image-choice-card';
 import { WorkoutPlanCover } from '@/components/workout-plan-cover';
 import { FormStickyFooter } from '@/components/form-sticky-footer';
 import { FormScrollView as ScrollView } from '@/components/form-scroll-view';
@@ -307,7 +308,7 @@ export default function WorkoutCreate() {
           <View style={styles.sectionHeading}><MaterialCommunityIcons name="clipboard-text-outline" size={21} color={c.link}/><Text accessibilityRole="header" style={styles.cardTitle}>Sobre a ficha</Text></View>
           <View style={styles.section}><Text style={styles.label}>Imagem da ficha</Text><Text style={styles.helper}>Escolha uma capa para identificar sua ficha.</Text>
             <PlainScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }} accessibilityRole="radiogroup" accessibilityLabel="Imagem da ficha">
-              {workoutCovers.map(cover => <Pressable key={cover.id} accessibilityRole="radio" accessibilityLabel={cover.name} aria-checked={coverId === cover.id} disabled={busy} onPress={() => setCoverId(cover.id)} style={{ width: 160, padding: 6, gap: 6, borderRadius: Radius.lg, borderWidth: 2, borderColor: coverId === cover.id ? c.primary : c.border }}><WorkoutPlanCover coverId={cover.id}/><Text style={styles.label}>{cover.name}</Text></Pressable>)}
+              {workoutCovers.map(cover => <ImageChoiceCard key={cover.id} label={cover.name} selected={coverId === cover.id} disabled={busy} onPress={() => setCoverId(cover.id)} width={160}><WorkoutPlanCover coverId={cover.id}/></ImageChoiceCard>)}
             </PlainScrollView>
           </View>
           <View style={styles.section}><Text style={styles.label}>Nome da ficha</Text><TextInput keyboardAppearance={scheme} placeholderTextColor={c.textMuted} accessibilityLabel="Nome da ficha" maxLength={80} value={name} onChangeText={(value) => { if (!saveLock.current) { setName(value); setError(''); } }} placeholder="Ex.: Hipertrofia 4x por semana" style={styles.input} /></View>

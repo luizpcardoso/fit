@@ -22,7 +22,7 @@ function useReduceMotion() {
   return reduce;
 }
 
-/** Destination in the pill: icon only at rest; the focused one grows into icon + label. */
+/** Destinations keep visible labels and stable widths; the active item changes color. */
 function DockItem({ label, icon, focused, reduceMotion, onPress, onLongPress }: { label: string; icon: { active: IconName; inactive: IconName }; focused: boolean; reduceMotion: boolean; onPress(): void; onLongPress(): void }) {
   const { colors: c } = useAppTheme(); const s = styles(c);
   const [progress] = useState(() => new Animated.Value(focused ? 1 : 0));
@@ -34,13 +34,13 @@ function DockItem({ label, icon, focused, reduceMotion, onPress, onLongPress }: 
   }, [focused, progress, reduceMotion]);
   const pressIn = () => Animated.timing(scale, { toValue: .92, duration: 85, useNativeDriver: true }).start();
   const pressOut = () => Animated.spring(scale, { toValue: 1, speed: 32, bounciness: 6, useNativeDriver: true }).start();
-  const flexGrow = progress.interpolate({ inputRange: [0, 1], outputRange: [1, 3] });
-  return <Animated.View style={[s.slot, { flexGrow }]}>
+  return <Animated.View style={[s.slot, { flexGrow: 1 }]}>
     <Pressable accessibilityRole="tab" aria-selected={focused} accessibilityLabel={label} onPress={onPress} onLongPress={onLongPress} onPressIn={pressIn} onPressOut={pressOut} android_ripple={{ color: 'transparent' }} style={s.touch}>
       <Animated.View style={[s.item, { transform: [{ scale }] }]}>
         <Animated.View pointerEvents="none" style={[s.indicator, { opacity: progress }]}/>
         <MaterialCommunityIcons name={focused ? icon.active : icon.inactive} size={focused ? 20 : 23} color={focused ? c.onPrimary : c.textMuted}/>
-        {focused ? <Animated.Text numberOfLines={1} aria-hidden style={[s.label, { opacity: progress }]}>{label}</Animated.Text> : null}
+        {/* The pill has a fixed height: cap enlarged system text and shrink before truncating. */}
+        <Animated.Text aria-hidden numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85} maxFontSizeMultiplier={1.15} style={[s.label, { color: focused ? c.onPrimary : c.textMuted }]}>{label}</Animated.Text>
       </Animated.View>
     </Pressable>
   </Animated.View>;
@@ -69,7 +69,7 @@ export function NavigationDock({ state, descriptors, emitter, navigateToTab, ins
     <View style={s.column}>
       <WorkoutMiniPlayer/>
       <View style={s.row}>
-        <View role="tablist" style={[s.pill, CardShadow]}>
+        <View role="tablist" accessibilityLabel="Navegação principal" style={[s.pill, CardShadow]}>
           {state.routes.map((route, index) => {
             const focused = index === state.index;
             const { options } = descriptors[route.key];
@@ -82,7 +82,7 @@ export function NavigationDock({ state, descriptors, emitter, navigateToTab, ins
             return <DockItem key={route.key} label={label} icon={icons[route.name]} focused={focused} reduceMotion={reduceMotion} onPress={onPress} onLongPress={onLongPress}/>;
           })}
         </View>
-        <Pressable accessibilityRole="button" accessibilityLabel="Registrar: treino, refeição, cardio e mais" aria-expanded={registerOpen} onPress={() => setRegisterOpen(true)} style={({ pressed }) => [s.fab, CardShadow, pressed && s.fabPressed]}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Ações rápidas: treino, refeição, cardio e mais" aria-expanded={registerOpen} onPress={() => setRegisterOpen(true)} style={({ pressed }) => [s.fab, CardShadow, pressed && s.fabPressed]}>
           <Animated.View style={{ transform: [{ rotate }] }}><MaterialCommunityIcons name="plus" size={28} color={c.onPrimary}/></Animated.View>
         </Pressable>
       </View>
@@ -98,7 +98,7 @@ const styles = (c: AppPalette) => StyleSheet.create({
   pill: { flex: 1, minWidth: 0, height: 60, flexDirection: 'row', alignItems: 'center', padding: 4, borderRadius: 30, borderWidth: 1, borderColor: c.border, backgroundColor: c.surface },
   slot: { flexBasis: 0, minWidth: 44, height: '100%' },
   touch: { flex: 1 },
-  item: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, paddingHorizontal: 8, borderRadius: 26, overflow: 'hidden' },
+  item: { flex: 1, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2, paddingHorizontal: 2, borderRadius: 26, overflow: 'hidden' },
   indicator: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, borderRadius: 26, backgroundColor: c.primary },
   label: { flexShrink: 1, fontSize: 12, fontWeight: '800', letterSpacing: -.1, color: c.onPrimary },
   fab: { width: 54, height: 54, borderRadius: 27, alignItems: 'center', justifyContent: 'center', backgroundColor: c.primary, borderWidth: 3, borderColor: c.primarySoft },

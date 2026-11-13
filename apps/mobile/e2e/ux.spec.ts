@@ -89,7 +89,7 @@ test('Home: conclusão direta e refeição atualizam dados persistidos',async({p
   expect((await(await request.get(apiURL+`/supplements/today?date=${date()}`,{headers})).json()).consumed).toBe(0);
   await page.getByRole('checkbox',{name:'Registrar tomada de Suplemento E2E'}).click();
   await expect(page.getByRole('checkbox',{name:'Desfazer tomada de Suplemento E2E'})).toBeChecked();
-  await page.getByLabel('Fechar rotina de hoje').click();await page.getByRole('button',{name:'Adicionar refeição',exact:true}).click();
+  await page.getByLabel('Fechar rotina de hoje').click();await page.getByRole('tab',{name:'Alimentação',exact:true}).click();await page.getByRole('button',{name:'Adicionar refeição',exact:true}).click();
   await expect(page.getByRole('radio',{name:'Adição rápida',exact:true})).toBeChecked();
   await expect(page.getByLabel('Proteínas (g)',{exact:true})).toHaveCount(0);
   await page.getByRole('checkbox',{name:/Informar macronutrientes/}).click();
@@ -144,7 +144,7 @@ test('Home e Alimentação: capturas claro e escuro',async({page,request})=>{
   await page.goto(route);await page.evaluate(t=>localStorage.setItem('fit.appearance.theme',t),theme);
   const probe = await request.get(apiURL+'/auth/me',{headers});
   if(probe.status()===429)await new Promise(resolve=>setTimeout(resolve,(Math.min(60,Number(probe.headers()['retry-after'])||60)+1)*1000));
-  await page.reload();await expect(page.getByRole('button',{name:route === '/' ? 'Adicionar refeição' : 'Registrar refeição',exact:true})).toBeVisible();
+  await page.reload();if(route==='/')await page.getByRole('tab',{name:'Alimentação',exact:true}).click();await expect(page.getByRole('button',{name:route === '/' ? 'Adicionar refeição' : 'Registrar refeição',exact:true})).toBeVisible();
   await page.screenshot({path:`artifacts/ux-review/${route==='/'?'home':'nutrition'}-${theme}-390.png`,fullPage:true,animations:'disabled'});
  }expect(errors).toEqual([]);
 });
@@ -157,17 +157,19 @@ test('Home: balanço estimado explica cálculo e registra somente calorias', asy
   await post(request,'/body-measurements',{date:date(),weightKg:80});
   await post(request,'/cardio-sessions',{date:date(),mode:'estimated',activity:'cycling',intensity:'moderate',durationMinutes:30,weightKg:80});
   await page.goto('/');
+  await page.getByRole('tab',{name:'Balanço',exact:true}).click();
   await expect(page.getByRole('heading',{name:'Balanço calórico',exact:true})).toBeVisible();
   await expect(page.getByText('2.340 kcal',{exact:true})).toBeVisible();
   await page.getByRole('button',{name:'Como calculamos o balanço calórico'}).click();
   await page.getByRole('button',{name:/Detalhes do cálculo/}).click();
   await expect(page.getByText(/45 minutos a 3,5 MET/)).toBeVisible();
   await page.getByLabel('Fechar informações').click();
-  await page.getByRole('button',{name:'Adicionar refeição',exact:true}).click();
+  await page.getByRole('tab',{name:'Alimentação',exact:true}).click();await page.getByRole('button',{name:'Adicionar refeição',exact:true}).click();
   await page.getByLabel('Nome da refeição',{exact:true}).fill('Refeição rápida');
   await page.getByLabel('Calorias (kcal)',{exact:true}).fill('500');
   await expect(page.getByLabel('Proteínas (g)',{exact:true})).toHaveCount(0);
   await page.getByRole('button',{name:'Salvar',exact:true}).click();
+  await page.getByRole('tab',{name:'Balanço',exact:true}).click();
   await expect(page.getByText('−1.840 kcal',{exact:true})).toBeVisible();
   await page.getByRole('heading',{name:'Balanço calórico',exact:true}).scrollIntoViewIfNeeded();
   await page.screenshot({path:'artifacts/ux-review/home-energy-dark-390.png',fullPage:true,animations:'disabled'});
@@ -183,6 +185,7 @@ test('Home: balanço estimado explica cálculo e registra somente calorias', asy
   await page.getByRole('button',{name:'Salvar',exact:true}).click();
   await expect(page.getByText('−1.900 kcal',{exact:true})).toBeVisible();
   await page.goto('/');
+  await page.getByRole('tab',{name:'Balanço',exact:true}).click();
   await expect(page.getByText('−1.900 kcal',{exact:true})).toBeVisible();
   await expect(page.getByText('2.400 kcal',{exact:true})).toBeVisible();
   const removed=await request.delete(apiURL+`/nutrition/expenditures/${date()}`,{headers});
@@ -300,7 +303,7 @@ test('Rotina de hoje: doses sem horário, dispensar e desfazer atualizam o conta
 });
 test('Refeição: categoria nomeia e horários personalizados persistem na conta',async({page,request})=>{
   const errors=await login(page,request);
-  await page.goto('/');await page.getByRole('button',{name:'Adicionar refeição',exact:true}).click();
+  await page.goto('/');await page.getByRole('tab',{name:'Alimentação',exact:true}).click();await page.getByRole('button',{name:'Adicionar refeição',exact:true}).click();
   await page.getByRole('button',{name:'Personalizar horários das categorias',exact:true}).click();
   await page.getByLabel('Horário de Café da manhã',{exact:true}).fill('0930');
   await page.getByRole('button',{name:'Salvar horários',exact:true}).click();
@@ -309,7 +312,7 @@ test('Refeição: categoria nomeia e horários personalizados persistem na conta
   await page.getByRole('radio',{name:'Café da manhã',exact:true}).click();
   await expect(page.getByLabel('Nome da refeição',{exact:true})).toHaveValue('Café da manhã');
   await expect(page.getByLabel('Horário exato (HH:MM)',{exact:true})).toHaveValue('09:30');
-  await page.reload();await page.getByRole('button',{name:'Adicionar refeição',exact:true}).click();
+  await page.reload();await page.getByRole('tab',{name:'Alimentação',exact:true}).click();await page.getByRole('button',{name:'Adicionar refeição',exact:true}).click();
   await expect(page.getByRole('radio',{name:'Café da manhã',exact:true})).toContainText('09:30');
   expect(errors).toEqual([]);
 });

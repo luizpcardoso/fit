@@ -40,6 +40,7 @@ import { groupErrorMessage } from "@/utils/groups";
 import {Image as CachedImage} from 'expo-image';
 import {groupPostFrameRatio,prepareMobilePhoto} from '@/utils/mobile-photo';
 import {GroupMediaImage} from '@/components/group-media-image';
+import {SocialAvatar} from '@/components/social-avatar';
 import { formatRelativeDay, localDate } from '@/utils/dates';
 
 const reactions: { key: GroupReaction; emoji: string; label: string }[] = [
@@ -358,21 +359,9 @@ export default function SocialFeedScreen({ groupId: id }: { groupId?: string }) 
           <View key={post.id} testID={`feed-post-${post.id}`} style={[s.post, CardShadow]}>
             {unified ? <Pressable accessibilityRole="button" accessibilityLabel={`Abrir grupo ${post.group.name}`} onPress={()=>router.push({pathname:'/group-detail',params:{id:post.groupId}})} style={s.groupRibbon}><MaterialCommunityIcons name="account-group" size={20} color={c.link}/><Text style={s.groupRibbonText}>{post.group.name}</Text><MaterialCommunityIcons name="lock-outline" size={14} color={c.textMuted}/><MaterialCommunityIcons name="chevron-right" size={18} color={c.link}/></Pressable> : null}
             <View style={s.postHeader}>
-              <View
-                style={[s.userAvatar, post.kind === "event" && s.eventAvatar]}
-              >
-                {post.author.avatarUrl && post.kind !== "event" ? <CachedImage source={{uri:post.author.avatarUrl}} style={{width:42,height:42,borderRadius:21}} contentFit="cover"/> : post.kind === "event" ? (
-                  <MaterialCommunityIcons
-                    name={eventIcons[post.eventType || ""] || "star-outline"}
-                    size={20}
-                    color={c.link}
-                  />
-                ) : (
-                  <Text style={s.userInitial}>
-                    {post.author.displayName.slice(0, 1).toUpperCase()}
-                  </Text>
-                )}
-              </View>
+              {post.kind === "event" && !post.author.avatarUrl ? <View style={[s.userAvatar, s.eventAvatar]}>
+                <MaterialCommunityIcons name={eventIcons[post.eventType || ""] || "star-outline"} size={20} color={c.link} />
+              </View> : <SocialAvatar name={post.author.displayName} url={post.author.avatarUrl} />}
               <View style={s.flex}>
                 <View style={s.authorRow}>
                   <Text numberOfLines={1} style={s.author}>
@@ -432,9 +421,15 @@ export default function SocialFeedScreen({ groupId: id }: { groupId?: string }) 
                   {post.reactionCounts.reduce((total, item) => total + item.count, 0) || ""}
                 </Text>
                 {post.commentCount ? (
-                  <Text style={s.commentTotal}>
-                    {post.commentCount} {post.commentCount === 1 ? "comentário" : "comentários"}
-                  </Text>
+                  <Pressable accessibilityRole="button"
+                    accessibilityLabel={`Abrir conversa (${post.commentCount} ${post.commentCount === 1 ? "comentário" : "comentários"})`}
+                    onPress={() => setCommentsPost(post)}
+                    style={s.commentCountButton}
+                  >
+                    <Text style={s.commentTotal}>
+                      {post.commentCount} {post.commentCount === 1 ? "comentário" : "comentários"}
+                    </Text>
+                  </Pressable>
                 ) : null}
               </View>
             )}
@@ -753,6 +748,12 @@ function CommentsModal({
   const { api, user } = useAuth();
   const [comments, setComments] = useState<GroupComment[]>([]);
   const [text, setText] = useState("");
+  const [replyTo, setReplyTo] = useState<GroupComment | null>(null);
+  const [reacting, setReacting] = useState<string | null>(null);
+  const reactionLock = useRef(false);
+  const orderedComments = comments.filter(comment=>!comment.parentCommentId).flatMap(comment=>[
+    comment,...comments.filter(reply=>reply.parentCommentId===comment.id),
+  ]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
   const [sending, setSending] = useState(false);
@@ -772,6 +773,19 @@ function CommentsModal({
       setLoading(false);
     }
   }, [api, groupId, visiblePost]);
+  const reactToComment = async (comment:GroupComment,reaction:GroupReaction) => {
+    if (reactionLock.current) return;
+    reactionLock.current=true;
+    setReacting(comment.id);
+    setSendError("");
+    try {
+      const selected=comment.reactionCounts?.some(item=>item.reaction===reaction && item.reactedByMe);
+      await api.reactToGroupComment(groupId,comment.id,selected?null:reaction);
+      await load();
+    } catch(failure) {
+      setSendError(groupErrorMessage(failure));
+    } finally {reactionLock.current=false;setReacting(null);}
+  };
   // The parent remounts this modal per post (key), so state starts clean for each one.
   useEffect(() => {
     if (!visiblePost) return;
@@ -784,12 +798,13 @@ function CommentsModal({
     return () => { active = false; };
   }, [api, groupId, visiblePost]);
   const send = async () => {
-    if (!visiblePost || !text.trim() || sending) return;
+    if (!visiblePost?.commentsEnabled || !text.trim() || sending) return;
     setSending(true);
     setSendError("");
     try {
-      await api.createGroupComment(groupId, visiblePost.id, text.trim());
+      await api.createGroupComment(groupId, visiblePost.id, text.trim(), replyTo?.id);
       setText("");
+      setReplyTo(null);
       await load();
       void onChanged();
     } catch (failure) {
@@ -824,7 +839,7 @@ function CommentsModal({
       animationType="slide"
       onRequestClose={onClose}
     >
-      <SafeAreaView style={s.modalSafe}><FormKeyboardAvoidingView style={{flex:1}}>
+      <SafeAreaView testID="social-comments" style={s.modalSafe}><FormKeyboardAvoidingView style={{flex:1}}>
         <View style={s.commentsHeader}>
           <Pressable accessibilityRole="button" accessibilityLabel="Fechar comentários" onPress={onClose} style={s.iconButton}>
             <MaterialCommunityIcons
@@ -838,7 +853,7 @@ function CommentsModal({
             <Text numberOfLines={1} style={s.meta}>Publicação de {visiblePost?.author.displayName}</Text>
           </View>
         </View>
-        <FlatList keyboardShouldPersistTaps="handled" data={comments} keyExtractor={comment=>comment.id} initialNumToRender={10} maxToRenderPerBatch={10} windowSize={5} contentContainerStyle={s.commentsList} ListHeaderComponent={<>
+        <FlatList keyboardShouldPersistTaps="handled" data={orderedComments} keyExtractor={comment=>comment.id} initialNumToRender={10} maxToRenderPerBatch={10} windowSize={5} contentContainerStyle={s.commentsList} ListHeaderComponent={<>
           {loading ? <ActivityIndicator accessibilityLabel="Carregando comentários" color={c.link} /> : null}
           {loadError ? <View style={s.error}>
             <Text accessibilityRole="alert" style={s.errorText}>{loadError}</Text>
@@ -848,12 +863,8 @@ function CommentsModal({
             <Text style={s.emptyText}>Seja a primeira pessoa a comentar.</Text>
           ) : null}
           </>} renderItem={({item:comment}) => (
-            <View key={comment.id} style={s.commentRow}>
-              <View style={s.smallAvatar}>
-                <Text style={s.smallInitial}>
-                  {comment.author.displayName.slice(0, 1).toUpperCase()}
-                </Text>
-              </View>
+            <View key={comment.id} testID={`social-comment-${comment.id}`} style={[s.commentRow, comment.parentCommentId && { marginLeft: 24 }]}>
+              <SocialAvatar name={comment.author.displayName} url={comment.author.avatarUrl} size={32} />
               <View style={s.commentBubble}>
                 <View style={s.commentTop}>
                   <View style={s.flex}>
@@ -892,12 +903,22 @@ function CommentsModal({
                 <Text style={[s.commentBody, comment.removed && s.removed]}>
                   {comment.text}
                 </Text>
+                {!comment.removed ? <>
+                  {!comment.parentCommentId && visiblePost?.commentsEnabled ? <Pressable accessibilityRole="button" accessibilityLabel={`Responder a ${comment.author.displayName}`} disabled={sending} onPress={()=>setReplyTo(comment)} style={{minHeight:44,justifyContent:'center'}}><Text style={s.link}>Responder</Text></Pressable> : null}
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.reactions}>
+                    {reactions.map(({key,emoji,label})=>{
+                      const count=comment.reactionCounts?.find(item=>item.reaction===key);
+                      return <Pressable key={key} accessibilityRole="button" accessibilityLabel={`Reagir ao comentário: ${label}${count?.count ? ` (${count.count})` : ''}`} aria-pressed={Boolean(count?.reactedByMe)} aria-disabled={reacting!==null} aria-busy={reacting===comment.id} disabled={reacting!==null} onPress={()=>void reactToComment(comment,key)} style={[s.reaction,count?.reactedByMe && s.reactionSelected]}><Text style={s.emoji}>{emoji}</Text>{count?.count ? <Text style={s.meta}>{count.count}</Text> : null}</Pressable>;
+                    })}
+                  </ScrollView>
+                </> : null}
               </View>
             </View>
           )}/>
         {notice ? <Text accessibilityLiveRegion="polite" style={s.commentNotice}>{notice}</Text> : null}
         {sendError ? <Text accessibilityRole="alert" style={[s.errorText, s.commentError]}>{sendError}</Text> : null}
-        <View style={s.commentComposer}>
+        {replyTo ? <View style={{paddingHorizontal:16,flexDirection:'row',alignItems:'center',justifyContent:'space-between'}}><Text style={[s.meta,{flex:1}]} numberOfLines={2}>Respondendo a {replyTo.author.displayName}: {replyTo.text}</Text><Pressable accessibilityRole="button" accessibilityLabel="Cancelar resposta" disabled={sending} onPress={()=>setReplyTo(null)} style={s.iconButton}><MaterialCommunityIcons name="close" size={20} color={c.text}/></Pressable></View> : null}
+        {visiblePost?.commentsEnabled ? <View style={s.commentComposer}>
           <TextInput
             value={text}
             onChangeText={setText}
@@ -905,7 +926,7 @@ function CommentsModal({
             multiline
             editable={!sending}
             accessibilityLabel="Escrever comentário"
-            placeholder="Escreva um comentário..."
+            placeholder={replyTo ? "Escreva uma resposta..." : "Escreva um comentário..."}
             placeholderTextColor={c.textMuted}
             style={s.commentInput}
           />
@@ -918,7 +939,7 @@ function CommentsModal({
           >
             {sending ? <ActivityIndicator color={c.white} size="small" /> : <MaterialCommunityIcons name="send" size={19} color={c.white} />}
           </Pressable>
-        </View>
+        </View> : <Text style={s.commentNotice}>Novos comentários estão desativados nesta publicação.</Text>}
       </FormKeyboardAvoidingView></SafeAreaView>
       <ReportContentSheet groupId={groupId} target={reportTarget} onClose={() => setReportTarget(null)} onSent={() => setNotice("Denúncia enviada. Obrigado por avisar.")} />
     </Modal>
@@ -1118,12 +1139,13 @@ const styles = (c: AppPalette) =>
       flexDirection: "row",
       justifyContent: "space-between",
       alignItems: "center",
-      height: 34,
+      height: 44,
       paddingHorizontal: 15,
       paddingTop: 8,
     },
     reactionTotal: { color: c.textMuted, fontSize: 12 },
     commentTotal: { color: c.textMuted, fontSize: 12 },
+    commentCountButton: { minHeight: 44, minWidth: 44, justifyContent: "center", alignItems: "flex-end" },
     postActions: {
       borderTopWidth: 1,
       borderTopColor: c.border,
@@ -1224,15 +1246,6 @@ const styles = (c: AppPalette) =>
     meta: { fontSize: 12, color: c.textMuted },
     commentsList: { padding: 16, gap: 13 },
     commentRow: { flexDirection: "row", gap: 9, alignItems: "flex-start" },
-    smallAvatar: {
-      width: 34,
-      height: 34,
-      borderRadius: 12,
-      backgroundColor: c.primarySoft,
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    smallInitial: { color: c.onPrimarySoft, fontWeight: "800" },
     commentBubble: {
       flex: 1,
       backgroundColor: c.surface,

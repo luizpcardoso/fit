@@ -34,3 +34,19 @@ Pausar um suplemento remove seus consumos das contagens futuras e do resumo atua
 `DELETE /supplements/:id` e `DELETE /medications/:id` excluem logicamente o cadastro do próprio usuário. A migration 031 adiciona `deleted_at`; tomadas anteriores continuam armazenadas, enquanto o cadastro excluído deixa de aparecer no resumo/programação diária e não pode ser reativado pelo endpoint de edição. Pausar continua sendo uma operação distinta e reversível.
 
 As telas usam `GET /supplements/page` e `/medications/page` com `page`, `pageSize` (padrão 5, máximo 50), `search` e `status=all|active|paused`. O app pede 20 por vez numa lista contínua com “Carregar mais”, sem paginação numerada nem rolagem interna. Tocar no card abre a edição; “Excluir” fica dentro da edição, com a mesma confirmação. O resumo do topo fala em doses (“3 doses pendentes · 2 atrasadas”). Os endpoints antigos continuam retornando arrays. Contagem e registros compartilham transação e a ordenação possui desempate por id.
+
+## Uso eventual e imagens
+
+Medicamentos e suplementos têm `usageMode` (`recurring` ou `occasional`) e `illustration` opcional (`tablet`, `capsule`, `bottle`, `drops`, `powder`, `shaker`; null usa a imagem padrão da categoria). Migration `049-health-occasional-intakes.ts` mantém cadastros anteriores como recorrentes; PATCH sem esses campos preserva seus valores. A galeria pronta não recebe fotos. As opções usam cards de largura fixa, legendas com espaço para duas linhas e rolagem horizontal, compartilhando o padrão com as imagens de treino e capas de fichas. Os vetores em `design/scenes/health-*.svg` e as miniaturas são gerados por `node scripts/generate-scenes.mjs --health-only`.
+
+Eventuais não possuem obrigação diária: são excluídos de `/today`, progresso, atrasos, dispensas e agenda de lembretes, mesmo quando um cliente envia horários. Na tela de tomadas, **Rotina** e **Eventuais** são opções separadas. A imagem escolhida aparece nos cadastros, tomadas e Rotina de hoje, sem ser substituída pela conclusão. O card da Home mostra a quantidade de tomadas eventuais como texto secundário, fora da fração de progresso.
+
+Endpoints equivalentes em `/supplements` e `/medications`:
+
+- `GET /medications/occasional?date=YYYY-MM-DD`: retorna `{date, items, intakes, count}`; itens ativos eventuais e cadastros com tomadas nessa data, inclusive pausados ou atualmente recorrentes. Cada tomada tem `{id, itemId, date, time}`.
+- `POST /medications/:id/occasional-intakes`: recebe `{operationId, date, time}` com UUID e horário local `HH:MM`. Exige item ativo eventual do proprietário e da categoria. Permite várias tomadas, inclusive no mesmo horário; repetir a mesma operação e dados é idempotente. Reutilizar a operação com outros dados é rejeitado.
+- `DELETE /medications/:id/occasional-intakes/:intakeId`: desfaz individualmente e de forma idempotente. Um marcador de cancelamento preserva a identidade da operação, impedindo que reenvios posteriores recriem a tomada desfeita.
+
+As tomadas ficam em `supplement_occasional_intakes`, separadas dos slots recorrentes. Trocar o modo não converte nem apaga registros; pausados não aceitam novas tomadas. Cadastros excluídos saem das consultas, mantendo as tomadas armazenadas. Dados e operações são privados, filtrados por usuário e categoria no servidor.
+
+O horário inicial é o atual e pode ser ajustado. O fluxo **Registrar em data anterior** oferece os eventuais separadamente. Falhas de envio mantêm a operação para tentar novamente sem duplicidade; botões ficam bloqueados enquanto a gravação está em andamento.

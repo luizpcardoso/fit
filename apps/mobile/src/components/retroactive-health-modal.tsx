@@ -1,5 +1,7 @@
+import { FormScrollView as ScrollView } from './form-scroll-view';
+import { HealthOccasionalSection } from './health-occasional-section';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Modal, Pressable, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, Modal, Pressable, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FormInput } from './form-input';
 import { useAuth } from '@/auth/auth-context';
@@ -50,7 +52,7 @@ export function RetroactiveHealthModal({ kind, onClose, onUpdated }: { kind: Hea
     finally { writing.current = false; if (live.current) setBusy(false); }
   };
   const changed = input !== isoDateToInput(date);
-  return <Modal transparent visible animationType="slide" onRequestClose={() => { if (!busy) onClose(); }}><SafeAreaView style={{ flex: 1, backgroundColor: '#0008', justifyContent: 'flex-end' }}><View style={{ maxHeight: '90%', backgroundColor: c.background, borderTopLeftRadius: 24, borderTopRightRadius: 24 }}><ScrollView contentContainerStyle={{ padding: 20, gap: 14 }}>
+  return <Modal transparent visible animationType="slide" onRequestClose={() => { if (!busy) onClose(); }}><SafeAreaView style={{ flex: 1, backgroundColor: '#0008', justifyContent: 'flex-end' }}><View style={{ maxHeight: '90%', backgroundColor: c.background, borderTopLeftRadius: 24, borderTopRightRadius: 24 }}><ScrollView keyboardLayout="layout" contentContainerStyle={{ padding: 20, gap: 14 }}>
     <Text accessibilityRole="header" style={{ fontSize: 22, fontWeight: '800', color: c.text }}>Registrar em data anterior</Text>
     <Text style={{ color: c.textMuted }}>Para uma tomada ou aplicação que aconteceu, mas você esqueceu de marcar. Isto não orienta tomar ou aplicar doses esquecidas.</Text>
     <Text style={{ color: c.textMuted }}>A lista usa os cadastros ativos e a programação atuais. Se houve mudança de dose ou rotina, não use este registro para representar uma programação antiga diferente.</Text>
@@ -63,6 +65,7 @@ export function RetroactiveHealthModal({ kind, onClose, onUpdated }: { kind: Hea
     {loading || busy ? <ActivityIndicator color={c.link}/> : null}
     {!loading && !error && !changed && !rows.length ? <Text style={{ color: c.textMuted }}>Nenhum registro previsto nesta data pela programação atual.</Text> : null}
     {!changed && rows.map(row => <View key={`${row.id}:${row.slot}`} style={{ padding: 14, gap: 8, borderWidth: 1, borderColor: c.border, borderRadius: 16, backgroundColor: c.surface }}><Text style={{ color: c.text, fontWeight: '700' }}>{row.name}</Text><Text style={{ color: c.textMuted }}>{row.time ?? (kind === 'injectable' ? 'Aplicação prevista' : `Tomada ${row.slot + 1}`)} · {isoDateToInput(date)}</Text><Pressable accessibilityRole="button" disabled={busy || loading || row.done || Boolean(error)} onPress={() => void register(row)} style={{ minHeight: 44, justifyContent: 'center' }}><Text style={{ color: row.done ? c.textMuted : c.link }}>{row.done ? 'Já registrado ✓' : 'Confirmar que realizei nesta data'}</Text></Pressable></View>)}
+    {!changed && !loading && kind !== 'injectable' ? <HealthOccasionalSection key={`${kind}:${date}`} kind={kind} date={date} allowPast onUpdated={onUpdated} onBusyChange={setBusy}/> : null}
     <Pressable accessibilityRole="button" disabled={busy} onPress={onClose} style={{ minHeight: 44, justifyContent: 'center' }}><Text style={{ color: c.link, textAlign: 'center', fontWeight: '800' }}>Concluir</Text></Pressable>
   </ScrollView></View></SafeAreaView></Modal>;
 }

@@ -19,8 +19,8 @@ test('convites, contador persistente, cards e check-in opcional', async({page,re
     await page.route(/^http:\/\/[^/]+:3333\//, async route => { const url=new URL(route.request().url());await route.fulfill({response:await route.fetch({url:apiURL+url.pathname+url.search})}); });
     await page.addInitScript(account=>localStorage.setItem('fit.auth.tokens',JSON.stringify(account)),owner);
     await page.goto('/');
-    await expect(page.getByRole('button',{name:'Notificações, 1 não lidas',exact:true})).toBeVisible({timeout:30000});
-    await page.getByRole('button',{name:'Notificações, 1 não lidas',exact:true}).click();
+    await expect(page.getByRole('button',{name:'Notificações, 1 não lida',exact:true})).toBeVisible({timeout:30000});
+    await page.getByRole('button',{name:'Notificações, 1 não lida',exact:true}).click();
     await page.getByRole('button',{name:/^Nova: Convite de Personal Teste/ }).click();
     await expect(page.getByRole('heading',{name:'Meus profissionais',exact:true})).toBeVisible();
     await expect(page.getByRole('checkbox')).toHaveCount(0);
@@ -30,8 +30,8 @@ test('convites, contador persistente, cards e check-in opcional', async({page,re
     await expect(page.getByRole('checkbox')).toHaveCount(0);
     await page.screenshot({path:'artifacts/ux-review/professionals-compact.png'});
     await page.goto('/');
-    await expect(page.getByRole('button',{name:'Notificações, 0 não lidas',exact:true})).toBeVisible();
-    await page.getByRole('button',{name:'Notificações, 0 não lidas',exact:true}).click();
+    await expect(page.getByRole('button',{name:'Notificações, nenhuma não lida',exact:true})).toBeVisible();
+    await page.getByRole('button',{name:'Notificações, nenhuma não lida',exact:true}).click();
     await expect(page.getByRole('button',{name:/^Lida: Convite de Personal Teste/ })).toBeVisible();
     await page.goto('/mental-wellbeing');
     const toggle=page.getByRole('switch',{name:'Contabilizar check-in de saúde mental',exact:true});

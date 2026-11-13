@@ -40,6 +40,7 @@ Trabalhe pela raiz deste repositório (`fit/`), que fica dentro da pasta de trab
 
 | Tema | Ler quando relacionado |
 | --- | --- |
+| Imagens de exercícios | **Obrigatório** seguir `design/exercise-images/WORKFLOW.md` e `design/exercise-images/STYLE_GUIDE.md` ao criar, revisar, salvar ou publicar imagens, inclusive pedidos genéricos de mais imagens. |
 | Treinos/metas | `docs/workouts.md`; treino semanal seg–dom, doses diárias |
 | Corpo/alimentação | `docs/nutrition.md`; peso e medidas independentes, preservar registros mistos antigos |
 | Lembretes/resumo | `docs/notifications.md`, `docs/daily-summary-notification.md`; preferências/agendas isoladas por conta |
@@ -48,3 +49,8 @@ Trabalhe pela raiz deste repositório (`fit/`), que fica dentro da pasta de trab
 | Outros módulos | `docs/{authentication,groups,supplements,cardio,injectables,mental-wellbeing,feedback}.md` conforme a área |
 | UX/desempenho/marca | `docs/{navigation,mobile-performance,brand}.md` conforme a mudança |
 | Operação/release | `deploy/README.md`, `docs/versioning.md`; alteração nativa exige APK, JS compatível pode usar OTA |
+
+## Versões do app
+
+- Formato público `MAIOR.INSTALAÇÃO.OTA`, com os dois últimos grupos em duas casas: versão atual `1.07.13`. Alterações compatíveis por OTA incrementam o último grupo (ex.: `1.07.09`); quando a atualização exigir reinstalação, incremente o grupo de instalação e zere o último (ex.: `1.08.00`). O primeiro grupo muda somente por decisão explícita do usuário (ex.: `2.00.00`).
+- A versão pública usada pelo código JS fica em `apps/mobile/src/constants/release-version.ts`, para não alterar o fingerprint nativo em OTA. Para qualquer novo APK, sincronize a versão SemVer técnica sem zeros à esquerda e incremente `android.versionCode`; republicar o mesmo conteúdo OTA em um APK não muda o grupo de instalação. Consulte `docs/versioning.md` e valide o runtime antes de publicar.

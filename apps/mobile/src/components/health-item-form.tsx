@@ -1,10 +1,13 @@
+import { ImageChoiceCard } from './image-choice-card';
+import { healthIllustrations } from './health-illustration';
+import { SceneThumb } from './scene';
 import { FormScrollView as ScrollView } from '@/components/form-scroll-view';
 import { FormInput as TextInput } from '@/components/form-input';
 import { useAppTheme } from '@/theme/theme-provider';
 import type { AppPalette } from '@/constants/theme';
 import { supplementInputSchema, suggestSupplementTimes, type HealthItem, type HealthItemInput, type HealthKind } from '@fit/contracts';
 import { useRef, useState } from 'react';
-import { ActivityIndicator, Modal, Platform, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
+import { ActivityIndicator, Modal, Platform, ScrollView as HorizontalScrollView, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { formatHealthTimeInput, healthUnits } from '@/utils/health';
 import { formatDecimalInput, formatDecimalValue } from '@/utils/input-format';
@@ -17,6 +20,8 @@ export function HealthItemForm({ kind, initial, onClose, onSave, onDelete }: Pro
 
   const medication = kind === 'medication';
   const label = medication ? 'medicamento' : 'suplemento';
+  const [usageMode, setUsageMode] = useState<NonNullable<HealthItemInput['usageMode']>>(initial?.usageMode ?? 'recurring');
+  const [illustration, setIllustration] = useState<HealthItemInput['illustration']>(initial?.illustration ?? null);
   const [name, setName] = useState(initial?.name ?? '');
   const [amount, setAmount] = useState(formatDecimalValue(initial?.amount));
   const [unit, setUnit] = useState<HealthItemInput['unit']>(initial?.unit ?? null);
@@ -43,9 +48,9 @@ export function HealthItemForm({ kind, initial, onClose, onSave, onDelete }: Pro
   };
   const save = async () => {
     if (saving.current) return;
-    const input = supplementInputSchema.safeParse({ name, amount: amount.trim() ? Number(amount.replace(',', '.')) : null, unit, strength: strength.trim() || null, dailyFrequency: frequency, times: timed ? times : [], weekdays: everyDay || weekdays.length === 7 ? null : weekdays, remind, notes: notes.trim() || null });
+    const input = supplementInputSchema.safeParse({ name, usageMode, illustration, amount: amount.trim() ? Number(amount.replace(',', '.')) : null, unit, strength: strength.trim() || null, dailyFrequency: usageMode === 'occasional' ? 1 : frequency, times: usageMode === 'occasional' ? [] : timed ? times : [], weekdays: usageMode === 'occasional' || everyDay || weekdays.length === 7 ? null : weekdays, remind: usageMode === 'occasional' ? false : remind, notes: notes.trim() || null });
     // Field-level messages: the shared schema decides validity, the form explains where to fix it.
-    const invalidTimes = !timed ? [] : times.flatMap((time, index) => !/^([01]\d|2[0-3]):[0-5]\d$/.test(time) ? [index] : times.indexOf(time) !== index ? [index] : []);
+    const invalidTimes = usageMode === 'occasional' || !timed ? [] : times.flatMap((time, index) => !/^([01]\d|2[0-3]):[0-5]\d$/.test(time) ? [index] : times.indexOf(time) !== index ? [index] : []);
     if (!input.success) {
       const next: Partial<Record<FieldKey, string>> = {};
       for (const issue of input.error.issues) {
@@ -76,7 +81,15 @@ export function HealthItemForm({ kind, initial, onClose, onSave, onDelete }: Pro
         <View style={s.twoColumns}><View style={s.flex}><Text style={s.label}>Quantidade por tomada</Text><TextInput keyboardAppearance={scheme} placeholderTextColor={c.textMuted} accessibilityLabel="Quantidade por tomada" editable={!busy} value={amount} onChangeText={value=>{ setAmount(formatDecimalInput(value,4,2)); clearField('amount'); }} keyboardType="decimal-pad" placeholder="Ex.: 1 ou 2,5" style={[s.input, fieldErrors.amount && s.inputError]} />{fieldErrors.amount ? <Text style={s.fieldError}>{fieldErrors.amount}</Text> : null}</View></View>
         <Text style={s.label}>Unidade · opcional</Text><View style={s.wrap}>{healthUnits.filter(([value]) => !medication || value !== 'scoop').map(([value, text]) => <Pressable key={value} accessibilityRole="radio" aria-checked={unit === value} aria-disabled={busy} disabled={busy} onPress={() => setUnit(unit === value ? null : value)} style={[s.chip, unit === value && s.selected]}><Text style={unit === value ? s.selectedText : s.chipText}>{text}</Text></Pressable>)}</View>
         <Text style={s.label}>Apresentação / concentração · opcional</Text><TextInput keyboardAppearance={scheme} placeholderTextColor={c.textMuted} accessibilityLabel="Apresentação ou concentração" editable={!busy} value={strength} onChangeText={value => { setStrength(value); clearField('strength'); }} maxLength={100} placeholder={medication ? 'Ex.: 500 mg por comprimido' : 'Ex.: 1.000 mg por cápsula'} style={[s.input, fieldErrors.strength && s.inputError]} />{fieldErrors.strength ? <Text style={s.fieldError}>{fieldErrors.strength}</Text> : null}
-        <View style={s.divider} /><Text style={s.section}>Rotina diária</Text>
+        <Text style={s.label}>Imagem</Text>
+        <HorizontalScrollView horizontal accessibilityRole="radiogroup" accessibilityLabel="Imagem do medicamento ou suplemento" showsHorizontalScrollIndicator contentContainerStyle={{ gap: 10, paddingBottom: 8 }}>
+          <ImageChoiceCard label="Padrão" selected={!illustration} disabled={busy} onPress={() => setIllustration(null)}><SceneThumb scene={medication ? 'thumbMedication' : 'thumbSupplement'} size={48}/></ImageChoiceCard>
+          {healthIllustrations.map(option => <ImageChoiceCard key={option.value} label={option.label} selected={illustration === option.value} disabled={busy} onPress={() => setIllustration(option.value)}><SceneThumb scene={option.scene} size={48}/></ImageChoiceCard>)}
+        </HorizontalScrollView>
+        <View style={s.divider}/><Text style={s.section}>Tipo de uso</Text>
+        <View accessibilityRole="radiogroup" style={s.wrap}>{(['recurring', 'occasional'] as const).map(mode => <Pressable key={mode} accessibilityRole="radio" aria-checked={usageMode === mode} disabled={busy} onPress={() => setUsageMode(mode)} style={[s.chip, usageMode === mode && s.selected]}><Text style={usageMode === mode ? s.selectedText : s.chipText}>{mode === 'recurring' ? 'Recorrente' : 'Eventual'}</Text></Pressable>)}</View>
+        {usageMode === 'occasional' ? <Text style={s.helper}>Registrar quando usar. Não entra na contagem da rotina diária e não gera lembretes.</Text> : <>
+        <Text style={s.section}>Rotina diária</Text>
         <Text style={s.label}>Quantas tomadas por dia?</Text><View style={s.frequency}>{[1, 2, 3, 4, 5, 6].map(value => <Pressable key={value} accessibilityRole="radio" accessibilityLabel={`${value} tomadas por dia`} aria-checked={frequency === value} aria-disabled={busy} disabled={busy} onPress={() => selectFrequency(value)} style={[s.frequencyButton, frequency === value && s.selected]}><Text style={frequency === value ? s.selectedText : s.chipText}>{value}x</Text></Pressable>)}</View>
         <Text style={s.label}>Horário</Text><View accessibilityRole="radiogroup" style={s.wrap}>{([[true, 'Com horário'], [false, 'Sem horário']] as const).map(([value, text]) => <Pressable key={text} accessibilityRole="radio" aria-checked={timed === value} aria-disabled={busy} disabled={busy} onPress={() => { setTimed(value); setTimeErrors([]); clearField('times'); }} style={[s.chip, timed === value && s.selected]}><Text style={timed === value ? s.selectedText : s.chipText}>{text}</Text></Pressable>)}</View>
         {timed ? <>
@@ -87,8 +100,9 @@ export function HealthItemForm({ kind, initial, onClose, onSave, onDelete }: Pro
         <Text style={s.label}>Dias da semana</Text><View accessibilityRole="radiogroup" style={s.wrap}>{([[true, 'Todos os dias'], [false, 'Dias específicos']] as const).map(([value, text]) => <Pressable key={text} accessibilityRole="radio" aria-checked={everyDay === value} aria-disabled={busy} disabled={busy} onPress={() => { setEveryDay(value); clearField('weekdays'); }} style={[s.chip, everyDay === value && s.selected]}><Text style={everyDay === value ? s.selectedText : s.chipText}>{text}</Text></Pressable>)}</View>
         {everyDay ? null : <><WeekdayPicker value={weekdays} disabled={busy} onChange={days => { setWeekdays(days); clearField('weekdays'); }} /><Text style={s.helper}>Nos outros dias o {label} não aparece na rotina nem gera lembretes.</Text></>}
         {fieldErrors.weekdays ? <Text style={s.fieldError}>{fieldErrors.weekdays}</Text> : null}
+        </>}
         <Text style={s.label}>Observações · opcional</Text><TextInput keyboardAppearance={scheme} placeholderTextColor={c.textMuted} accessibilityLabel="Observações" editable={!busy} value={notes} onChangeText={value => { setNotes(value); clearField('notes'); }} maxLength={500} multiline placeholder="Ex.: Tomar depois do café da manhã" style={[s.input, s.notes, fieldErrors.notes && s.inputError]} />{fieldErrors.notes ? <Text style={s.fieldError}>{fieldErrors.notes}</Text> : null}
-        {initial ? <View style={s.status}><View style={s.flex}><Text style={s.section}>{active ? 'Cadastro ativo' : 'Cadastro pausado'}</Text><Text style={s.helper}>Pausados não entram nas tomadas do dia.</Text></View><Switch {...(Platform.OS === 'web' ? { activeThumbColor: c.controlThumb } : {})} accessibilityLabel="Cadastro ativo" disabled={busy} value={active} onValueChange={setActive} aria-checked={active} aria-disabled={busy} trackColor={{ false: c.controlTrackOff, true: c.link }} thumbColor={c.controlThumb} ios_backgroundColor={c.controlTrackOff} /></View> : null}
+        {initial ? <View style={s.status}><View style={s.flex}><Text style={s.section}>{active ? 'Cadastro ativo' : 'Cadastro pausado'}</Text><Text style={s.helper}>Pausados não permitem novas tomadas.</Text></View><Switch {...(Platform.OS === 'web' ? { activeThumbColor: c.controlThumb } : {})} accessibilityLabel="Cadastro ativo" disabled={busy} value={active} onValueChange={setActive} aria-checked={active} aria-disabled={busy} trackColor={{ false: c.controlTrackOff, true: c.link }} thumbColor={c.controlThumb} ios_backgroundColor={c.controlTrackOff} /></View> : null}
         {error ? <Text accessibilityRole="alert" style={s.error}>{error}</Text> : null}
         <Pressable accessibilityRole="button" disabled={busy} onPress={() => void save()} style={[s.primary, busy && s.disabled]}>{busy ? <ActivityIndicator color={c.onPrimary} /> : <Text style={s.primaryText}>Salvar {label}</Text>}</Pressable>
         {initial && onDelete ? <Pressable accessibilityRole="button" accessibilityLabel={`Excluir ${initial.name}`} disabled={busy} onPress={onDelete} style={[s.deleteButton, busy && s.disabled]}><Text style={s.deleteText}>Excluir {label}</Text></Pressable> : null}

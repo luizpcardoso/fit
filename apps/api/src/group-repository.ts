@@ -829,12 +829,18 @@ export class GroupRepository {
     );
     if (!post) return null;
     const rows = await this.db.query<any>(
-      "SELECT c.id,c.post_id postId,c.text,c.deleted_at deletedAt,c.created_at createdAt,c.updated_at updatedAt,u.id authorId,u.username,COALESCE(u.display_name,CONCAT(u.first_name,' ',u.last_name)) displayName,u.avatar_url avatarUrl FROM group_comments c JOIN users u ON u.id=c.author_user_id WHERE c.post_id=? ORDER BY c.created_at",
+      "SELECT c.id,c.post_id postId,c.parent_comment_id parentCommentId,c.text,c.deleted_at deletedAt,c.created_at createdAt,c.updated_at updatedAt,u.id authorId,u.username,COALESCE(u.display_name,CONCAT(u.first_name,' ',u.last_name)) displayName,u.avatar_url avatarUrl FROM group_comments c JOIN users u ON u.id=c.author_user_id WHERE c.post_id=? ORDER BY c.created_at,c.id",
       { replacements: [postId], type: QueryTypes.SELECT },
     );
+    const counts = rows.length ? await this.db.query<{commentId:string;reaction:GroupReaction;count:number;reactedByMe:number}>(
+      "SELECT comment_id commentId,reaction,COUNT(*) count,MAX(user_id=?) reactedByMe FROM group_comment_reactions WHERE comment_id IN (?) GROUP BY comment_id,reaction",
+      {replacements:[userId,rows.map((r:any)=>r.id)],type:QueryTypes.SELECT},
+    ) : [];
     return rows.map((r: any) => ({
       id: r.id,
       postId: r.postId,
+      parentCommentId: r.parentCommentId,
+      reactionCounts: r.deletedAt ? [] : counts.filter(count=>count.commentId===r.id).map(count=>({reaction:count.reaction,count:Number(count.count),reactedByMe:Boolean(count.reactedByMe)})),
       author: {
         id: r.authorId,
         username: r.username,
@@ -865,12 +871,19 @@ export class GroupRepository {
     );
     if (!post) return "missing" as const;
     if (!post.comments_enabled) return "disabled" as const;
+    if (input.parentCommentId) {
+      const [parent] = await this.db.query<{parentId:string|null}>(
+        "SELECT parent_comment_id parentId FROM group_comments WHERE id=? AND post_id=? AND deleted_at IS NULL",
+        {replacements:[input.parentCommentId,postId],type:QueryTypes.SELECT},
+      );
+      if (!parent || parent.parentId) return "missing" as const;
+    }
     const id = randomUUID();
     await this.db.transaction(async (t) => {
       await this.db.query(
-        "INSERT INTO group_comments (id,post_id,author_user_id,text,created_at,updated_at) VALUES (?,?,?,?,UTC_TIMESTAMP(6),UTC_TIMESTAMP(6))",
+        "INSERT INTO group_comments (id,post_id,author_user_id,text,parent_comment_id,created_at,updated_at) VALUES (?,?,?,?,?,UTC_TIMESTAMP(6),UTC_TIMESTAMP(6))",
         {
-          replacements: [id, postId, userId, input.text],
+          replacements: [id, postId, userId, input.text, input.parentCommentId ?? null],
           type: QueryTypes.INSERT,
           transaction: t,
         },
@@ -889,6 +902,17 @@ export class GroupRepository {
       }
     });
     return id;
+  }
+  async reactToComment(userId:string,groupId:string,commentId:string,reaction:GroupReaction|null) {
+    if (!(await this.membership(userId,groupId))) return "missing" as const;
+    const [comment] = await this.db.query<{id:string}>(
+      "SELECT c.id FROM group_comments c JOIN group_posts p ON p.id=c.post_id JOIN group_members m ON m.group_id=p.group_id AND m.user_id=? AND m.status='active' WHERE c.id=? AND p.group_id=? AND c.deleted_at IS NULL AND p.deleted_at IS NULL AND p.created_at>=m.joined_at",
+      {replacements:[userId,commentId,groupId],type:QueryTypes.SELECT},
+    );
+    if (!comment) return "missing" as const;
+    if (reaction === null) await this.db.query("DELETE FROM group_comment_reactions WHERE comment_id=? AND user_id=?",{replacements:[commentId,userId],type:QueryTypes.DELETE});
+    else await this.db.query("INSERT INTO group_comment_reactions (id,comment_id,user_id,reaction,created_at,updated_at) VALUES (?,?,?,?,UTC_TIMESTAMP(6),UTC_TIMESTAMP(6)) ON DUPLICATE KEY UPDATE reaction=VALUES(reaction),updated_at=UTC_TIMESTAMP(6)",{replacements:[randomUUID(),commentId,userId,reaction],type:QueryTypes.INSERT});
+    return "ok" as const;
   }
   async updateComment(
     userId: string,

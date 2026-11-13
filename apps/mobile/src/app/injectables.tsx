@@ -1,3 +1,4 @@
+import { InjectableIllustration } from '@/components/injectable-illustration';
 import { RetroactiveHealthModal } from '@/components/retroactive-health-modal';
 import { SceneThumb } from '@/components/scene';
 import { useAuth } from "@/auth/auth-context";
@@ -238,13 +239,7 @@ export default function InjectablesScreen() {
                     key={injectable.id}
                     style={[s.todayRow, index > 0 && s.divider]}
                   >
-                    <View style={[s.todayIcon, application && s.todayDone]}>
-                      <MaterialCommunityIcons
-                        name={application ? "check" : "needle"}
-                        size={23}
-                        color={application ? c.onPrimary : c.link}
-                      />
-                    </View>
+                    <InjectableIllustration item={injectable}/>
                     <View style={s.grow}>
                       <Text style={s.itemName}>Hoje tem {injectable.name}</Text>
                       <Text style={s.itemMeta}>
@@ -326,13 +321,7 @@ export default function InjectablesScreen() {
                       }}
                       style={s.itemMain}
                     >
-                    <View style={s.itemIcon}>
-                      <MaterialCommunityIcons
-                        name="needle"
-                        size={22}
-                        color={c.link}
-                      />
-                    </View>
+                    <InjectableIllustration item={item}/>
                     <View style={s.grow}>
                       <View style={s.itemTitleRow}>
                         <Text style={s.itemName}>{item.name}</Text>

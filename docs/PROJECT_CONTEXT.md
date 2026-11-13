@@ -25,6 +25,7 @@ respectivamente, em `authentication.md`, `workouts.md`, `groups.md`, `supplement
 - Preservar histórico/snapshot semanal é requisito desejado; o app ainda não tem snapshots completos de metas por semana (`portal.md`). Não presumir essa garantia ao alterar metas.
 - Regras já confirmadas para sessões: marcação como realizada, várias no mesmo dia contam, retroativos e correções permitidos; `cancelled` não conta. Detalhes em `workouts.md`.
 - Treinos têm contagem própria, separada dos checks/check-in da rotina. Iniciar, pausar, finalizar ou cancelar treino não altera o total de checks; a Home apresenta o treino na meta semanal e o resumo de notificações informa os treinos realizados hoje separadamente, inclusive fora dos dias planejados.
+- Medicamentos e suplementos podem ser recorrentes ou eventuais. Eventuais permitem várias tomadas por dia e têm contagem separada, sem alterar checks, atrasos ou lembretes da rotina; detalhes em `supplements.md`.
 - Home resume treino **semanal**, medicamentos/suplementos **diários** por tomadas previstas (não quantidade de produtos), alimentação e alertas. Não confundir períodos nem inventar dados ausentes; linguagem sem punição/recomendação de dose.
 - Horários, alterações de metas em semana aberta e exceções devem seguir o módulo existente; decisões ainda ausentes precisam ser esclarecidas na tarefa correspondente.
 

@@ -6,16 +6,21 @@ Os 69 vínculos preenchidos foram consultados no banco configurado em `apps/api/
 
 Pendências de identificação: **Abdução de quadril na polia** e **Extensão lombar no banco**. Confirmar se já existem com outro nome ou cadastrar pelo portal e preencher o ID real. Não reutilizar imagens de abdução na máquina ou extensão de quadril como correspondências automáticas.
 
-## Fluxo de trabalho
+## Fluxo obrigatório
 
-1. Gerar cada exercício como imagem independente com a ferramenta integrada `image_gen`, usando `catalogName` como movimento e a rosca martelo como referência visual. Salvar no `imagePath` previsto e manter o prompt ao lado.
-2. Mudar `imageStatus` de `pending` para `generated`. Conferir movimento, aparelho, mãos, início/fim, músculos e legibilidade; depois marcar `ready`.
-3. Rodar `node scripts/exercise-images.mjs --check` na raiz do repositório para validar caminhos/status e atualizar a checklist. O check da lista representa publicação; imagem gerada e imagem publicada têm estados diferentes.
-4. Publicar pelo portal administrativo ou, para atualizar também o recibo local, definir `ORAMI_API_URL` e `ORAMI_ADMIN_TOKEN` no ambiente e executar `node scripts/exercise-images.mjs --publish rosca-martelo`. Não guardar tokens neste diretório ou em comandos versionados. Substituir o slug para os demais exercícios. A sessão deve pertencer a um administrador.
+Pedidos por nome ou por quantidade devem seguir [WORKFLOW.md](WORKFLOW.md) e [STYLE_GUIDE.md](STYLE_GUIDE.md): selecionar no catálogo de produção, gerar com a ferramenta integrada, salvar cada tentativa fora do repositório, inspecionar visualmente, fazer backup conferido e publicar pela API administrativa. O pedido autoriza publicação após revisão do assistente, salvo instrução específica do usuário.
 
-O comando publica somente um item revisado por execução, valida ID/nome/escopo no ambiente de destino e usa a rota existente `PUT /portal/content/:id/image`. A API verifica o papel admin, converte para WebP, salva na mídia, registra auditoria e atualiza `exercises.image_url`. O manifesto recebe a URL devolvida e o hash do original. Uma repetição confirma o vínculo sem publicar outra cópia. O comando recusa substituir uma imagem existente: fazer isso conscientemente pelo portal. Em resposta perdida ou erro após o upload, conferir o portal antes de repetir ou reconciliar o recibo.
+O manifesto continua sendo o controle por exercício; novos itens podem ser adicionados além da seleção histórica. Revisão é vinculada ao hash original. `backup` guarda o recibo externo; `publications` separa recibos por origem da API; `publicationAttempts` impede repetir cegamente um envio sem resposta. Campos históricos são preservados. A checklist não é prova do estado atual de produção e distingue publicação de aceite visual/no app.
 
-Não gravar caminhos locais em `exercises.image_url`: esse campo contém uma chave como `<uuid>.webp`; a API monta `/media/exercises/<uuid>.webp`. `imagePath` é somente o original no projeto e `imageUrl` é a URL publicada. Não guardar base64 no banco nem criar outra tabela para este controle.
+```bash
+node scripts/exercise-images.mjs --check
+node scripts/backup-exercise-images.mjs --item agachamento-livre
+node scripts/exercise-images.mjs --publish agachamento-livre cadeira-extensora
+```
+
+Publicar exige `ORAMI_API_URL`, `ORAMI_IMAGE_ENV` e uma sessão em `ORAMI_ADMIN_TOKEN`, além do original revisado e backup válido. Não registrar credenciais. A rota existente `PUT /portal/content/:id/image` converte para WebP, salva, audita e atualiza o vínculo. O script recusa substituições automáticas. Conferir o WebP público e o fluxo no app antes de declarar conclusão.
+
+Não gravar caminhos locais em `exercises.image_url`: esse campo contém uma chave como `<uuid>.webp`; a API monta `/media/exercises/<uuid>.webp`. Não guardar base64 no banco nem criar outra tabela para o controle operacional.
 
 ## Compatibilidade
 
@@ -31,4 +36,8 @@ Cache: a rota `/media/exercises/:key` serve o WebP com `cache-control: immutable
 
 ## Backup da coleção
 
-Na raiz do repositório, execute `node scripts/backup-exercise-images.mjs` ao terminar cada lote. O comando cria um arquivo datado em `artifacts/exercise-image-backups/*.tar.gz`, com a coleção completa (originais, prompts, manifesto e checklist), os vínculos atuais do catálogo, WebPs publicados e hashes SHA-256. Inclui instruções de restauração em `RESTORE.md`. Não inclui credenciais, dados pessoais, fichas nem um dump completo do banco. Execute sem uploads simultâneos. Copie o arquivo para outro disco ou armazenamento de backup para proteção contra perda deste computador.
+O destino padrão agora é `/home/luiz/Área de trabalho/fit/exercise-image-backups`, **fora do repositório**. Os arquivos antigos em `artifacts/exercise-image-backups/` continuam preservados, mas não atendem ao requisito de cópia externa para novas publicações.
+
+`node scripts/backup-exercise-images.mjs` salva a coleção e o inventário SHA-256 sem banco nem credenciais. O recibo registrado no manifesto é conferido antes de qualquer publicação. `--published` adiciona vínculos e WebPs da API explicitamente configurada, identificando origem e data; a cópia dos originais é independente dessa coleta remota. Prompts, revisões e recibos acompanham a coleção. Cada lote inclui `RESTORE.md`; não inclui dados de usuários nem dump completo do banco.
+
+Leia o workflow para comandos, tentativas versionadas, retomada, conferência no app e aceite. Não executar publicações simultâneas. Copiar para outro disco é necessário para proteção contra perda deste computador.

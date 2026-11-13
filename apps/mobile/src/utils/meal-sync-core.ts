@@ -46,6 +46,15 @@ export function previewQueuedMeal(request: MealSyncEntry, cache: StoredMeals, ti
   return { id: request.id, name, category, mode, date: request.input.date, time: request.input.time, ...totals, fiber: totals.fiber ?? null, items, createdAt: timestamp, updatedAt: timestamp };
 }
 
+/**
+ * Mutations that change a day's nutrition summary. Besides meals, the energy estimate depends on
+ * the profile (birth date, sex, height), the weight, and the day's workouts and cardio sessions.
+ */
+export function affectsNutritionSummary(path: string) {
+  return (path.startsWith('/nutrition/') && path !== '/nutrition/meal-sync')
+    || path.startsWith('/body-measurements') || path.includes('professional-assignments')
+    || path === '/auth/me' || path.startsWith('/workout-sessions') || path.startsWith('/cardio-sessions');
+}
 export function overlayMeals(summary: DailyNutritionSummary, entries: QueuedMeal[]): DailyNutritionSummary {
   const hidden = new Set(entries.flatMap(e => [e.request.id, ...(e.serverId ? [e.serverId] : [])]));
   const meals = [...summary.meals.filter(m => !hidden.has(m.id) && (!m.syncId || !hidden.has(m.syncId))), ...entries.filter(e => !e.request.cancelled && e.preview.date === summary.date).map(e => e.preview)].sort((a, b) => a.time.localeCompare(b.time) || a.id.localeCompare(b.id));

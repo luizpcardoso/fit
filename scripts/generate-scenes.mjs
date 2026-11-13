@@ -194,7 +194,7 @@ for (const name of Object.keys(cards)) exports.push({ name, scene: name, crop: [
 const all = { ...scenes, ...cards };
 const size = name => name in cards ? [CW, CH] : [W, H];
 // --fitness-only regenera só as cenas de treino; --cards-only, só os cartões das áreas.
-const shouldExport = scene => process.argv.includes('--fitness-only') ? ['workout', 'pulse'].includes(scene) : !process.argv.includes('--cards-only') || scene in cards;
+const shouldExport = scene => process.argv.includes('--health-only') ? false : process.argv.includes('--fitness-only') ? ['workout', 'pulse'].includes(scene) : !process.argv.includes('--cards-only') || scene in cards;
 const selectedExports = exports.filter(({ scene }) => shouldExport(scene));
 await mkdir(out, { recursive: true }); await mkdir(src, { recursive: true });
 for (const [name, body] of Object.entries(all).filter(([name]) => shouldExport(name))) { const [w, h] = size(name); await writeFile(fileURLToPath(new URL(`${name}.svg`, src)), `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}">${body}</svg>`); }
@@ -207,7 +207,7 @@ for (const { name, scene, crop, width } of selectedExports) {
 // pelos pixels e recentralizado num quadrado com brilho ao fundo, assim nenhum objeto fica deslocado ou encosta na borda.
 const thumbs = ['mind', 'plans', 'food', 'cardio', 'body', 'medication', 'supplement', 'injectable', 'diet', 'groups', 'professional'];
 const T = 300;
-if (!process.argv.includes('--fitness-only')) for (const name of thumbs) {
+if (!process.argv.includes('--fitness-only') && !process.argv.includes('--health-only')) for (const name of thumbs) {
   const { stops, glowColor, body, glowOp } = cardParts.get({ ...cards, ...thumbOnly }[`card-${name}`]);
   const objects = body.replace(/<g fill="#67E8F9" opacity="\.45">.*?<\/g>/s, '');
   const { info } = await sharp(Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${CW} ${CH}" width="${CW}" height="${CH}">${objects}</svg>`)).trim().toBuffer({ resolveWithObject: true });
@@ -217,4 +217,24 @@ if (!process.argv.includes('--fitness-only')) for (const name of thumbs) {
     <g transform="translate(${(T / 2 - k * (x + info.width / 2)).toFixed(1)} ${(T / 2 - k * (y + info.height / 2)).toFixed(1)}) scale(${k.toFixed(4)})">${objects}</g></svg>`;
   await sharp(Buffer.from(svg)).webp({ quality: 90, smartSubsample: true }).toFile(fileURLToPath(new URL(`thumb-${name}.webp`, out)));
 }
-console.log(`Cenas geradas: ${selectedExports.map(item => item.name).join(', ')}${process.argv.includes('--fitness-only') ? '' : `, ${thumbs.map(name => `thumb-${name}`).join(', ')}`}.`);
+
+
+// Galeria de saúde: o mesmo fundo em degradê, brilho e formas arredondadas das miniaturas.
+const healthArt = {
+  tablet: `<g transform="rotate(-25 150 150)"><ellipse cx="150" cy="166" rx="77" ry="58" fill="#B9E9F1"/><ellipse cx="150" cy="149" rx="77" ry="58" fill="#FFFFFF"/><path d="M85 149H215" ${stroke('#9FD8E2', 8)}/></g>`,
+  capsule: `<g transform="rotate(-35 150 150)"><rect x="103" y="54" width="94" height="192" rx="47" fill="#FFFFFF"/><path d="M103 150V101A47 47 0 0 1 197 101V150Z" fill="#F7B24A"/><path d="M121 105V130" ${stroke('#FFE1AA', 10)}/><path d="M106 150H194" ${stroke('#D3EAF0', 4)}/></g>`,
+  bottle: `<rect x="83" y="93" width="134" height="150" rx="26" fill="#FFFFFF"/><rect x="93" y="61" width="114" height="46" rx="12" fill="#67E8F9"/><rect x="83" y="143" width="134" height="65" rx="8" fill="#3DBB7E"/><path d="M150 157V194M132 175H168" ${stroke('#FFFFFF', 10)}/>`,
+  drops: `<rect x="104" y="120" width="92" height="124" rx="22" fill="#F7B24A"/><rect x="111" y="92" width="78" height="40" rx="10" fill="#FFFFFF"/><path d="M132 92V67A18 18 0 0 1 168 67V92Z" fill="#67E8F9"/><rect x="104" y="153" width="92" height="64" rx="9" fill="#FFFFFF"/><path d="M150 164C142 176 134 183 134 192A16 16 0 0 0 166 192C166 183 158 176 150 164Z" fill="#0E9AA7"/>`,
+  powder: `<rect x="64" y="87" width="137" height="153" rx="24" fill="#FFFFFF"/><rect x="58" y="64" width="149" height="40" rx="12" fill="#67E8F9"/><rect x="64" y="141" width="137" height="57" rx="6" fill="#3DBB7E"/><path d="M165 216L233 187" ${stroke('#FFFFFF', 13)}/><path d="M170 210H239C236 251 177 251 170 210Z" fill="#E8FBFD"/><path d="M172 210C183 185 225 185 237 210Z" fill="#F4E6D3"/>`,
+  shaker: `<path d="M88 103H212L199 231Q198 246 182 246H118Q102 246 101 231Z" fill="#FFFFFF"/><path d="M95 172H205L199 231Q198 246 182 246H118Q102 246 101 231Z" fill="#E7C49A"/><rect x="79" y="80" width="142" height="38" rx="13" fill="#3DBB7E"/><rect x="100" y="56" width="44" height="30" rx="10" fill="#2E9E6A"/><circle cx="189" cy="67" r="14" ${stroke('#2E9E6A', 8)}/><path d="M177 131H195M183 150H195" ${stroke('#9FD8E2', 4)}/>`,
+};
+if (!process.argv.includes('--fitness-only') && !process.argv.includes('--cards-only')) for (const [name, body] of Object.entries(healthArt)) {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300" width="264" height="264"><defs>${sky('s', [[0, '#0C4A5E'], [1, '#0E9AA7']])}${glow('g', '#67E8F9', .6)}</defs><rect width="300" height="300" fill="url(#s)"/><circle cx="150" cy="150" r="150" fill="url(#g)"/><ellipse cx="150" cy="249" rx="91" ry="12" fill="#0B1E28" opacity=".18"/>${body}</svg>`;
+  await writeFile(fileURLToPath(new URL(`health-${name}.svg`, src)), svg);
+  await sharp(Buffer.from(svg)).webp({ quality: 90 }).toFile(fileURLToPath(new URL(`health-${name}.webp`, out)));
+}
+
+const generated = [...selectedExports.map(item => item.name)];
+if (!process.argv.includes('--fitness-only') && !process.argv.includes('--health-only')) generated.push(...thumbs.map(name => `thumb-${name}`));
+if (!process.argv.includes('--fitness-only') && !process.argv.includes('--cards-only')) generated.push(...Object.keys(healthArt).map(name => `health-${name}`));
+console.log(`Cenas geradas: ${generated.join(', ')}.`);

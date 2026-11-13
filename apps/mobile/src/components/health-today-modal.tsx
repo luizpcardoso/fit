@@ -1,18 +1,22 @@
+import { FormScrollView as ScrollView } from './form-scroll-view';
+import { HealthIllustration } from './health-illustration';
+import { HealthOccasionalSection } from './health-occasional-section';
 import { useAppTheme } from '@/theme/theme-provider';
 import { Scrim, type AppPalette } from '@/constants/theme';
 import type { HealthKind, HealthToday, HealthTodayItem } from '@fit/contracts';
 import { useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '@/auth/auth-context';
 import { healthDose, isHealthIntakeLate, localDay } from '@/utils/health';
 
-type Props = { kind: HealthKind; daily: HealthToday | null; date: string; now: Date; loading: boolean; error: string; onlyItemId?: string; onClose(): void; onUpdated(): Promise<boolean>; onManage?(): void };
+type Props = { kind: HealthKind; daily: HealthToday | null; date: string; now: Date; loading: boolean; error: string; onlyItemId?: string; initialSection?: 'routine' | 'occasional'; onClose(): void; onUpdated(): Promise<boolean>; onManage?(): void };
 
-export function HealthTodayModal({ kind, daily, date, now, loading, error, onlyItemId, onClose, onUpdated, onManage }: Props) {
+export function HealthTodayModal({ kind, daily, date, now, loading, error, onlyItemId, initialSection = 'routine', onClose, onUpdated, onManage }: Props) {
   const { colors: c } = useAppTheme(); const s = createStyles(c);
 
   const { api } = useAuth();
+  const [section, setSection] = useState(initialSection);
   const [busy, setBusy] = useState('');
   const busyRef = useRef(false);
   const [actionError, setActionError] = useState('');
@@ -45,7 +49,9 @@ export function HealthTodayModal({ kind, daily, date, now, loading, error, onlyI
   return <Modal visible transparent animationType="slide" onRequestClose={() => { if (!busy) onClose(); }}>
     <SafeAreaView style={s.overlay}><View accessibilityViewIsModal style={s.sheet}>
       <View style={s.header}><View style={s.flex}><Text accessibilityRole="header" style={s.title}>{title} de hoje</Text><Text style={s.muted}>{daily ? `${daily.consumed}/${daily.total} tomadas registradas` : 'Sua rotina diária'}</Text></View><Pressable accessibilityRole="button" accessibilityLabel="Fechar registro diário" disabled={Boolean(busy)} hitSlop={8} onPress={onClose} style={s.close}><Text style={s.link}>Fechar</Text></Pressable></View>
-      <ScrollView contentContainerStyle={s.content}>
+      <ScrollView keyboardLayout="layout" keyboardShouldPersistTaps="handled" contentContainerStyle={s.content}>
+        <View accessibilityRole="radiogroup" style={{ flexDirection: 'row', gap: 10 }}>{(['routine', 'occasional'] as const).map(value => <Pressable key={value} accessibilityRole="radio" aria-checked={section === value} disabled={Boolean(busy)} onPress={() => setSection(value)} style={[s.secondary, { flex: 1 }, section === value && { backgroundColor: c.primarySoft }]}><Text style={s.link}>{value === 'routine' ? 'Rotina' : 'Eventuais'}</Text></Pressable>)}</View>
+        {section === 'routine' ? <>
         {loading ? <ActivityIndicator color={c.link} /> : null}
         {error || actionError ? <View accessibilityRole="alert" style={s.errorBox}><Text style={s.errorText}>{actionError || error}</Text><Pressable accessibilityRole="button" disabled={Boolean(busy)} onPress={() => { setActionError(''); void onUpdated(); }} style={s.close}><Text style={s.link}>Tentar novamente</Text></Pressable></View> : null}
         {!loading && !error && !groups.length ? <View style={s.card}><Text style={s.heading}>Nenhuma tomada programada</Text><Text style={s.muted}>Cadastre ou reative um {medication ? 'medicamento' : 'suplemento'} para acompanhar o dia.</Text></View> : null}
@@ -53,7 +59,7 @@ export function HealthTodayModal({ kind, daily, date, now, loading, error, onlyI
           const item = entries[0].item;
           const pending = entries.filter(entry => !entry.consumedAt);
           return <View key={item.id} style={s.card}>
-            <View style={s.groupHeader}><View style={s.flex}><Text style={s.heading}>{item.name}</Text><Text style={s.muted}>{healthDose(item)}</Text></View><Text style={s.count}>{entries.length - pending.length}/{entries.length}</Text></View>
+            <View style={s.groupHeader}><HealthIllustration item={item} kind={kind}/><View style={s.flex}><Text style={s.heading}>{item.name}</Text><Text style={s.muted}>{healthDose(item)}</Text></View><Text style={s.count}>{entries.length - pending.length}/{entries.length}</Text></View>
             {entries.map(entry => {
               const late = !entry.dismissedAt && isHealthIntakeLate(entry, date, now);
               return <Pressable key={entry.slot} accessibilityRole="checkbox" accessibilityLabel={`${item.name}, ${entry.time ?? `tomada ${entry.slot + 1}`}`} aria-checked={Boolean(entry.consumedAt)} aria-disabled={Boolean(busy) || Boolean(error)} disabled={Boolean(busy) || Boolean(error)} onPress={() => void register([entry], !entry.consumedAt)} style={[s.slot, entry.consumedAt && s.done, late && s.late]}>
@@ -66,6 +72,7 @@ export function HealthTodayModal({ kind, daily, date, now, loading, error, onlyI
             </> : <Text style={s.complete}>Tudo registrado hoje ✓</Text>}
           </View>;
         })}
+        </> : <HealthOccasionalSection key={`${kind}:${date}`} kind={kind} date={date} onlyItemId={onlyItemId} onUpdated={onUpdated} onBusyChange={value => setBusy(value ? 'occasional' : '')}/>}
         {onManage ? <Pressable accessibilityRole="button" disabled={Boolean(busy)} style={s.secondary} onPress={onManage}><Text style={s.link}>Gerenciar cadastros e horários</Text></Pressable> : null}
       </ScrollView>
     </View></SafeAreaView>

@@ -1,18 +1,30 @@
 import { readFile, writeFile, stat } from 'node:fs/promises';
 import { resolve, dirname, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createHash } from 'node:crypto';
+import { acceptedPublication, apiConfig, json, publishItem, selectCandidates, withCollectionLock, writeJson } from './lib/exercise-images.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const manifestPath = resolve(root, 'design/exercise-images/manifest.json');
 const args = process.argv.slice(2);
 const publish = args[0] === '--publish';
-if (!(args.length === 1 && args[0] === '--check') && !(publish && args.length === 2)) {
-  console.error('Uso: node scripts/exercise-images.mjs --check | --publish <slug>');
+const select = args[0] === '--select';
+if (!(args.length === 1 && args[0] === '--check') && !(publish && args.length >= 2) && !(select && args.length === 3)) {
+  console.error('Uso: node scripts/exercise-images.mjs --check | --publish <slug...> | --select <consulta.json> <quantidade>');
   process.exit(1);
 }
 
 async function main() {
+  if (select) {
+    const input = await json(resolve(args[1]));
+    if (input.environment !== 'production' || input.apiUrl !== 'https://orami.com.br' || !Number.isFinite(Date.parse(input.checkedAt)) || typeof input.usageAvailable !== 'boolean' || !Array.isArray(input.exercises)) throw new Error('Informe origem de produção, data da consulta, usageAvailable e exercises.');
+    const guide = await readFile(resolve(root, 'design/exercise-images/STYLE_GUIDE.md'), 'utf8');
+    const common = guide.split('<!-- priority:start -->')[1]?.split('<!-- priority:end -->')[0].split('\n').filter(line => /^\d+\. /.test(line)).map(line => line.replace(/^\d+\. /, '').trim());
+    if (!common?.length) throw new Error('Lista de prioridades ausente do guia.');
+    if (!input.usageAvailable) console.error('Sem contagens de uso: priorizando movimentos comuns.');
+    const rows = input.usageAvailable ? input.exercises : input.exercises.map(row => ({ ...row, activePlanCount: 0 }));
+    console.log(JSON.stringify(selectCandidates(rows, common, Number(args[2])), null, 2));
+    return;
+  }
   const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
   const statuses = new Set(['pending', 'generated', 'ready', 'published']);
   const slugs = new Set();
@@ -38,47 +50,30 @@ async function main() {
     files.set(item.slug, exists);
     if (item.imageStatus !== 'pending' && !exists) errors.push(`Imagem ausente: ${item.slug}`);
     if (['ready', 'published'].includes(item.imageStatus) && !item.catalogExerciseId) errors.push(`Exercício sem vínculo: ${item.slug}`);
-    if (item.imageStatus === 'published' && (!item.imageUrl || !item.publishedSha256)) errors.push(`Publicação sem recibo: ${item.slug}`);
+    if (item.imageStatus === 'published' && !(item.imageUrl && item.publishedSha256) && !Object.values(item.publications ?? {}).some(receipt => receipt.imageUrl && receipt.sha256)) errors.push(`Publicação sem recibo: ${item.slug}`);
   }
   if (errors.length) throw new Error(errors.join('\n'));
 
   if (publish) {
-    const item = manifest.exercises.find(row => row.slug === args[1]);
-    if (!item || !['ready', 'published'].includes(item.imageStatus)) throw new Error('Selecione um exercício revisado com imageStatus="ready".');
-    const api = new URL(process.env.ORAMI_API_URL || 'http://localhost:3000');
-    if (api.protocol !== 'https:' && !(api.protocol === 'http:' && ['localhost', '127.0.0.1', '[::1]'].includes(api.hostname))) throw new Error('Use HTTPS fora do ambiente local.');
-    if (api.username || api.password || api.search || api.hash) throw new Error('URL da API inválida.');
-    const token = process.env.ORAMI_ADMIN_TOKEN;
-    if (!token) throw new Error('Defina ORAMI_ADMIN_TOKEN com uma sessão administrativa; não salve o token no manifesto.');
-    const request = async (path, options = {}) => {
-      const response = await fetch(`${api.href.replace(/\/$/, '')}${path}`, {
-        ...options, redirect: 'error', signal: AbortSignal.timeout(30_000),
-        headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
-      });
-      if (!response.ok) throw new Error(`API retornou HTTP ${response.status}; manifesto não atualizado. Confira o portal antes de repetir.`);
-      return response.json();
-    };
-    const bytes = await readFile(resolve(root, item.imagePath));
-    if (bytes.length > 8 * 1024 * 1024) throw new Error('A imagem excede o limite de 8 MB.');
-    const mime = { '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp' }[/\.[^.]+$/.exec(item.imagePath)?.[0]?.toLowerCase()];
-    if (!mime) throw new Error('Use PNG, JPEG ou WebP.');
-    const hash = createHash('sha256').update(bytes).digest('hex');
-    const content = await request(`/portal/content/${item.catalogExerciseId}`);
-    if (content.kind !== 'exercise' || content.scope !== 'global' || content.name !== item.catalogName) throw new Error('ID/nome/escopo divergem do catálogo; revise o vínculo neste ambiente.');
-    if (item.imageStatus === 'published' && item.publishedSha256 === hash && content.data?.imageUrl === item.imageUrl) {
-      console.log('A imagem já está publicada e o vínculo foi confirmado.');
-    } else {
-      if (content.data?.imageUrl) throw new Error('O exercício já tem imagem. Substituições devem ser revisadas pelo portal administrativo.');
-      const result = await request(`/portal/content/${item.catalogExerciseId}/image`, {
-        method: 'PUT', body: JSON.stringify({ imageDataUrl: `data:${mime};base64,${bytes.toString('base64')}` }),
-      });
-      if (!/^\/media\/exercises\/[a-f0-9-]{36}\.webp$/.test(result.imageUrl)) throw new Error('Resposta de publicação inesperada; confira o portal antes de repetir.');
-      item.imageUrl = result.imageUrl;
-      item.imageStatus = 'published';
-      item.publishedSha256 = hash;
-      await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
-      console.log(`Imagem publicada: ${item.name}`);
+    const config = apiConfig();
+    let failures = 0;
+    for (const [index, slug] of [...new Set(args.slice(1))].entries()) {
+      // Até 10 uploads/minuto, abaixo do limite de 12/min da rota.
+      if (index) await new Promise(done => setTimeout(done, 6_100));
+      const item = manifest.exercises.find(row => row.slug === slug);
+      try {
+        const receipt = await publishItem(root, manifest, item, config);
+        console.log(`${slug}: vínculo e WebP confirmados em ${receipt.environment}; revisão visual do WebP e conferência no app ainda devem ser registradas.`);
+      } catch (error) {
+        failures++;
+        if (item) {
+          item.lastPublicationError = { apiUrl: config.apiUrl, at: new Date().toISOString(), message: error.message };
+          await writeJson(manifestPath, manifest);
+        }
+        console.error(`${slug}: ${error.message}`);
+      }
     }
+    if (failures) process.exitCode = 1;
   }
 
   const labels = { pending: 'Pendente', generated: 'Gerada; revisar', ready: 'Revisada; pronta para publicar', published: 'Publicada' };
@@ -86,7 +81,7 @@ async function main() {
     'Checklist gerada por `node scripts/exercise-images.mjs --check`. Edite `manifest.json` e regenere este arquivo.', '',
     `Catálogo consultado: ${manifest.catalogCheckedAt}. ${manifest.catalogSource}`, '',
     'Os IDs abaixo já foram conferidos no banco consultado. Isso não significa que as imagens foram publicadas.', '',
-    'O check indica publicação pela API. Arquivos locais disponíveis ficam clicáveis; caminhos sem arquivo são destinos planejados.', ''];
+    'O check indica publicação registrada em algum ambiente; confira o destino e a aceitação de cada recibo. Registros legados não comprovam o estado remoto atual. Arquivos locais disponíveis ficam clicáveis; caminhos sem arquivo são destinos planejados.', ''];
   for (const group of new Set(manifest.exercises.map(item => item.group))) {
     lines.push(`## ${group}`, '');
     for (const item of manifest.exercises.filter(item => item.group === group)) {
@@ -95,6 +90,9 @@ async function main() {
       lines.push(`  - Catálogo: ${item.catalogName || 'Vínculo pendente'}; ID: ${item.catalogExerciseId ? `\`${item.catalogExerciseId}\`` : '—'}.`);
       lines.push(`  - Imagem: ${files.get(item.slug) ? `[abrir arquivo](${localPath})` : `\`${item.imagePath}\` (a gerar)`}.`);
       if (item.mappingNote) lines.push(`  - ${item.mappingNote}`);
+      for (const [apiUrl, receipt] of Object.entries(item.publications ?? {})) {
+        lines.push(`  - ${receipt.environment} (${apiUrl}): \`${receipt.imageUrl}\`; mídia ${receipt.verifiedAt ? 'verificada' : 'a verificar'}; aceite ${acceptedPublication(receipt) ? 'registrado' : 'pendente (visual/app)'}.`);
+      }
       if (item.imageUrl) lines.push(`  - URL publicada: \`${item.imageUrl}\`.`);
     }
     lines.push('');
@@ -103,4 +101,4 @@ async function main() {
   console.log(`${manifest.exercises.length} exercícios; ${ids.size} vínculos; ${[...files.values()].filter(Boolean).length} arquivos; ${manifest.exercises.filter(item => item.imageStatus === 'published').length} publicados.`);
 }
 
-main().catch(error => { console.error(error.message); process.exitCode = 1; });
+withCollectionLock(root, main).catch(error => { console.error(error.message); process.exitCode = 1; });

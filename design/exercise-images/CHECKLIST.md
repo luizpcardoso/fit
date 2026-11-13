@@ -6,7 +6,7 @@ Catálogo consultado: 2026-11-05. Banco configurado em apps/api/.env (consulta s
 
 Os IDs abaixo já foram conferidos no banco consultado. Isso não significa que as imagens foram publicadas.
 
-O check indica publicação pela API. Arquivos locais disponíveis ficam clicáveis; caminhos sem arquivo são destinos planejados.
+O check indica publicação registrada em algum ambiente; confira o destino e a aceitação de cada recibo. Registros legados não comprovam o estado remoto atual. Arquivos locais disponíveis ficam clicáveis; caminhos sem arquivo são destinos planejados.
 
 ## Peito
 
@@ -151,6 +151,11 @@ O check indica publicação pela API. Arquivos locais disponíveis ficam clicáv
   - Catálogo: Rosca concentrada; ID: `348defd4-9182-42bc-88d9-16a92c42c3a8`.
   - Imagem: [abrir arquivo](images/rosca-concentrada.png).
   - URL publicada: `/media/exercises/aaa907d8-197e-4964-b989-ac9a16e3bc8e.webp`.
+- [x] **Rosca direta barra W** — Publicada
+  - Catálogo: Rosca direta barra W; ID: `4ddb25d3-082a-44e3-8d99-0e716781d7de`.
+  - Imagem: [abrir arquivo](images/rosca-direta-barra-w.png).
+  - ID e nome conferidos no catálogo de produção em 09/11/2026.
+  - production (https://orami.com.br): `/media/exercises/1350ff75-a01d-45f0-95f1-365a564afcb8.webp`; mídia verificada; aceite pendente (visual/app).
 
 ## Tríceps
 
@@ -173,20 +178,23 @@ O check indica publicação pela API. Arquivos locais disponíveis ficam clicáv
   - Catálogo: Tríceps francês sentado; ID: `3c632dc3-9c84-485d-848b-fcc8015c4832`.
   - Imagem: `design/exercise-images/images/triceps-frances.png` (a gerar).
   - Variação escolhida para o nome genérico: Tríceps francês sentado
-- [ ] **Tríceps na máquina** — Pendente
+- [x] **Tríceps na máquina** — Publicada
   - Catálogo: Tríceps máquina; ID: `3e845a06-e16f-4a36-897e-a5bec2f91f47`.
-  - Imagem: `design/exercise-images/images/triceps-na-maquina.png` (a gerar).
+  - Imagem: [abrir arquivo](images/triceps-na-maquina.png).
   - Variação escolhida para o nome genérico: Tríceps máquina
-- [ ] **Paralelas** — Pendente
+  - production (https://orami.com.br): `/media/exercises/e3ffa2bf-f5d6-4210-b356-2527bc9c7b6f.webp`; mídia verificada; aceite pendente (visual/app).
+- [x] **Paralelas** — Publicada
   - Catálogo: Mergulho em paralelas; ID: `848ba3c5-5f77-41b9-82b1-2bcdcca421c4`.
-  - Imagem: `design/exercise-images/images/paralelas.png` (a gerar).
+  - Imagem: [abrir arquivo](images/paralelas.png).
   - Variação escolhida para o nome genérico: Mergulho em paralelas
+  - production (https://orami.com.br): `/media/exercises/1e2860f5-30b6-4bbc-8b67-fdd2c1248681.webp`; mídia verificada; aceite pendente (visual/app).
 
 ## Quadríceps e glúteos
 
-- [ ] **Agachamento livre** — Pendente
+- [x] **Agachamento livre** — Publicada
   - Catálogo: Agachamento livre; ID: `00000000-0000-4000-8000-000000000001`.
-  - Imagem: `design/exercise-images/images/agachamento-livre.png` (a gerar).
+  - Imagem: [abrir arquivo](images/agachamento-livre.png).
+  - production (https://orami.com.br): `/media/exercises/ef9e545c-d1d3-4ced-8dc3-8b0adfb34daa.webp`; mídia verificada; aceite pendente (visual/app).
 - [ ] **Agachamento no Smith** — Pendente
   - Catálogo: Agachamento Smith; ID: `ff6985b6-91ec-4ec4-814f-128b75c90cc7`.
   - Imagem: `design/exercise-images/images/agachamento-no-smith.png` (a gerar).
@@ -195,13 +203,15 @@ O check indica publicação pela API. Arquivos locais disponíveis ficam clicáv
   - Catálogo: Hack squat; ID: `8b251918-9a9f-4e10-87d8-4d693a6aa2c2`.
   - Imagem: `design/exercise-images/images/agachamento-hack.png` (a gerar).
   - Variação escolhida para o nome genérico: Hack squat
-- [ ] **Leg press 45°** — Pendente
+- [x] **Leg press 45°** — Publicada
   - Catálogo: Leg press 45 graus; ID: `0eb91f3a-cfce-49b6-8673-2796f48b13d8`.
-  - Imagem: `design/exercise-images/images/leg-press-45-graus.png` (a gerar).
+  - Imagem: [abrir arquivo](images/leg-press-45-graus.png).
   - Variação escolhida para o nome genérico: Leg press 45 graus
-- [ ] **Cadeira extensora** — Pendente
+  - production (https://orami.com.br): `/media/exercises/1c85bf1f-4aed-4db1-9b4d-380f9321fe07.webp`; mídia verificada; aceite pendente (visual/app).
+- [x] **Cadeira extensora** — Publicada
   - Catálogo: Cadeira extensora; ID: `00000000-0000-4000-8000-000000000009`.
-  - Imagem: `design/exercise-images/images/cadeira-extensora.png` (a gerar).
+  - Imagem: [abrir arquivo](images/cadeira-extensora.png).
+  - production (https://orami.com.br): `/media/exercises/ccfaabc3-30b2-44ae-b2c0-f63be9129113.webp`; mídia verificada; aceite pendente (visual/app).
 - [ ] **Afundo** — Pendente
   - Catálogo: Afundo peso corporal; ID: `a8759790-75f9-454a-8f8c-26279f091fa5`.
   - Imagem: `design/exercise-images/images/afundo.png` (a gerar).
@@ -210,33 +220,40 @@ O check indica publicação pela API. Arquivos locais disponíveis ficam clicáv
   - Catálogo: Passada caminhando; ID: `54a2d9ed-5790-4225-8eee-b2f9c781b0f0`.
   - Imagem: `design/exercise-images/images/passada.png` (a gerar).
   - Variação escolhida para o nome genérico: Passada caminhando
-- [ ] **Agachamento búlgaro** — Pendente
+- [x] **Agachamento búlgaro** — Publicada
   - Catálogo: Afundo búlgaro; ID: `40f58ed3-437b-4fbc-8585-5dbe58521bba`.
-  - Imagem: `design/exercise-images/images/agachamento-bulgaro.png` (a gerar).
-  - Variação escolhida para o nome genérico: Afundo búlgaro
+  - Imagem: [abrir arquivo](images/agachamento-bulgaro.png).
+  - Afundo búlgaro sem carga externa, pé traseiro elevado em banco. ID, escopo global, não arquivado e ausência de imagem confirmados na consulta de produção de 09/11/2026.
+  - production (https://orami.com.br): `/media/exercises/08594d6e-07a1-4e54-9b77-b6e62a2f4505.webp`; mídia verificada; aceite pendente (visual/app).
 
 ## Posteriores de coxa e glúteos
 
-- [ ] **Mesa flexora** — Pendente
+- [x] **Mesa flexora** — Publicada
   - Catálogo: Mesa flexora; ID: `00000000-0000-4000-8000-000000000010`.
-  - Imagem: `design/exercise-images/images/mesa-flexora.png` (a gerar).
-- [ ] **Cadeira flexora** — Pendente
+  - Imagem: [abrir arquivo](images/mesa-flexora.png).
+  - production (https://orami.com.br): `/media/exercises/6ecf3820-3241-4377-8002-b05a9e5dfc3b.webp`; mídia verificada; aceite pendente (visual/app).
+- [x] **Cadeira flexora** — Publicada
   - Catálogo: Cadeira flexora; ID: `cf5fdbc0-b73b-4540-8a31-8b1273dc576e`.
-  - Imagem: `design/exercise-images/images/cadeira-flexora.png` (a gerar).
-- [ ] **Stiff** — Pendente
+  - Imagem: [abrir arquivo](images/cadeira-flexora.png).
+  - production (https://orami.com.br): `/media/exercises/3102c658-a7d9-43af-9854-096d81098106.webp`; mídia verificada; aceite pendente (visual/app).
+- [x] **Stiff** — Publicada
   - Catálogo: Stiff com barra; ID: `fbdcebec-d42d-4e62-8fc7-0b46674a92e7`.
-  - Imagem: `design/exercise-images/images/stiff.png` (a gerar).
+  - Imagem: [abrir arquivo](images/stiff.png).
   - Variação escolhida para o nome genérico: Stiff com barra
-- [ ] **Levantamento terra romeno** — Pendente
+  - production (https://orami.com.br): `/media/exercises/18676db6-363e-45ae-80ad-fc887254868c.webp`; mídia verificada; aceite pendente (visual/app).
+- [x] **Levantamento terra romeno** — Publicada
   - Catálogo: Levantamento terra romeno; ID: `4575bf52-a760-4ff6-8b96-e2945c366f7d`.
-  - Imagem: `design/exercise-images/images/levantamento-terra-romeno.png` (a gerar).
-- [ ] **Levantamento terra** — Pendente
+  - Imagem: [abrir arquivo](images/levantamento-terra-romeno.png).
+  - production (https://orami.com.br): `/media/exercises/7a42b9f9-58da-4ea6-b67e-4bd326a1f724.webp`; mídia verificada; aceite pendente (visual/app).
+- [x] **Levantamento terra** — Publicada
   - Catálogo: Levantamento terra convencional; ID: `7f83ce16-9f04-419b-8779-ab7138712925`.
-  - Imagem: `design/exercise-images/images/levantamento-terra.png` (a gerar).
+  - Imagem: [abrir arquivo](images/levantamento-terra.png).
   - Variação escolhida para o nome genérico: Levantamento terra convencional
-- [ ] **Elevação pélvica** — Pendente
+  - production (https://orami.com.br): `/media/exercises/76d583c6-efe9-4890-a8d4-ea51f47f4a01.webp`; mídia verificada; aceite pendente (visual/app).
+- [x] **Elevação pélvica** — Publicada
   - Catálogo: Elevação pélvica; ID: `e45bd915-badf-42e0-8830-5e252065f869`.
-  - Imagem: `design/exercise-images/images/elevacao-pelvica.png` (a gerar).
+  - Imagem: [abrir arquivo](images/elevacao-pelvica.png).
+  - production (https://orami.com.br): `/media/exercises/db532b68-2996-4123-8c4a-0f1405655d32.webp`; mídia verificada; aceite pendente (visual/app).
 - [ ] **Extensão de quadril na polia** — Pendente
   - Catálogo: Glúteo no cabo; ID: `0ef2344c-7885-4a0c-8d09-13d5f4c67d27`.
   - Imagem: `design/exercise-images/images/extensao-de-quadril-na-polia.png` (a gerar).
@@ -244,12 +261,14 @@ O check indica publicação pela API. Arquivos locais disponíveis ficam clicáv
 
 ## Abdutores e adutores do quadril
 
-- [ ] **Cadeira abdutora** — Pendente
+- [x] **Cadeira abdutora** — Publicada
   - Catálogo: Cadeira abdutora; ID: `db59d240-5495-498e-8867-62dd2691b7a3`.
-  - Imagem: `design/exercise-images/images/cadeira-abdutora.png` (a gerar).
-- [ ] **Cadeira adutora** — Pendente
+  - Imagem: [abrir arquivo](images/cadeira-abdutora.png).
+  - production (https://orami.com.br): `/media/exercises/7f6148e1-267e-45b3-b545-9c3c0c30f76d.webp`; mídia verificada; aceite pendente (visual/app).
+- [x] **Cadeira adutora** — Publicada
   - Catálogo: Cadeira adutora; ID: `7766202c-72cd-42e7-8bd6-f1ce2a3c1778`.
-  - Imagem: `design/exercise-images/images/cadeira-adutora.png` (a gerar).
+  - Imagem: [abrir arquivo](images/cadeira-adutora.png).
+  - production (https://orami.com.br): `/media/exercises/cca697d7-dc38-4dda-ac40-e2c7633eb8b3.webp`; mídia verificada; aceite pendente (visual/app).
 - [ ] **Abdução de quadril na polia** — Pendente
   - Catálogo: Vínculo pendente; ID: —.
   - Imagem: `design/exercise-images/images/abducao-de-quadril-na-polia.png` (a gerar).
@@ -257,18 +276,20 @@ O check indica publicação pela API. Arquivos locais disponíveis ficam clicáv
 
 ## Panturrilhas
 
-- [ ] **Elevação de panturrilhas em pé** — Pendente
+- [x] **Elevação de panturrilhas em pé** — Publicada
   - Catálogo: Panturrilha em pé máquina; ID: `5e616ba4-29b1-4190-8435-109aeb391623`.
-  - Imagem: `design/exercise-images/images/elevacao-de-panturrilhas-em-pe.png` (a gerar).
+  - Imagem: [abrir arquivo](images/elevacao-de-panturrilhas-em-pe.png).
   - Variação escolhida para o nome genérico: Panturrilha em pé máquina
+  - production (https://orami.com.br): `/media/exercises/7c47cb3c-2c57-488a-8765-28e27d13273f.webp`; mídia verificada; aceite pendente (visual/app).
 - [ ] **Elevação de panturrilhas sentado** — Pendente
   - Catálogo: Panturrilha sentado máquina; ID: `ebb5d466-8e48-4133-8933-539ef6d0e85b`.
   - Imagem: `design/exercise-images/images/elevacao-de-panturrilhas-sentado.png` (a gerar).
   - Variação escolhida para o nome genérico: Panturrilha sentado máquina
-- [ ] **Panturrilhas no leg press** — Pendente
+- [x] **Panturrilhas no leg press** — Publicada
   - Catálogo: Panturrilha no leg press; ID: `675b32aa-0367-4fe6-8abf-8402cdbc9eb3`.
-  - Imagem: `design/exercise-images/images/panturrilhas-no-leg-press.png` (a gerar).
+  - Imagem: [abrir arquivo](images/panturrilhas-no-leg-press.png).
   - Variação escolhida para o nome genérico: Panturrilha no leg press
+  - production (https://orami.com.br): `/media/exercises/1f1db55c-48d2-4af3-95ac-4559f73a4389.webp`; mídia verificada; aceite pendente (visual/app).
 
 ## Abdômen e core
 
@@ -340,4 +361,63 @@ O check indica publicação pela API. Arquivos locais disponíveis ficam clicáv
   - Catálogo: Remo ergômetro; ID: `15ee4c61-ca15-43d6-8157-e1991fb373be`.
   - Imagem: `design/exercise-images/images/remo-ergometrico.png` (a gerar).
   - Variação escolhida para o nome genérico: Remo ergômetro
+
+## Complementos do catálogo
+
+- [x] **Crossover alto** — Publicada
+  - Catálogo: Crossover alto; ID: `ace87820-bd89-4dca-8120-1eaf73b68f60`.
+  - Imagem: [abrir arquivo](images/crossover-alto.png).
+  - production (https://orami.com.br): `/media/exercises/4b128e6d-52f8-4792-a5cc-36667b08c651.webp`; mídia verificada; aceite pendente (visual/app).
+- [x] **Desenvolvimento de ombros** — Publicada
+  - Catálogo: Desenvolvimento de ombros; ID: `00000000-0000-4000-8000-000000000005`.
+  - Imagem: [abrir arquivo](images/desenvolvimento-de-ombros.png).
+  - production (https://orami.com.br): `/media/exercises/59e7c8c0-a601-4af5-994f-913ea7bfd73b.webp`; mídia verificada; aceite pendente (visual/app).
+- [x] **Desenvolvimento militar com barra** — Publicada
+  - Catálogo: Desenvolvimento militar com barra; ID: `3c1e96c9-202b-46fe-8fd8-2631aca6b8bc`.
+  - Imagem: [abrir arquivo](images/desenvolvimento-militar-com-barra.png).
+  - production (https://orami.com.br): `/media/exercises/58279284-789a-4ad2-9baf-54e1a47c7994.webp`; mídia verificada; aceite pendente (visual/app).
+- [x] **Elevação lateral** — Publicada
+  - Catálogo: Elevação lateral; ID: `00000000-0000-4000-8000-000000000011`.
+  - Imagem: [abrir arquivo](images/elevacao-lateral.png).
+  - production (https://orami.com.br): `/media/exercises/f941203b-8721-4afe-822d-b8775e69eeb0.webp`; mídia verificada; aceite pendente (visual/app).
+- [x] **Panturrilha no degrau** — Publicada
+  - Catálogo: Panturrilha no degrau; ID: `452c1a2e-cb03-4dcf-8395-b108a2ae7af7`.
+  - Imagem: [abrir arquivo](images/panturrilha-no-degrau.png).
+  - production (https://orami.com.br): `/media/exercises/87a57b3e-7a80-4f94-95f9-ac3131615daa.webp`; mídia verificada; aceite pendente (visual/app).
+- [x] **Puxada alta frente** — Publicada
+  - Catálogo: Puxada alta frente; ID: `6207f1c5-7b02-4f58-86b2-56d913d352a9`.
+  - Imagem: [abrir arquivo](images/puxada-alta-frente.png).
+  - production (https://orami.com.br): `/media/exercises/bdcff352-a762-45c5-b35a-f357c4bc36ff.webp`; mídia verificada; aceite pendente (visual/app).
+- [x] **Rosca Scott máquina** — Publicada
+  - Catálogo: Rosca Scott máquina; ID: `663dcbe0-190c-4d75-8262-5a8415eba40a`.
+  - Imagem: [abrir arquivo](images/rosca-scott-maquina.png).
+  - production (https://orami.com.br): `/media/exercises/cbfa9b80-b01e-4c7a-8464-3db2f4b4ccf3.webp`; mídia verificada; aceite pendente (visual/app).
+- [x] **Supino inclinado com barra** — Publicada
+  - Catálogo: Supino inclinado com barra; ID: `6770a7f2-e34a-4ed7-867f-2c5dad6a300f`.
+  - Imagem: [abrir arquivo](images/supino-inclinado-com-barra.png).
+  - production (https://orami.com.br): `/media/exercises/ce8fb05e-5fae-4683-a2a2-ea0d390895fc.webp`; mídia verificada; aceite pendente (visual/app).
+- [x] **Supino máquina** — Publicada
+  - Catálogo: Supino máquina; ID: `aa5ff224-c75b-4245-8891-1e2078a6cd77`.
+  - Imagem: [abrir arquivo](images/supino-maquina.png).
+  - production (https://orami.com.br): `/media/exercises/11814aeb-5ecb-4944-b260-8c6a20ad64cc.webp`; mídia verificada; aceite pendente (visual/app).
+- [x] **Tríceps barra V** — Publicada
+  - Catálogo: Tríceps barra V; ID: `79141703-4d4e-403e-86fe-cb4648057317`.
+  - Imagem: [abrir arquivo](images/triceps-barra-v.png).
+  - production (https://orami.com.br): `/media/exercises/a6d5b885-9e23-4079-849c-847e951d6b96.webp`; mídia verificada; aceite pendente (visual/app).
+- [x] **Tríceps francês unilateral** — Publicada
+  - Catálogo: Tríceps francês unilateral; ID: `b352e69e-77e9-4a78-8a59-dcb5718501c9`.
+  - Imagem: [abrir arquivo](images/triceps-frances-unilateral.png).
+  - production (https://orami.com.br): `/media/exercises/0e91e080-39aa-43ba-a967-02a9733122b4.webp`; mídia verificada; aceite pendente (visual/app).
+- [x] **Tríceps na polia unilateral** — Publicada
+  - Catálogo: Tríceps na polia unilateral; ID: `97733583-c32b-4392-89b1-4024a2e41942`.
+  - Imagem: [abrir arquivo](images/triceps-na-polia-unilateral.png).
+  - production (https://orami.com.br): `/media/exercises/c9b0f1c3-6851-4972-a071-cf60ced13b9a.webp`; mídia verificada; aceite pendente (visual/app).
+- [x] **Voador invertido** — Publicada
+  - Catálogo: Voador invertido; ID: `e8c030f9-e1d8-4a08-8ae5-8b2432aa4c6a`.
+  - Imagem: [abrir arquivo](images/voador-invertido.png).
+  - production (https://orami.com.br): `/media/exercises/7d034b7a-8611-48ab-b4f3-8df1c26c3e87.webp`; mídia verificada; aceite pendente (visual/app).
+- [x] **Voador peitoral** — Publicada
+  - Catálogo: Voador peitoral; ID: `26e822ab-b09c-4a3f-803d-7349da5b3e25`.
+  - Imagem: [abrir arquivo](images/voador-peitoral.png).
+  - production (https://orami.com.br): `/media/exercises/8154ae7f-e36e-4f3e-bd6d-0b05851e19d0.webp`; mídia verificada; aceite pendente (visual/app).
 

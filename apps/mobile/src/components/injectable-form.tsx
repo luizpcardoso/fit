@@ -1,3 +1,6 @@
+import { ImageChoiceCard } from './image-choice-card';
+import { SceneThumb } from './scene';
+import { injectableIllustrations } from './injectable-illustration';
 import { FormScrollView as ScrollView } from '@/components/form-scroll-view';
 import { FormInput as TextInput } from '@/components/form-input';
 import { InformationModal } from "@/components/information-modal";
@@ -14,6 +17,7 @@ import {
 import MaterialCommunityIcons from '@/components/icon';
 import { useState } from "react";
 import {
+  ScrollView as HorizontalScrollView,
   ActivityIndicator,
   Modal,
   Pressable,
@@ -43,6 +47,7 @@ export function InjectableForm({
 }) {
   const { colors: c, scheme } = useAppTheme();
   const s = styles(c);
+  const [illustration, setIllustration] = useState<InjectableInput['illustration']>(initial?.illustration ?? null);
   const [name, setName] = useState(initial?.name ?? "");
   const [dose, setDose] = useState(formatDecimalValue(initial?.dose));
   const [unit, setUnit] = useState<InjectableUnit>(initial?.unit ?? "mg");
@@ -61,6 +66,7 @@ export function InjectableForm({
   const tirzepatide = name.trim().toLocaleLowerCase("pt-BR").includes("tirzep");
   const submit = async () => {
     const parsed = injectableInputSchema.safeParse({
+      illustration,
       name,
       dose: parseNumber(dose),
       unit,
@@ -140,6 +146,10 @@ export function InjectableForm({
               style={s.input}
             />
           </Field>
+          <Field label="Imagem"><HorizontalScrollView horizontal accessibilityRole="radiogroup" accessibilityLabel="Imagem do injetável" showsHorizontalScrollIndicator contentContainerStyle={{ gap: 10, paddingBottom: 8 }}>
+            <ImageChoiceCard label="Padrão" selected={!illustration} disabled={busy} onPress={() => setIllustration(null)}><SceneThumb scene="thumbInjectable" size={72}/></ImageChoiceCard>
+            {injectableIllustrations.map(option => <ImageChoiceCard key={option.value} label={option.label} selected={illustration === option.value} disabled={busy} onPress={() => setIllustration(option.value)}><SceneThumb scene={option.scene} size={72}/></ImageChoiceCard>)}
+          </HorizontalScrollView></Field>
           <View style={s.twoColumns}>
             <View style={s.column}>
               <Field label="Dose por aplicação">

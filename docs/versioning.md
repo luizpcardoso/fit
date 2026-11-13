@@ -1,16 +1,12 @@
 # Versionamento do aplicativo
 
-O aplicativo mostra uma versão curta para o usuário e mantém uma versão técnica compatível com o ecossistema Expo/Android.
+A versão pública segue `MAIOR.INSTALAÇÃO.OTA`, com duas casas nos dois últimos grupos. A versão atual é `1.07.13`.
 
-- Versão exibida: `1.07`.
-- Versão técnica (SemVer): `1.0.7`.
-- Android `versionCode`: `10`, sempre crescente a cada novo APK.
+- Mudança compatível com atualização automática: incrementar o último grupo, por exemplo `1.07.09`.
+- Mudança que exige reinstalação: incrementar o grupo de instalação e zerar o último, por exemplo `1.08.00`; incrementar também `android.versionCode`.
+- O primeiro grupo só muda por decisão explícita do usuário, por exemplo `2.00.00`.
 
-A versão exibida fica em `expo.extra.releaseName`; a versão técnica e o código ficam em `apps/mobile/app.json`. A tela Configurações → Sobre o app mostra os três valores disponíveis no binário.
-
-O formato público segue `principal.revisão` com dois algarismos (`1.01`, `1.02`, ...). No SemVer, a revisão pública corresponde ao patch (`1.0.1`, `1.0.2`, ...). Uma mudança maior de produto pode iniciar uma nova série, documentada antes da publicação. Atualizações OTA compatíveis não alteram o código do APK; um novo APK sempre incrementa o `versionCode`.
-
-O menu da Home também exibe a versão pública em texto pequeno e discreto, abaixo de “Sair da conta”, usando a mesma fonte `expo.extra.releaseName` e fallback para `expo.version`. Manter essa indicação sincronizada com Configurações, sem número fixo no componente.
+A versão pública do bundle fica em `apps/mobile/src/constants/release-version.ts` e aparece na Home e em Configurações. Manter `expo.extra.releaseName`, `expo.version` e o runtime nativo do APK instalado durante OTA: alterar a configuração nativa mudaria o fingerprint. Em novo APK, a versão técnica SemVer usa os mesmos números sem zeros à esquerda (ex.: `1.8.0`) e o código Android cresce. Republicar em APK uma atualização que já pode ser instalada por OTA mantém a versão pública e incrementa `versionCode`; o runtime do APK continua independente da versão pública do bundle.
 
 
 ## Distribuição versionada
@@ -128,3 +124,77 @@ Downloads integrais de `orami-1.0.7-android.apk` e do alias `/downloads/fit.apk`
 - API atualizada antes do OTA (o bundle depende de `/me/preferences` e das dispensas), com migrações `046-health-item-schedule`, `047-daily-dismissals` e `048-user-preferences` aplicadas pelo migrador; contagens de usuários e suplementos preservadas. `/health`, home e portal respondem 200; rotas novas sem sessão e login inválido respondem 401.
 - Backup privado de banco, mídia, fontes e manifesto em `/home/luizserver/apps/fit/deploy/backups/ota-1.07-20261107T025020Z` e `~/.local/share/fit/deployment-backups/ota-1.07-20261107T025020Z`; imagem anterior da API preservada como `fit-server-api:before-ota-1.07-20261107T025020Z`.
 - Manifesto público conferido com os cabeçalhos de um aparelho 1.07: assinatura verificada com `certs/updates.pem` e SHA-256 do bundle idêntico ao manifesto. Typecheck, lint mobile e `npm test` aprovados; cabeçalho validado no app web em 320/360/412 px. Validação em aparelho físico pendente.
+
+### Atualização automática da 1.07 — 09/11/2026
+
+- Update ID: `5f26669f-d71b-43e4-9c88-5db37dda9aaa`, runtime `2ba246dc9393399f3e8794010784b4ccf724497c`. Galeria de ilustrações para medicamentos e suplementos, tomadas eventuais independentes da rotina e alinhamento da gaveta Registrar.
+- API atualizada antes do OTA; migração `049-health-occasional-intakes` aplicada. API saudável, `/health` responde 200 e a rota eventual sem sessão responde 401.
+- Backup privado do banco, mídia, fontes anteriores e manifesto em `/home/luizserver/apps/fit/deploy/backups/occasional-20261109`; imagem anterior preservada como `fit-server-api:before-occasional-20261109`.
+- Manifesto público verificado com o certificado do app; hash do bundle público corresponde ao manifesto. Testes de API/MySQL, typecheck, lint e fluxo web aprovados. Validação visual nativa Android permanece pendente: emulador travou na inicialização.
+
+### Atualização automática 1.07.08 — 09/11/2026
+
+- Update ID `eb859564-f182-499f-89ef-07e69540bc3c`, runtime `2ba246dc9393399f3e8794010784b4ccf724497c`; versão pública do bundle `1.07.08`, sem alterar o APK ou seu fingerprint.
+- Inclui seleção de imagens para injetáveis e galerias com cards alinhados. API atualizada com migration `050-injectable-illustration` antes da ativação.
+- Manifesto público e hash do bundle conferidos; backup privado do banco, fontes da API e manifesto anterior em `deploy/backups/version-10107-20261109` no servidor. A imagem anterior da API foi preservada. A validação visual Android nativa permanece pendente.
+
+### Instalador 1.07.08 — 09/11/2026
+
+- APK público `orami-1.7.8-android.apk`, versionCode 11, 108754173 bytes, SHA-256 `c5744b73a1094dcfd8897f4c4eb5cb8c4d78308403d8656b38872d234fb6f6d2`, runtime `6f677f016200b2d40fa1ba0c8867c668e0c75249`.
+- Contém os ajustes já distribuídos por OTA, incluindo as onze ilustrações para injetáveis e os cards alinhados. A assinatura foi comparada com o APK 1.07. O site lê a versão e o tamanho do novo manifesto; o arquivo antigo e seu manifesto OTA continuam disponíveis.
+- É uma republicação do conteúdo existente no instalador: usuários que já receberam 1.07.08 por OTA não precisam reinstalar. O runtime deste APK é distinto do anterior; preservar os manifestos para ambos ao preparar atualizações compatíveis futuras.
+- Backup privado dos metadados e do código web anterior em `deploy/backups/apk-10708-20261109` no servidor; imagem anterior da API preservada em `fit-server-api:before-apk-10708`.
+
+### Atualização automática 1.07.09 — 09/11/2026
+
+- Update ID `4217e755-3967-4376-bb79-c1cf0ca0e256`, runtime `6f677f016200b2d40fa1ba0c8867c668e0c75249`, compatível com o instalador 1.07.08. Versão pública do bundle `1.07.09`; sem mudança nativa.
+- Início reorganizado em rotina, treino compacto, comunidade e balanço opcional. Atalhos duplicados removidos da Home/configurações; preferências históricas preservadas. Comunidade apresenta convites, grupos e publicações não lidas, com acesso ao feed e publicação explícita. Abas mantêm rótulos visíveis e larguras estáveis; o + abre Ações rápidas.
+- Typecheck e lint mobile aprovados. Build Android e web aprovados; Playwright com API real em banco isolado validou navegação, comunidade vazia, falha/repetição, convites, publicação e novidades. Layout web verificado em 320/390/412 px, temas claro/escuro e áreas seguras inferiores simuladas. Sem validação em aparelho Android físico nesta entrega.
+- Backup anterior em `deploy/backups/home-10709-20261109` no servidor, com fontes mobile e manifestos anteriores. Publicação atômica; manifesto público assinado e hash do bundle verificados. API e dados de produção sem alteração nesta entrega. Runtimes anteriores preservados.
+
+### Atualização automática 1.07.10 — 10/11/2026
+
+- Update ID `e29288d4-ce11-4fcf-806a-3436534a3592`, runtime `6f677f016200b2d40fa1ba0c8867c668e0c75249`, compatível com o instalador 1.07.08. Respostas a comentários com apenas um nível e cinco reações em comentários/respostas. Sem mudança nativa ou novo APK.
+- Manifesto público, assinatura e SHA-256 do bundle conferidos após a ativação atômica. API atualizada antes do OTA; migration `051-comment-replies-and-reactions` aplicada e `/health` saudável. Backup privado de banco, fontes e manifestos em `deploy/backups/comments-10710-20261110` no servidor, com cópia local em `~/.local/share/fit/deployment-backups/comments-10710-20261110`. Imagem anterior preservada como `fit-server-api:before-comments-10710`.
+- Typecheck, lint mobile e integração MySQL em banco temporário aprovados. A suíte padrão tem falha no teste antigo `versioning.test.ts`, que ainda exige a configuração nativa 1.0.7/versionCode 10. E2E ampliado, mas não executado nesta entrega; validação física Android pendente.
+
+### Atualização automática 1.07.11 — 10/11/2026
+
+- Update ID `26a62122-bcba-42ea-be3a-f27ab71f6827`, runtime `6f677f016200b2d40fa1ba0c8867c668e0c75249`, compatível com o instalador 1.07.08. Comentários e respostas exibem fotos dos autores; avatares de posts/comentários/respostas abrem a imagem ampliada, com carregamento, erro recuperável e fechamento sem perder a conversa. Inicial quando não há foto ou a miniatura falha.
+- Sem alteração na API, nas permissões ou no banco. Backup privado das fontes mobile e manifestos anteriores em `deploy/backups/avatars-10711-20261110` no servidor e em `~/.local/share/fit/deployment-backups/avatars-10711-20261110` local.
+- Typecheck, lint mobile e E2E `social-feed.spec.ts` aprovados com uploads, contas e comentários reais em banco efêmero isolado, incluindo respostas, reações, ampliação/fechamento e larguras de 320/390 px. Banco e servidores locais de teste encerrados após a validação. Homologação física Android pendente.
+- Publicação atômica; manifesto público, assinatura e SHA-256 do bundle conferidos. API pública saudável; APK e runtimes anteriores preservados.
+
+### Versão final consolidada 1.07.10 — 10/11/2026
+
+- Por solicitação explícita do usuário, a versão pública final deste conjunto é `1.07.10`, substituindo a identificação intermediária `1.07.11`. Preserva respostas com apenas um nível, reações em comentários, fotos dos autores e ampliação dos avatares; acrescenta abertura da conversa ao tocar no contador de comentários. Conversas existentes continuam acessíveis quando novos comentários estão desativados, com aviso no lugar do editor.
+- Update ID `4e6242aa-b954-4937-8fc6-654b57195a49`, runtime `6f677f016200b2d40fa1ba0c8867c668e0c75249`. Novo manifesto assinado com ID/data posteriores: aparelhos que receberam a identificação intermediária também recebem esta atualização. Configuração nativa, APK e banco sem alterações nesta publicação.
+- Typecheck, lint mobile e E2E social aprovados com API real/banco temporário: contadores singular/plural, leitura com comentários desativados, respostas, reações e fotos ampliadas. Banco e servidores de teste encerrados. Validação física Android permanece pendente.
+- Backup privado das fontes/manifestos anteriores em `deploy/backups/final-social-10710-20261110` no servidor, com cópia local em `~/.local/share/fit/deployment-backups/final-social-10710-20261110`. Manifesto ativado atomicamente; assinatura e hash do bundle público conferidos, API saudável. Histórico de publicações anteriores preservado acima para rastreabilidade.
+
+### Início horizontal e instalador 1.07.11 — 10/11/2026
+
+- Início com rotina acima do acompanhamento horizontal de Treino, Alimentação e Balanço opcional; navegação por toque, deslize e teclado, prévia lateral, altura adaptável e tema restaurado ao voltar de detalhes. Comunidade compacta reúne convites identificados e grupos com publicações não lidas, sem marcar leitura na prévia. Resumos refletem refeições salvas localmente e sincronizadas.
+- APK público `orami-1.7.11-android.apk`, versão técnica `1.7.11`, pública `1.07.11`, `versionCode` 12, 108774325 bytes, SHA-256 `eaa134d720c209d65b2a545d65ea84b61befe661761a101811ecd831d764ed81` e runtime `6c4df187a53c5646b0970f3264af70b913235018`. Assinatura comparada com o instalador 1.07.08 e preservada. A renovação dos metadados do instalador mantém o ciclo de instalação 07; não há funcionalidade nativa nova.
+- Atualização automática assinada `c33b5c23-5900-4174-b48e-f38fb8db6be2` para o runtime `6f677f016200b2d40fa1ba0c8867c668e0c75249` do instalador 1.07.08, com o mesmo conteúdo da nova versão. Manifestos de outros runtimes preservados; o novo APK usa o bundle embutido até existir uma atualização para seu runtime.
+- Typecheck de todos os workspaces, lint mobile, suíte padrão e teste de consistência das versões aprovados. Os fluxos da home, comunidade, navegação e refeições foram validados com API/banco isolados; temas claro/escuro, 320/390/720 px, teclado, toque horizontal/vertical no navegador e refeições offline. APK de produção compilado; API HTTPS e versão conferidas no bundle. Validação em aparelho Android físico permanece pendente.
+- Publicação por renomeação atômica. Download público integral conferido por tamanho/SHA-256; assinatura e hash do bundle OTA públicos verificados. Alias `/downloads/fit.apk`, checksum e manifesto apontam para o novo APK. Os dois botões do site foram conferidos em 390 px e mostram a 1.07.11. API saudável e acesso sem sessão à alimentação retorna 401.
+- Backup privado anterior em `deploy/backups/home-carousel-10711-20261110` no servidor e `~/.local/share/fit/deployment-backups/home-carousel-10711-20261110` local, com fontes mobile e índices de atualizações/download anteriores. API e contratos já coincidiam com produção; nenhuma migração ou reinício de serviço foi necessário. APKs e atualizações anteriores mantidos.
+
+
+### Correção de crash Android 1.07.12 — 10/11/2026
+
+- A home da 1.07.11 usava `accessibilityRole="tabpanel"`. A enumeração Android `ReactAccessibilityDelegate.AccessibilityRole` não aceita esse valor e `fromValue` lança `IllegalArgumentException`. O painel usa agora `role="tabpanel"`, aceito pela enumeração nativa `Role`, mantendo a semântica na web. A validação anterior pelo navegador não cobria essa incompatibilidade.
+- Teste de regressão `native-accessibility.test.ts` confronta os papéis literais de todos os componentes com a enumeração do Android da dependência instalada. Typecheck mobile/API, lint, teste de versão e regressão aprovados; APK release compilado. Nenhum aparelho físico estava conectado para homologação.
+- Atualizações assinadas corretivas: `63ec147c-3823-4dce-bbbc-fd0b96d3133a` para runtime `6c4df187a53c5646b0970f3264af70b913235018`; `a9178ade-874b-4284-a8a6-ae46105f809b` para runtime `6f677f016200b2d40fa1ba0c8867c668e0c75249`. Assinaturas públicas conferidas. O APK defeituoso 1.07.11 foi retirado do download público e conservado no backup; durante o build, o site apontou temporariamente ao instalador anterior.
+- Novo APK `orami-1.7.12-android.apk`, versão pública `1.07.12`, `versionCode` 13, 108774629 bytes, SHA-256 `4740a223b4a48bbcde2b38d6d0bf483e0ba274ce4b538b9c1ca78a4dfc9e5e16`. Assinatura anterior preservada. O build incremental mantém o runtime `6c4df187a53c5646b0970f3264af70b913235018`; esse é o runtime efetivamente embutido e publicado, a conferir antes de futuras OTAs. Bundle embutido conferido com a versão corrigida.
+- Backup do incidente em `deploy/backups/crash-home-10712-20261110`, no servidor; a versão retirada e os índices anteriores permanecem preservados. API e banco sem mudança.
+
+### Instalador 1.07.13 — 13/11/2026
+
+- APK público `orami-1.7.13-android.apk`, versão técnica `1.7.13`, pública `1.07.13`, `versionCode` 14, 108795588 bytes e SHA-256 `2d72e3a1b6f5be24ef4ab97727e6689aa9cd20f48d909c1d5f4f8b4bc9ac71f4`. Runtime embutido e resolvido: `a126f4cba79af52c114ce47cde695bad7d968e2e`. Assinatura comparada com o instalador 1.07.08 e preservada.
+- Recompilado com os fontes atuais: acompanhamento horizontal mantém a altura dos cartões, restaura a seleção ao voltar dos detalhes e preserva a correção de acessibilidade Android. Versão e API HTTPS conferidas dentro do bundle do APK.
+- Typecheck dos workspaces, lint mobile e suíte padrão aprovados. E2E da Home aprovado com API real e MySQL local isolado: temas claro/escuro, 320/390/720 px, texto ampliado, teclado, navegação, refeição salva/sincronizada e balanço opcional. A primeira execução atingiu o limite de tempo; a repetição com limite ampliado concluiu sem falhas. Banco temporário removido e serviços locais encerrados. Homologação em aparelho Android físico permanece pendente.
+- Manifesto ativado atomicamente após validar tamanho e hash no servidor; link versionado, alias `/downloads/fit.apk` e checksum atualizados. Os dois downloads públicos integrais reproduziram o tamanho e SHA-256 locais. Home, portal e `/health` respondem 200; alimentação sem sessão e login inválido respondem 401.
+- API e contratos já coincidiam com produção; nenhuma migração ou reinicialização foi necessária. Esta publicação distribui um novo APK; manifestos OTA anteriores foram preservados, sem nova atualização automática para seus runtimes.
+- Backup privado dos metadados, fontes mobile e manifestos anteriores em `deploy/backups/release-10713-20261113`, no servidor, e `~/.local/share/fit/deployment-backups/release-10713-20261113`, localmente. APKs anteriores mantidos.

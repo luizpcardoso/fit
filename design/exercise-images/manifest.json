@@ -16,7 +16,11 @@
       "imagePath": "design/exercise-images/images/supino-reto-com-barra.png",
       "imageUrl": "/media/exercises/df792bf5-5290-4e61-b5e6-b9e4ab0fce2a.webp",
       "publishedSha256": "9a12e6850c8f1127ecea4cd96f9f5b04bd5e26613f4bb653a300deed8be1ac0f",
-      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois"
+      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois",
+      "backup": {
+        "receiptPath": "/home/luiz/Área de trabalho/fit/exercise-image-backups/2026-11-09T21-18-51-202Z-fbeddeaf/receipt.json",
+        "sha256": "9a12e6850c8f1127ecea4cd96f9f5b04bd5e26613f4bb653a300deed8be1ac0f"
+      }
     },
     {
       "slug": "supino-reto-com-halteres",
@@ -30,7 +34,11 @@
       "imagePath": "design/exercise-images/images/supino-reto-com-halteres.png",
       "imageUrl": "/media/exercises/67a059f0-6115-4955-a8ad-01be7b0d77fe.webp",
       "publishedSha256": "5a0e42451e2cb0c70f327cd58f8759a80b3c340ec5a318022c2e96f84d0abc81",
-      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois"
+      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois",
+      "backup": {
+        "receiptPath": "/home/luiz/Área de trabalho/fit/exercise-image-backups/2026-11-09T21-18-51-202Z-fbeddeaf/receipt.json",
+        "sha256": "5a0e42451e2cb0c70f327cd58f8759a80b3c340ec5a318022c2e96f84d0abc81"
+      }
     },
     {
       "slug": "supino-inclinado-com-halteres",
@@ -44,7 +52,11 @@
       "imagePath": "design/exercise-images/images/supino-inclinado-com-halteres.png",
       "imageUrl": "/media/exercises/07da203a-502e-435d-bf45-08a3e0568071.webp",
       "publishedSha256": "f3351cdb453f8bcdb2acebec8b517f6d14038ff7e5603daf83ca2430c8247026",
-      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois"
+      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois",
+      "backup": {
+        "receiptPath": "/home/luiz/Área de trabalho/fit/exercise-image-backups/2026-11-09T21-18-51-202Z-fbeddeaf/receipt.json",
+        "sha256": "f3351cdb453f8bcdb2acebec8b517f6d14038ff7e5603daf83ca2430c8247026"
+      }
     },
     {
       "slug": "crucifixo-com-halteres",
@@ -58,7 +70,11 @@
       "imagePath": "design/exercise-images/images/crucifixo-com-halteres.png",
       "imageUrl": "/media/exercises/826dcaea-829a-4407-8344-5e142b5c9456.webp",
       "publishedSha256": "22faed76f78013496099b4a5afc9bfb182be4d6824b38f293e62705335211b78",
-      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois"
+      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois",
+      "backup": {
+        "receiptPath": "/home/luiz/Área de trabalho/fit/exercise-image-backups/2026-11-09T21-18-51-202Z-fbeddeaf/receipt.json",
+        "sha256": "22faed76f78013496099b4a5afc9bfb182be4d6824b38f293e62705335211b78"
+      }
     },
     {
       "slug": "crucifixo-na-maquina-peck-deck",
@@ -72,7 +88,11 @@
       "imagePath": "design/exercise-images/images/crucifixo-na-maquina-peck-deck.png",
       "imageUrl": "/media/exercises/fc403738-fc75-43e2-8744-244fdeb6c251.webp",
       "publishedSha256": "d93027f365156c7a5f75c84b4268de4cdc04af1294d91ecb66083f5b632cc47c",
-      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois"
+      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois",
+      "backup": {
+        "receiptPath": "/home/luiz/Área de trabalho/fit/exercise-image-backups/2026-11-09T21-18-51-202Z-fbeddeaf/receipt.json",
+        "sha256": "d93027f365156c7a5f75c84b4268de4cdc04af1294d91ecb66083f5b632cc47c"
+      }
     },
     {
       "slug": "crossover-na-polia",
@@ -86,7 +106,11 @@
       "imagePath": "design/exercise-images/images/crossover-na-polia.png",
       "imageUrl": "/media/exercises/f4a6b42a-47d9-447f-8384-2775a33fbeb4.webp",
       "publishedSha256": "ff00a5d0b3745ad18def48b20671077a7cb4f491236ca9aa6e2e256eb619054c",
-      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois"
+      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois",
+      "backup": {
+        "receiptPath": "/home/luiz/Área de trabalho/fit/exercise-image-backups/2026-11-09T21-18-51-202Z-fbeddeaf/receipt.json",
+        "sha256": "ff00a5d0b3745ad18def48b20671077a7cb4f491236ca9aa6e2e256eb619054c"
+      }
     },
     {
       "slug": "flexao-de-bracos",
@@ -100,7 +124,11 @@
       "imagePath": "design/exercise-images/images/flexao-de-bracos.png",
       "imageUrl": "/media/exercises/1306f8bd-d9a9-4330-b47b-fc1d405f2c5f.webp",
       "publishedSha256": "c4624ea91d2615816ea6614f3a66fa66f2d5435a9335f0261fb7259dac0dbd76",
-      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois"
+      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois",
+      "backup": {
+        "receiptPath": "/home/luiz/Área de trabalho/fit/exercise-image-backups/2026-11-09T21-18-51-202Z-fbeddeaf/receipt.json",
+        "sha256": "c4624ea91d2615816ea6614f3a66fa66f2d5435a9335f0261fb7259dac0dbd76"
+      }
     },
     {
       "slug": "puxada-frontal-na-polia",
@@ -114,7 +142,11 @@
       "imagePath": "design/exercise-images/images/puxada-frontal-na-polia.png",
       "imageUrl": "/media/exercises/c1ab24d8-4b8a-4e67-ba4d-c41c694b9d20.webp",
       "publishedSha256": "d377f0179a91e1f3fda97d2f03649bc8f3f9f693af52cc7da1072e728430bd8f",
-      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois"
+      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois",
+      "backup": {
+        "receiptPath": "/home/luiz/Área de trabalho/fit/exercise-image-backups/2026-11-09T21-18-51-202Z-fbeddeaf/receipt.json",
+        "sha256": "d377f0179a91e1f3fda97d2f03649bc8f3f9f693af52cc7da1072e728430bd8f"
+      }
     },
     {
       "slug": "puxada-com-pegada-neutra",
@@ -128,7 +160,11 @@
       "imagePath": "design/exercise-images/images/puxada-com-pegada-neutra.png",
       "imageUrl": "/media/exercises/0dc3861a-b42d-465b-a9ee-a5fd93fef2ba.webp",
       "publishedSha256": "cf12b1d4e8ef09370d044f62e6da001e22675462ba3c147f6bd21607a3295337",
-      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois"
+      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois",
+      "backup": {
+        "receiptPath": "/home/luiz/Área de trabalho/fit/exercise-image-backups/2026-11-09T21-18-51-202Z-fbeddeaf/receipt.json",
+        "sha256": "cf12b1d4e8ef09370d044f62e6da001e22675462ba3c147f6bd21607a3295337"
+      }
     },
     {
       "slug": "puxada-atras-da-nuca",
@@ -141,7 +177,11 @@
       "imageStatus": "generated",
       "imagePath": "design/exercise-images/images/puxada-atras-da-nuca.png",
       "imageUrl": null,
-      "publishedSha256": null
+      "publishedSha256": null,
+      "backup": {
+        "receiptPath": "/home/luiz/Área de trabalho/fit/exercise-image-backups/2026-11-09T21-18-51-202Z-fbeddeaf/receipt.json",
+        "sha256": "563fc542be6953447e9b22ff8bdbaa6c5a25c53d64760dd13c31a9582119b5f4"
+      }
     },
     {
       "slug": "remada-baixa",
@@ -155,7 +195,11 @@
       "imagePath": "design/exercise-images/images/remada-baixa.png",
       "imageUrl": "/media/exercises/a3867d30-70b5-47b3-a316-a61ca63004a4.webp",
       "publishedSha256": "20f190c3fdeb48b5cbf44f79f1276a0e4ef0265b5d072dd342436943b2bdcec0",
-      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois"
+      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois",
+      "backup": {
+        "receiptPath": "/home/luiz/Área de trabalho/fit/exercise-image-backups/2026-11-09T21-18-51-202Z-fbeddeaf/receipt.json",
+        "sha256": "20f190c3fdeb48b5cbf44f79f1276a0e4ef0265b5d072dd342436943b2bdcec0"
+      }
     },
     {
       "slug": "remada-curvada-com-barra",
@@ -169,7 +213,11 @@
       "imagePath": "design/exercise-images/images/remada-curvada-com-barra.png",
       "imageUrl": "/media/exercises/ca30d926-71c4-4ee6-a456-a66dbe12caa0.webp",
       "publishedSha256": "d2918a81065c38a67ae47478a09afe218d02fa1eebdc94ec03c305f3a3d49dfb",
-      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois"
+      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois",
+      "backup": {
+        "receiptPath": "/home/luiz/Área de trabalho/fit/exercise-image-backups/2026-11-09T21-18-51-202Z-fbeddeaf/receipt.json",
+        "sha256": "d2918a81065c38a67ae47478a09afe218d02fa1eebdc94ec03c305f3a3d49dfb"
+      }
     },
     {
       "slug": "remada-unilateral-com-halter",
@@ -183,7 +231,11 @@
       "imagePath": "design/exercise-images/images/remada-unilateral-com-halter.png",
       "imageUrl": "/media/exercises/29026f59-75f9-4342-80e9-2a07a224d6b4.webp",
       "publishedSha256": "1b6c016882827e7749642e7c3b8ca2d5f0aa0265d27a0f4da47c63414f272d5a",
-      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois"
+      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois",
+      "backup": {
+        "receiptPath": "/home/luiz/Área de trabalho/fit/exercise-image-backups/2026-11-09T21-18-51-202Z-fbeddeaf/receipt.json",
+        "sha256": "1b6c016882827e7749642e7c3b8ca2d5f0aa0265d27a0f4da47c63414f272d5a"
+      }
     },
     {
       "slug": "remada-na-maquina",
@@ -197,7 +249,11 @@
       "imagePath": "design/exercise-images/images/remada-na-maquina.png",
       "imageUrl": "/media/exercises/8bc4d68f-4d2b-4231-b7ca-308b9d6cf9f6.webp",
       "publishedSha256": "1e42aeef2eb31a3c072a2e51629d895c44b64e6822682b57eaa55c3598406abc",
-      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois"
+      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois",
+      "backup": {
+        "receiptPath": "/home/luiz/Área de trabalho/fit/exercise-image-backups/2026-11-09T21-18-51-202Z-fbeddeaf/receipt.json",
+        "sha256": "1e42aeef2eb31a3c072a2e51629d895c44b64e6822682b57eaa55c3598406abc"
+      }
     },
     {
       "slug": "barra-fixa",
@@ -211,7 +267,11 @@
       "imagePath": "design/exercise-images/images/barra-fixa.png",
       "imageUrl": "/media/exercises/1ff55c2f-9d6c-4504-ae7f-66f10388b1c9.webp",
       "publishedSha256": "43a95ca7bf77a943d2e5a27d281e7a8eb2385a2a0e825841f8b5fefe30a24102",
-      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois"
+      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois",
+      "backup": {
+        "receiptPath": "/home/luiz/Área de trabalho/fit/exercise-image-backups/2026-11-09T21-18-51-202Z-fbeddeaf/receipt.json",
+        "sha256": "43a95ca7bf77a943d2e5a27d281e7a8eb2385a2a0e825841f8b5fefe30a24102"
+      }
     },
     {
       "slug": "pulldown-com-bracos-estendidos",
@@ -225,7 +285,11 @@
       "imagePath": "design/exercise-images/images/pulldown-com-bracos-estendidos.png",
       "imageUrl": "/media/exercises/4c6b86d8-a933-4559-b2a7-1fd8b4c23d14.webp",
       "publishedSha256": "5379460e49c8580675c5b8a6a7afc5e0b4632321f8df6baaeb972b3aead0ecb2",
-      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois"
+      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois",
+      "backup": {
+        "receiptPath": "/home/luiz/Área de trabalho/fit/exercise-image-backups/2026-11-09T21-18-51-202Z-fbeddeaf/receipt.json",
+        "sha256": "5379460e49c8580675c5b8a6a7afc5e0b4632321f8df6baaeb972b3aead0ecb2"
+      }
     },
     {
       "slug": "desenvolvimento-com-halteres",
@@ -239,7 +303,11 @@
       "imagePath": "design/exercise-images/images/desenvolvimento-com-halteres.png",
       "imageUrl": "/media/exercises/cb0af7eb-ced0-47fa-81eb-53a7f9a19aae.webp",
       "publishedSha256": "1328b0e6e864744636dfb1bf4b5cab3069fdeca544c27c46791d3745a03d84f7",
-      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois"
+      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois",
+      "backup": {
+        "receiptPath": "/home/luiz/Área de trabalho/fit/exercise-image-backups/2026-11-09T21-18-51-202Z-fbeddeaf/receipt.json",
+        "sha256": "1328b0e6e864744636dfb1bf4b5cab3069fdeca544c27c46791d3745a03d84f7"
+      }
     },
     {
       "slug": "desenvolvimento-na-maquina",
@@ -253,7 +321,11 @@
       "imagePath": "design/exercise-images/images/desenvolvimento-na-maquina.png",
       "imageUrl": "/media/exercises/2418e08b-831f-40e3-a13b-8b2055e57e14.webp",
       "publishedSha256": "f8b2f3ffcdfcb5ec34b593781d412f9ae0c441e324af260be9d73f0ab6eafe06",
-      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois"
+      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois",
+      "backup": {
+        "receiptPath": "/home/luiz/Área de trabalho/fit/exercise-image-backups/2026-11-09T21-18-51-202Z-fbeddeaf/receipt.json",
+        "sha256": "f8b2f3ffcdfcb5ec34b593781d412f9ae0c441e324af260be9d73f0ab6eafe06"
+      }
     },
     {
       "slug": "elevacao-lateral-com-halteres",
@@ -267,7 +339,11 @@
       "imagePath": "design/exercise-images/images/elevacao-lateral-com-halteres.png",
       "imageUrl": "/media/exercises/1f233563-a01d-40ec-91ba-a10a46e5f2df.webp",
       "publishedSha256": "53d76cb9376754216d2a3087238588234e641c6eb4d8aae666e0a05e32b4f28c",
-      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois"
+      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois",
+      "backup": {
+        "receiptPath": "/home/luiz/Área de trabalho/fit/exercise-image-backups/2026-11-09T21-18-51-202Z-fbeddeaf/receipt.json",
+        "sha256": "53d76cb9376754216d2a3087238588234e641c6eb4d8aae666e0a05e32b4f28c"
+      }
     },
     {
       "slug": "elevacao-lateral-na-polia",
@@ -281,7 +357,11 @@
       "imagePath": "design/exercise-images/images/elevacao-lateral-na-polia.png",
       "imageUrl": "/media/exercises/623e090f-a391-4af1-a495-46cac74675f2.webp",
       "publishedSha256": "829a1a17410502d83adab97555627d878b36a0f66786fb6f033762bf7d332900",
-      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois"
+      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois",
+      "backup": {
+        "receiptPath": "/home/luiz/Área de trabalho/fit/exercise-image-backups/2026-11-09T21-18-51-202Z-fbeddeaf/receipt.json",
+        "sha256": "829a1a17410502d83adab97555627d878b36a0f66786fb6f033762bf7d332900"
+      }
     },
     {
       "slug": "elevacao-frontal",
@@ -295,7 +375,11 @@
       "imagePath": "design/exercise-images/images/elevacao-frontal.png",
       "imageUrl": "/media/exercises/325e3d24-0fe1-449f-8305-4a7f16524a4d.webp",
       "publishedSha256": "6635599ad0abde20efb81844fba29a560323dc3ff8cc58817d2da861d55a8e14",
-      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois"
+      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois",
+      "backup": {
+        "receiptPath": "/home/luiz/Área de trabalho/fit/exercise-image-backups/2026-11-09T21-18-51-202Z-fbeddeaf/receipt.json",
+        "sha256": "6635599ad0abde20efb81844fba29a560323dc3ff8cc58817d2da861d55a8e14"
+      }
     },
     {
       "slug": "crucifixo-inverso",
@@ -309,7 +393,11 @@
       "imagePath": "design/exercise-images/images/crucifixo-inverso.png",
       "imageUrl": "/media/exercises/e12311dd-7807-489f-b0d7-b0ddac590743.webp",
       "publishedSha256": "c00814b5473d435f677f557253880fe89f6d210b3f0babe6ec8bc836c893784b",
-      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois"
+      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois",
+      "backup": {
+        "receiptPath": "/home/luiz/Área de trabalho/fit/exercise-image-backups/2026-11-09T21-18-51-202Z-fbeddeaf/receipt.json",
+        "sha256": "c00814b5473d435f677f557253880fe89f6d210b3f0babe6ec8bc836c893784b"
+      }
     },
     {
       "slug": "face-pull",
@@ -323,7 +411,11 @@
       "imagePath": "design/exercise-images/images/face-pull.png",
       "imageUrl": "/media/exercises/9e954eb4-03b0-4856-9257-8bbd42ccf679.webp",
       "publishedSha256": "9b38c1f86aec5f626c541a58eeb8691090d58e500df0e0b5009fa21b93e0cc39",
-      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois"
+      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois",
+      "backup": {
+        "receiptPath": "/home/luiz/Área de trabalho/fit/exercise-image-backups/2026-11-09T21-18-51-202Z-fbeddeaf/receipt.json",
+        "sha256": "9b38c1f86aec5f626c541a58eeb8691090d58e500df0e0b5009fa21b93e0cc39"
+      }
     },
     {
       "slug": "rosca-direta-com-barra",
@@ -337,7 +429,11 @@
       "imagePath": "design/exercise-images/images/rosca-direta-com-barra.png",
       "imageUrl": "/media/exercises/55b4f33c-b6c5-4d33-afcf-fd277087d037.webp",
       "publishedSha256": "55a064816833c176f465c2aac5a8b042163d6ce7f974c9520c77d3c83c4e5230",
-      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois"
+      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois",
+      "backup": {
+        "receiptPath": "/home/luiz/Área de trabalho/fit/exercise-image-backups/2026-11-09T21-18-51-202Z-fbeddeaf/receipt.json",
+        "sha256": "55a064816833c176f465c2aac5a8b042163d6ce7f974c9520c77d3c83c4e5230"
+      }
     },
     {
       "slug": "rosca-alternada-com-halteres",
@@ -351,7 +447,11 @@
       "imagePath": "design/exercise-images/images/rosca-alternada-com-halteres.png",
       "imageUrl": "/media/exercises/ca0b3005-1a51-4586-b6e4-a6410008cea8.webp",
       "publishedSha256": "a88ee55558e054cdb61aab5938f42e107ffaed4323896ef0b85054a04bfb6919",
-      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois"
+      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois",
+      "backup": {
+        "receiptPath": "/home/luiz/Área de trabalho/fit/exercise-image-backups/2026-11-09T21-18-51-202Z-fbeddeaf/receipt.json",
+        "sha256": "a88ee55558e054cdb61aab5938f42e107ffaed4323896ef0b85054a04bfb6919"
+      }
     },
     {
       "slug": "rosca-martelo",
@@ -365,7 +465,11 @@
       "imagePath": "design/exercise-images/images/rosca-martelo.png",
       "imageUrl": "/media/exercises/9b17613a-e640-492b-be4b-4989af2b0774.webp",
       "publishedSha256": "c95d43d74f0f9d0ae2deafa30b6e1f875506e45edc8b37910755f03e990460a9",
-      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois"
+      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois",
+      "backup": {
+        "receiptPath": "/home/luiz/Área de trabalho/fit/exercise-image-backups/2026-11-09T21-18-51-202Z-fbeddeaf/receipt.json",
+        "sha256": "c95d43d74f0f9d0ae2deafa30b6e1f875506e45edc8b37910755f03e990460a9"
+      }
     },
     {
       "slug": "rosca-scott",
@@ -379,7 +483,11 @@
       "imagePath": "design/exercise-images/images/rosca-scott.png",
       "imageUrl": "/media/exercises/bc5f97cc-0dfb-4785-813f-c7addbc3d8e7.webp",
       "publishedSha256": "f1063c915ca179d280186184743c47f75e6499a560f278140c907fc90b4f4305",
-      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois"
+      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois",
+      "backup": {
+        "receiptPath": "/home/luiz/Área de trabalho/fit/exercise-image-backups/2026-11-09T21-18-51-202Z-fbeddeaf/receipt.json",
+        "sha256": "f1063c915ca179d280186184743c47f75e6499a560f278140c907fc90b4f4305"
+      }
     },
     {
       "slug": "rosca-na-polia",
@@ -393,7 +501,11 @@
       "imagePath": "design/exercise-images/images/rosca-na-polia.png",
       "imageUrl": "/media/exercises/48106b7f-7813-4975-b00a-b7901443d778.webp",
       "publishedSha256": "a5b5db3aa8798504dd5858308b89818f11f3bd0c5863b334a96540a86e692466",
-      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois"
+      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois",
+      "backup": {
+        "receiptPath": "/home/luiz/Área de trabalho/fit/exercise-image-backups/2026-11-09T21-18-51-202Z-fbeddeaf/receipt.json",
+        "sha256": "a5b5db3aa8798504dd5858308b89818f11f3bd0c5863b334a96540a86e692466"
+      }
     },
     {
       "slug": "rosca-concentrada",
@@ -407,7 +519,11 @@
       "imagePath": "design/exercise-images/images/rosca-concentrada.png",
       "imageUrl": "/media/exercises/aaa907d8-197e-4964-b989-ac9a16e3bc8e.webp",
       "publishedSha256": "ffddde60178e29a46dc4092313384e32daefe9624f23da4ab66b2c1d5b2d0bb3",
-      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois"
+      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois",
+      "backup": {
+        "receiptPath": "/home/luiz/Área de trabalho/fit/exercise-image-backups/2026-11-09T21-18-51-202Z-fbeddeaf/receipt.json",
+        "sha256": "ffddde60178e29a46dc4092313384e32daefe9624f23da4ab66b2c1d5b2d0bb3"
+      }
     },
     {
       "slug": "triceps-na-polia-com-barra",
@@ -421,7 +537,11 @@
       "imagePath": "design/exercise-images/images/triceps-na-polia-com-barra.png",
       "imageUrl": "/media/exercises/957a612c-b87e-4530-966e-9b67c524cd42.webp",
       "publishedSha256": "00bc00f096368d8e01cdf206e70aaac263ad3da9a8d96b3fb62a1a283eedab53",
-      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois"
+      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois",
+      "backup": {
+        "receiptPath": "/home/luiz/Área de trabalho/fit/exercise-image-backups/2026-11-09T21-18-51-202Z-fbeddeaf/receipt.json",
+        "sha256": "00bc00f096368d8e01cdf206e70aaac263ad3da9a8d96b3fb62a1a283eedab53"
+      }
     },
     {
       "slug": "triceps-na-polia-com-corda",
@@ -435,7 +555,11 @@
       "imagePath": "design/exercise-images/images/triceps-na-polia-com-corda.png",
       "imageUrl": "/media/exercises/4b3a139d-33a1-4f82-9686-3f382aa1eae8.webp",
       "publishedSha256": "10713df9bd6505ad583f698560b78f25a28fae9adad2aecbed5d57973ecff93c",
-      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois"
+      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois",
+      "backup": {
+        "receiptPath": "/home/luiz/Área de trabalho/fit/exercise-image-backups/2026-11-09T21-18-51-202Z-fbeddeaf/receipt.json",
+        "sha256": "10713df9bd6505ad583f698560b78f25a28fae9adad2aecbed5d57973ecff93c"
+      }
     },
     {
       "slug": "triceps-testa",
@@ -449,7 +573,11 @@
       "imagePath": "design/exercise-images/images/triceps-testa.png",
       "imageUrl": "/media/exercises/9d7da882-8961-4336-a45e-ac9c9854e778.webp",
       "publishedSha256": "bd1f9055f3e7937e6a6798e00a5f2cb94ee816db28a5511e4707d33729d74266",
-      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois"
+      "publishedEnvironment": "Banco local (apps/api/.env) e produção (orami.com.br); mesma chave de mídia nos dois",
+      "backup": {
+        "receiptPath": "/home/luiz/Área de trabalho/fit/exercise-image-backups/2026-11-09T21-18-51-202Z-fbeddeaf/receipt.json",
+        "sha256": "bd1f9055f3e7937e6a6798e00a5f2cb94ee816db28a5511e4707d33729d74266"
+      }
     },
     {
       "slug": "triceps-frances",
@@ -472,10 +600,55 @@
       "catalogName": "Tríceps máquina",
       "mappingStatus": "verified_database",
       "mappingNote": "Variação escolhida para o nome genérico: Tríceps máquina",
-      "imageStatus": "pending",
+      "imageStatus": "published",
       "imagePath": "design/exercise-images/images/triceps-na-maquina.png",
       "imageUrl": null,
-      "publishedSha256": null
+      "publishedSha256": null,
+      "review": {
+        "result": "approved",
+        "reviewer": "assistant",
+        "reviewedAt": "2026-11-09T20:10:22.124260+00:00",
+        "sha256": "7618c7087c7f172b0a951d53051af4389f78ea80cda70367bf32682c1b441268",
+        "notes": "Inspeção visual do assistente: duas posições, anatomia, pegada/apoios, continuidade do equipamento e rótulos conferidos. Seated triceps extension machine: upper arms supported, left elbows flexed holding handles, right extend elbows pressing handles downward around elbow-aligned axis; highlight triceps, mechanically consistent machine.",
+        "sources": []
+      },
+      "generationBatch": "2026-11-09-lote-20",
+      "generationTool": "built-in image_gen",
+      "productionCatalogCheckedAt": "2026-11-09T19:50:58.918Z",
+      "backup": {
+        "receiptPath": "/home/luiz/Área de trabalho/fit/exercise-image-backups/2026-11-09T21-18-51-202Z-fbeddeaf/receipt.json",
+        "sha256": "7618c7087c7f172b0a951d53051af4389f78ea80cda70367bf32682c1b441268"
+      },
+      "publicationAttempts": {
+        "https://orami.com.br": {
+          "state": "confirmed",
+          "sha256": "7618c7087c7f172b0a951d53051af4389f78ea80cda70367bf32682c1b441268",
+          "attemptedAt": "2026-11-09T21:12:57.540Z",
+          "environment": "production",
+          "method": "authenticated-portal"
+        }
+      },
+      "publications": {
+        "https://orami.com.br": {
+          "environment": "production",
+          "imageUrl": "/media/exercises/e3ffa2bf-f5d6-4210-b356-2527bc9c7b6f.webp",
+          "sha256": "7618c7087c7f172b0a951d53051af4389f78ea80cda70367bf32682c1b441268",
+          "publishedAt": "2026-11-09T21:12:57.540Z",
+          "method": "authenticated-portal",
+          "mediaSha256": "19f6a13ca7b9b1fc08bb4f1162596682882b89649fbf485c4258be476a58a39e",
+          "verifiedAt": "2026-11-09T21:17:11.155Z",
+          "verification": "ID/nome/escopo conferidos por consulta somente leitura em produção; WebP público idêntico à conversão do original aprovado.",
+          "acceptance": {
+            "sha256": "7618c7087c7f172b0a951d53051af4389f78ea80cda70367bf32682c1b441268",
+            "mediaSha256": "19f6a13ca7b9b1fc08bb4f1162596682882b89649fbf485c4258be476a58a39e",
+            "reviewer": "assistant",
+            "reviewedAt": "2026-11-09T21:18:50.769083+00:00",
+            "notes": "Versão pública conferida visualmente em painéis de revisão e comparada por SHA-256 à conversão do original aprovado. Rótulos e composição preservados.",
+            "appCheckedAt": null,
+            "appNotes": "Conferência no aparelho pendente; catálogo e mídia pública confirmados."
+          }
+        }
+      }
     },
     {
       "slug": "paralelas",
@@ -485,10 +658,55 @@
       "catalogName": "Mergulho em paralelas",
       "mappingStatus": "verified_database",
       "mappingNote": "Variação escolhida para o nome genérico: Mergulho em paralelas",
-      "imageStatus": "pending",
+      "imageStatus": "published",
       "imagePath": "design/exercise-images/images/paralelas.png",
       "imageUrl": null,
-      "publishedSha256": null
+      "publishedSha256": null,
+      "review": {
+        "result": "approved",
+        "reviewer": "assistant",
+        "reviewedAt": "2026-11-09T20:10:22.104182+00:00",
+        "sha256": "d244a0f91fa77c0bf5afefc60b2ca30f6dc7e80e10af66983c861db7105903bf",
+        "notes": "Inspeção visual do assistente: duas posições, anatomia, pegada/apoios, continuidade do equipamento e rótulos conferidos. Parallel bar dips: hands supported on parallel bars; left elbows flexed 90 degrees body lowered, right elbows extended body raised, shoulders not excessively stretched, highlight triceps and chest.",
+        "sources": []
+      },
+      "generationBatch": "2026-11-09-lote-20",
+      "generationTool": "built-in image_gen",
+      "productionCatalogCheckedAt": "2026-11-09T19:50:58.918Z",
+      "backup": {
+        "receiptPath": "/home/luiz/Área de trabalho/fit/exercise-image-backups/2026-11-09T21-18-51-202Z-fbeddeaf/receipt.json",
+        "sha256": "d244a0f91fa77c0bf5afefc60b2ca30f6dc7e80e10af66983c861db7105903bf"
+      },
+      "publicationAttempts": {
+        "https://orami.com.br": {
+          "state": "confirmed",
+          "sha256": "d244a0f91fa77c0bf5afefc60b2ca30f6dc7e80e10af66983c861db7105903bf",
+          "attemptedAt": "2026-11-09T21:12:57.108Z",
+          "environment": "production",
+          "method": "authenticated-portal"
+        }
+      },
+      "publications": {
+        "https://orami.com.br": {
+          "environment": "production",
+          "imageUrl": "/media/exercises/1e2860f5-30b6-4bbc-8b67-fdd2c1248681.webp",
+          "sha256": "d244a0f91fa77c0bf5afefc60b2ca30f6dc7e80e10af66983c861db7105903bf",
+          "publishedAt": "2026-11-09T21:12:57.108Z",
+          "method": "authenticated-portal",
+          "mediaSha256": "45ef716362d10fc38ab47064d5dca0089c16ea7b2e416c1ea3e05f99e4c8e8cd",
+          "verifiedAt": "2026-11-09T21:17:13.459Z",
+          "verification": "ID/nome/escopo conferidos por consulta somente leitura em produção; WebP público idêntico à conversão do original aprovado.",
+          "acceptance": {
+            "sha256": "d244a0f91fa77c0bf5afefc60b2ca30f6dc7e80e10af66983c861db7105903bf",
+            "mediaSha256": "45ef716362d10fc38ab47064d5dca0089c16ea7b2e416c1ea3e05f99e4c8e8cd",
+            "reviewer": "assistant",
+            "reviewedAt": "2026-11-09T21:18:50.769097+00:00",
+            "notes": "Versão pública conferida visualmente em painéis de revisão e comparada por SHA-256 à conversão do original aprovado. Rótulos e composição preservados.",
+            "appCheckedAt": null,
+            "appNotes": "Conferência no aparelho pendente; catálogo e mídia pública confirmados."
+          }
+        }
+      }
     },
     {
       "slug": "agachamento-livre",
@@ -498,10 +716,55 @@
       "catalogName": "Agachamento livre",
       "mappingStatus": "verified_database",
       "mappingNote": "",
-      "imageStatus": "pending",
+      "imageStatus": "published",
       "imagePath": "design/exercise-images/images/agachamento-livre.png",
       "imageUrl": null,
-      "publishedSha256": null
+      "publishedSha256": null,
+      "productionCatalogCheckedAt": "2026-11-09T18:24:16.546Z",
+      "review": {
+        "result": "approved",
+        "reviewer": "assistant",
+        "reviewedAt": "2026-11-09T18:28:07.972952+00:00",
+        "sha256": "b88956f857756046958eb7bcb32435287ab90f5b672e1c8d1374f1d027efae19",
+        "notes": "Inspeção visual do assistente: agachamento com barra nas costas, posição inferior e extensão final coerentes; pés apoiados, coluna neutra, mãos na barra, articulações e proporções plausíveis. Destaques de quadríceps/glúteos e textos legíveis; sem deformidades relevantes observadas.",
+        "sources": []
+      },
+      "generationBatch": "2026-11-09-lote-10",
+      "generationTool": "built-in image_gen",
+      "backup": {
+        "receiptPath": "/home/luiz/Área de trabalho/fit/exercise-image-backups/2026-11-09T21-18-51-202Z-fbeddeaf/receipt.json",
+        "sha256": "b88956f857756046958eb7bcb32435287ab90f5b672e1c8d1374f1d027efae19"
+      },
+      "publicationAttempts": {
+        "https://orami.com.br": {
+          "state": "confirmed",
+          "sha256": "b88956f857756046958eb7bcb32435287ab90f5b672e1c8d1374f1d027efae19",
+          "attemptedAt": "2026-11-09T18:39:44.920Z",
+          "environment": "production",
+          "method": "authenticated-portal"
+        }
+      },
+      "publications": {
+        "https://orami.com.br": {
+          "environment": "production",
+          "imageUrl": "/media/exercises/ef9e545c-d1d3-4ced-8dc3-8b0adfb34daa.webp",
+          "sha256": "b88956f857756046958eb7bcb32435287ab90f5b672e1c8d1374f1d027efae19",
+          "publishedAt": "2026-11-09T18:39:44.920Z",
+          "method": "authenticated-portal",
+          "mediaSha256": "52962cd0a97242f98a0a9869c6b1fadbc35688287e3764034b3aa80783339620",
+          "verifiedAt": "2026-11-09T18:44:51.405Z",
+          "verification": "ID/nome/escopo conferidos por consulta somente leitura em produção; WebP público idêntico à conversão do original aprovado.",
+          "acceptance": {
+            "sha256": "b88956f857756046958eb7bcb32435287ab90f5b672e1c8d1374f1d027efae19",
+            "mediaSha256": "52962cd0a97242f98a0a9869c6b1fadbc35688287e3764034b3aa80783339620",
+            "reviewedAt": "2026-11-09T18:46:02.281504+00:00",
+            "reviewer": "assistant",
+            "notes": "WebP público aberto e inspecionado visualmente após conversão: movimento, anatomia, equipamento, destaques musculares, rótulos e legibilidade preservados. Conferência criptográfica confirmou igualdade com a conversão do original aprovado.",
+            "appCheckedAt": null,
+            "appNotes": "Conferência no aplicativo em aparelho/conta de teste não executada nesta sessão. Vínculo e imagem confirmados em produção e no portal administrativo."
+          }
+        }
+      }
     },
     {
       "slug": "agachamento-no-smith",
@@ -537,10 +800,55 @@
       "catalogName": "Leg press 45 graus",
       "mappingStatus": "verified_database",
       "mappingNote": "Variação escolhida para o nome genérico: Leg press 45 graus",
-      "imageStatus": "pending",
+      "imageStatus": "published",
       "imagePath": "design/exercise-images/images/leg-press-45-graus.png",
       "imageUrl": null,
-      "publishedSha256": null
+      "publishedSha256": null,
+      "productionCatalogCheckedAt": "2026-11-09T18:24:16.546Z",
+      "review": {
+        "result": "approved",
+        "reviewer": "assistant",
+        "reviewedAt": "2026-11-09T18:29:09.397966+00:00",
+        "sha256": "1a55e455cc0523037b6287388611f144b01217f06e2f63af283042a41e5a68eb",
+        "notes": "Inspeção visual do assistente: leg press inclinado com trilhos, plataforma e carrinho conectados; pés mantêm contato, quadris/coluna apoiados, flexão inicial e extensão final sem deformidades relevantes. Mãos no apoio, cargas simétricas, textos e destaques dos quadríceps legíveis.",
+        "sources": []
+      },
+      "generationBatch": "2026-11-09-lote-10",
+      "generationTool": "built-in image_gen",
+      "backup": {
+        "receiptPath": "/home/luiz/Área de trabalho/fit/exercise-image-backups/2026-11-09T21-18-51-202Z-fbeddeaf/receipt.json",
+        "sha256": "1a55e455cc0523037b6287388611f144b01217f06e2f63af283042a41e5a68eb"
+      },
+      "publicationAttempts": {
+        "https://orami.com.br": {
+          "state": "confirmed",
+          "sha256": "1a55e455cc0523037b6287388611f144b01217f06e2f63af283042a41e5a68eb",
+          "attemptedAt": "2026-11-09T18:40:25.989Z",
+          "environment": "production",
+          "method": "authenticated-portal"
+        }
+      },
+      "publications": {
+        "https://orami.com.br": {
+          "environment": "production",
+          "imageUrl": "/media/exercises/1c85bf1f-4aed-4db1-9b4d-380f9321fe07.webp",
+          "sha256": "1a55e455cc0523037b6287388611f144b01217f06e2f63af283042a41e5a68eb",
+          "publishedAt": "2026-11-09T18:40:25.989Z",
+          "method": "authenticated-portal",
+          "mediaSha256": "5764ae46dcc8f0d416ce804f0722c51a1ae047f240bbbc961516b51bdcd89e8d",
+          "verifiedAt": "2026-11-09T18:44:52.008Z",
+          "verification": "ID/nome/escopo conferidos por consulta somente leitura em produção; WebP público idêntico à conversão do original aprovado.",
+          "acceptance": {
+            "sha256": "1a55e455cc0523037b6287388611f144b01217f06e2f63af283042a41e5a68eb",
+            "mediaSha256": "5764ae46dcc8f0d416ce804f0722c51a1ae047f240bbbc961516b51bdcd89e8d",
+            "reviewedAt": "2026-11-09T18:46:02.281504+00:00",
+            "reviewer": "assistant",
+            "notes": "WebP público aberto e inspecionado visualmente após conversão: movimento, anatomia, equipamento, destaques musculares, rótulos e legibilidade preservados. Conferência criptográfica confirmou igualdade com a conversão do original aprovado.",
+            "appCheckedAt": null,
+            "appNotes": "Conferência no aplicativo em aparelho/conta de teste não executada nesta sessão. Vínculo e imagem confirmados em produção e no portal administrativo."
+          }
+        }
+      }
     },
     {
       "slug": "cadeira-extensora",
@@ -550,10 +858,60 @@
       "catalogName": "Cadeira extensora",
       "mappingStatus": "verified_database",
       "mappingNote": "",
-      "imageStatus": "pending",
+      "imageStatus": "published",
       "imagePath": "design/exercise-images/images/cadeira-extensora.png",
       "imageUrl": null,
-      "publishedSha256": null
+      "publishedSha256": null,
+      "productionCatalogCheckedAt": "2026-11-09T18:24:16.546Z",
+      "review": {
+        "result": "approved",
+        "reviewer": "assistant",
+        "reviewedAt": "2026-11-09T18:31:42.706393+00:00",
+        "sha256": "267e63c4366c4e80f809a7d90cf34e141af2ea4aab7b467c4c6ed5b3ceaa1490",
+        "notes": "Segunda inspeção visual do assistente: alavanca agora contínua entre pivô fixo junto ao joelho e rolo dos tornozelos nas duas posições. Flexão/extensão, contato do rolo à frente das canelas, mãos e apoio do tronco coerentes; anatomia e textos sem falhas relevantes observadas.",
+        "sources": [
+          {
+            "url": "https://www.lifefitness.com/en-us/catalog/strength-training/selectorized/axiom-series-seated-leg-curl-extension",
+            "checkedAt": "2026-11-09"
+          }
+        ]
+      },
+      "generationBatch": "2026-11-09-lote-10",
+      "generationTool": "built-in image_gen",
+      "backup": {
+        "receiptPath": "/home/luiz/Área de trabalho/fit/exercise-image-backups/2026-11-09T21-18-51-202Z-fbeddeaf/receipt.json",
+        "sha256": "267e63c4366c4e80f809a7d90cf34e141af2ea4aab7b467c4c6ed5b3ceaa1490"
+      },
+      "publicationAttempts": {
+        "https://orami.com.br": {
+          "state": "confirmed",
+          "sha256": "267e63c4366c4e80f809a7d90cf34e141af2ea4aab7b467c4c6ed5b3ceaa1490",
+          "attemptedAt": "2026-11-09T18:40:54.830Z",
+          "environment": "production",
+          "method": "authenticated-portal"
+        }
+      },
+      "publications": {
+        "https://orami.com.br": {
+          "environment": "production",
+          "imageUrl": "/media/exercises/ccfaabc3-30b2-44ae-b2c0-f63be9129113.webp",
+          "sha256": "267e63c4366c4e80f809a7d90cf34e141af2ea4aab7b467c4c6ed5b3ceaa1490",
+          "publishedAt": "2026-11-09T18:40:54.830Z",
+          "method": "authenticated-portal",
+          "mediaSha256": "340afd52b43ac2c2c204132f0ef7b0110dd68723dfd17336342c966733bf2413",
+          "verifiedAt": "2026-11-09T18:44:51.608Z",
+          "verification": "ID/nome/escopo conferidos por consulta somente leitura em produção; WebP público idêntico à conversão do original aprovado.",
+          "acceptance": {
+            "sha256": "267e63c4366c4e80f809a7d90cf34e141af2ea4aab7b467c4c6ed5b3ceaa1490",
+            "mediaSha256": "340afd52b43ac2c2c204132f0ef7b0110dd68723dfd17336342c966733bf2413",
+            "reviewedAt": "2026-11-09T18:46:02.281504+00:00",
+            "reviewer": "assistant",
+            "notes": "WebP público aberto e inspecionado visualmente após conversão: movimento, anatomia, equipamento, destaques musculares, rótulos e legibilidade preservados. Conferência criptográfica confirmou igualdade com a conversão do original aprovado.",
+            "appCheckedAt": null,
+            "appNotes": "Conferência no aplicativo em aparelho/conta de teste não executada nesta sessão. Vínculo e imagem confirmados em produção e no portal administrativo."
+          }
+        }
+      }
     },
     {
       "slug": "afundo",
@@ -587,12 +945,50 @@
       "group": "Quadríceps e glúteos",
       "catalogExerciseId": "40f58ed3-437b-4fbc-8585-5dbe58521bba",
       "catalogName": "Afundo búlgaro",
-      "mappingStatus": "verified_database",
-      "mappingNote": "Variação escolhida para o nome genérico: Afundo búlgaro",
-      "imageStatus": "pending",
+      "mappingStatus": "verified_production",
+      "mappingNote": "Afundo búlgaro sem carga externa, pé traseiro elevado em banco. ID, escopo global, não arquivado e ausência de imagem confirmados na consulta de produção de 09/11/2026.",
+      "imageStatus": "published",
       "imagePath": "design/exercise-images/images/agachamento-bulgaro.png",
       "imageUrl": null,
-      "publishedSha256": null
+      "publishedSha256": null,
+      "review": {
+        "result": "approved",
+        "reviewer": "assistant",
+        "reviewedAt": "2026-11-09T23:08:59.720097+00:00",
+        "sha256": "8dc057eb7dac9923659232890086df901b4b45416802c7e1a16ae165346197cc",
+        "notes": "Inspeção visual do assistente em imagem completa e resolução original: afundo búlgaro sem carga, posição baixa à esquerda e extensão da perna dianteira à direita. Pé dianteiro inteiro no chão e dorso traseiro apoiado em banco; coluna neutra e discreta inclinação do tronco, joelho alinhado, mãos abertas e membros coerentes. Bancos consistentes, sem interpenetrações relevantes observadas; quadríceps/glúteos destacados, seta ascendente e rótulos legíveis.",
+        "sources": [
+          {
+            "url": "https://www.nasm.org/resource-center/exercise-library/bulgarian-split-squat",
+            "checkedAt": "2026-11-09"
+          }
+        ]
+      },
+      "backup": {
+        "receiptPath": "/home/luiz/Área de trabalho/fit/exercise-image-backups/2026-11-09T23-12-17-035Z-f1183034/receipt.json",
+        "sha256": "8dc057eb7dac9923659232890086df901b4b45416802c7e1a16ae165346197cc"
+      },
+      "publications": {
+        "https://orami.com.br": {
+          "environment": "production",
+          "imageUrl": "/media/exercises/08594d6e-07a1-4e54-9b77-b6e62a2f4505.webp",
+          "sha256": "8dc057eb7dac9923659232890086df901b4b45416802c7e1a16ae165346197cc",
+          "publishedAt": "2026-11-09T23:12:16.739147+00:00",
+          "method": "direct-database-user-authorized",
+          "mediaSha256": "fde3b96bff15b583f32431a700e73fc4da1ff5637db2f39497592fdb89adca5b",
+          "verifiedAt": "2026-11-09T23:12:16.739147+00:00",
+          "verification": "Atualização condicional em produção; ID, nome, escopo e ausência de imagem conferidos; WebP público corresponde ao arquivo enviado. Sem evento de auditoria da API.",
+          "acceptance": {
+            "sha256": "8dc057eb7dac9923659232890086df901b4b45416802c7e1a16ae165346197cc",
+            "mediaSha256": "fde3b96bff15b583f32431a700e73fc4da1ff5637db2f39497592fdb89adca5b",
+            "reviewer": "assistant",
+            "reviewedAt": "2026-11-09T23:12:16.739147+00:00",
+            "notes": "WebP público inspecionado visualmente; composição e rótulos preservados.",
+            "appCheckedAt": null,
+            "appNotes": "Conferência no app pendente."
+          }
+        }
+      }
     },
     {
       "slug": "mesa-flexora",
@@ -602,10 +998,55 @@
       "catalogName": "Mesa flexora",
       "mappingStatus": "verified_database",
       "mappingNote": "",
-      "imageStatus": "pending",
+      "imageStatus": "published",
       "imagePath": "design/exercise-images/images/mesa-flexora.png",
       "imageUrl": null,
-      "publishedSha256": null
+      "publishedSha256": null,
+      "productionCatalogCheckedAt": "2026-11-09T18:24:16.546Z",
+      "review": {
+        "result": "approved",
+        "reviewer": "assistant",
+        "reviewedAt": "2026-11-09T18:32:50.076120+00:00",
+        "sha256": "101cee377e7f615c69af18880e17274d792e1961955fa3c799e2ff6b9420b25d",
+        "notes": "Inspeção visual do assistente: mesa flexora em decúbito ventral, quadris e coxas apoiados, joelhos flexionando e rolo acompanhando a região posterior dos tornozelos. Mãos nos puxadores, duas pernas/duas vistas coerentes, destaques dos posteriores e rótulos legíveis; sem deformidades relevantes observadas.",
+        "sources": []
+      },
+      "generationBatch": "2026-11-09-lote-10",
+      "generationTool": "built-in image_gen",
+      "backup": {
+        "receiptPath": "/home/luiz/Área de trabalho/fit/exercise-image-backups/2026-11-09T21-18-51-202Z-fbeddeaf/receipt.json",
+        "sha256": "101cee377e7f615c69af18880e17274d792e1961955fa3c799e2ff6b9420b25d"
+      },
+      "publicationAttempts": {
+        "https://orami.com.br": {
+          "state": "confirmed",
+          "sha256": "101cee377e7f615c69af18880e17274d792e1961955fa3c799e2ff6b9420b25d",
+          "attemptedAt": "2026-11-09T18:42:02.248Z",
+          "environment": "production",
+          "method": "authenticated-portal"
+        }
+      },
+      "publications": {
+        "https://orami.com.br": {
+          "environment": "production",
+          "imageUrl": "/media/exercises/6ecf3820-3241-4377-8002-b05a9e5dfc3b.webp",
+          "sha256": "101cee377e7f615c69af18880e17274d792e1961955fa3c799e2ff6b9420b25d",
+          "publishedAt": "2026-11-09T18:42:02.248Z",
+          "method": "authenticated-portal",
+          "mediaSha256": "d3a75fe228f8b376f70a1101d004ba6c3955960a5de71dce768a970f62b7c774",
+          "verifiedAt": "2026-11-09T18:44:51.802Z",
+          "verification": "ID/nome/escopo conferidos por consulta somente leitura em produção; WebP público idêntico à conversão do original aprovado.",
+          "acceptance": {
+            "sha256": "101cee377e7f615c69af18880e17274d792e1961955fa3c799e2ff6b9420b25d",
+            "mediaSha256": "d3a75fe228f8b376f70a1101d004ba6c3955960a5de71dce768a970f62b7c774",
+            "reviewedAt": "2026-11-09T18:46:02.281504+00:00",
+            "reviewer": "assistant",
+            "notes": "WebP público aberto e inspecionado visualmente após conversão: movimento, anatomia, equipamento, destaques musculares, rótulos e legibilidade preservados. Conferência criptográfica confirmou igualdade com a conversão do original aprovado.",
+            "appCheckedAt": null,
+            "appNotes": "Conferência no aplicativo em aparelho/conta de teste não executada nesta sessão. Vínculo e imagem confirmados em produção e no portal administrativo."
+          }
+        }
+      }
     },
     {
       "slug": "cadeira-flexora",
@@ -615,10 +1056,64 @@
       "catalogName": "Cadeira flexora",
       "mappingStatus": "verified_database",
       "mappingNote": "",
-      "imageStatus": "pending",
+      "imageStatus": "published",
       "imagePath": "design/exercise-images/images/cadeira-flexora.png",
       "imageUrl": null,
-      "publishedSha256": null
+      "publishedSha256": null,
+      "productionCatalogCheckedAt": "2026-11-09T18:24:16.546Z",
+      "review": {
+        "result": "approved",
+        "reviewer": "assistant",
+        "reviewedAt": "2026-11-09T18:33:56.946887+00:00",
+        "sha256": "89d481e52b7a5390f17804a2aff6c1bc4b9c3524d56f8d0ed2e4c6f79da66df2",
+        "notes": "Inspeção visual do assistente: cadeira flexora sentada com contenção das coxas, rolo posterior aos tornozelos e flexão dos joelhos para baixo. Tronco apoiado, mãos nos apoios e posteriores destacados; duas posições e aparelho consistentes, sem deformidades relevantes observadas.",
+        "sources": [
+          {
+            "url": "https://www.nasm.org/resource-center/exercise-library/seated-leg-curl",
+            "checkedAt": "2026-11-09"
+          },
+          {
+            "url": "https://www.lifefitness.com/en-us/catalog/strength-training/selectorized/axiom-series-seated-leg-curl-extension",
+            "checkedAt": "2026-11-09"
+          }
+        ]
+      },
+      "generationBatch": "2026-11-09-lote-10",
+      "generationTool": "built-in image_gen",
+      "backup": {
+        "receiptPath": "/home/luiz/Área de trabalho/fit/exercise-image-backups/2026-11-09T21-18-51-202Z-fbeddeaf/receipt.json",
+        "sha256": "89d481e52b7a5390f17804a2aff6c1bc4b9c3524d56f8d0ed2e4c6f79da66df2"
+      },
+      "publicationAttempts": {
+        "https://orami.com.br": {
+          "state": "confirmed",
+          "sha256": "89d481e52b7a5390f17804a2aff6c1bc4b9c3524d56f8d0ed2e4c6f79da66df2",
+          "attemptedAt": "2026-11-09T18:42:31.433Z",
+          "environment": "production",
+          "method": "authenticated-portal"
+        }
+      },
+      "publications": {
+        "https://orami.com.br": {
+          "environment": "production",
+          "imageUrl": "/media/exercises/3102c658-a7d9-43af-9854-096d81098106.webp",
+          "sha256": "89d481e52b7a5390f17804a2aff6c1bc4b9c3524d56f8d0ed2e4c6f79da66df2",
+          "publishedAt": "2026-11-09T18:42:31.433Z",
+          "method": "authenticated-portal",
+          "mediaSha256": "1f758a483d2a16e4ae21fda88ec071cb9fa3808689c254d8621f882c038352f2",
+          "verifiedAt": "2026-11-09T18:44:52.629Z",
+          "verification": "ID/nome/escopo conferidos por consulta somente leitura em produção; WebP público idêntico à conversão do original aprovado.",
+          "acceptance": {
+            "sha256": "89d481e52b7a5390f17804a2aff6c1bc4b9c3524d56f8d0ed2e4c6f79da66df2",
+            "mediaSha256": "1f758a483d2a16e4ae21fda88ec071cb9fa3808689c254d8621f882c038352f2",
+            "reviewedAt": "2026-11-09T18:46:02.281504+00:00",
+            "reviewer": "assistant",
+            "notes": "WebP público aberto e inspecionado visualmente após conversão: movimento, anatomia, equipamento, destaques musculares, rótulos e legibilidade preservados. Conferência criptográfica confirmou igualdade com a conversão do original aprovado.",
+            "appCheckedAt": null,
+            "appNotes": "Conferência no aplicativo em aparelho/conta de teste não executada nesta sessão. Vínculo e imagem confirmados em produção e no portal administrativo."
+          }
+        }
+      }
     },
     {
       "slug": "stiff",
@@ -628,10 +1123,60 @@
       "catalogName": "Stiff com barra",
       "mappingStatus": "verified_database",
       "mappingNote": "Variação escolhida para o nome genérico: Stiff com barra",
-      "imageStatus": "pending",
+      "imageStatus": "published",
       "imagePath": "design/exercise-images/images/stiff.png",
       "imageUrl": null,
-      "publishedSha256": null
+      "publishedSha256": null,
+      "productionCatalogCheckedAt": "2026-11-09T18:24:16.546Z",
+      "review": {
+        "result": "approved",
+        "reviewer": "assistant",
+        "reviewedAt": "2026-11-09T18:38:29.950609+00:00",
+        "sha256": "46c5f48c35b070ce983adbf5b035cfc05b084906c8c2732b3fa4ef9af4859f94",
+        "notes": "Inspeção visual do assistente: stiff com joelhos praticamente estendidos, movimento concentrado no quadril e coluna neutra; diferença de flexão dos joelhos visível em relação ao terra romeno. Barra próxima das pernas, pegada e apoio dos pés coerentes; posteriores e glúteos destacados, sem deformidades relevantes observadas.",
+        "sources": [
+          {
+            "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC8835508/",
+            "checkedAt": "2026-11-09"
+          }
+        ]
+      },
+      "generationBatch": "2026-11-09-lote-10",
+      "generationTool": "built-in image_gen",
+      "backup": {
+        "receiptPath": "/home/luiz/Área de trabalho/fit/exercise-image-backups/2026-11-09T21-18-51-202Z-fbeddeaf/receipt.json",
+        "sha256": "46c5f48c35b070ce983adbf5b035cfc05b084906c8c2732b3fa4ef9af4859f94"
+      },
+      "publicationAttempts": {
+        "https://orami.com.br": {
+          "state": "confirmed",
+          "sha256": "46c5f48c35b070ce983adbf5b035cfc05b084906c8c2732b3fa4ef9af4859f94",
+          "attemptedAt": "2026-11-09T18:44:27.770Z",
+          "environment": "production",
+          "method": "authenticated-portal"
+        }
+      },
+      "publications": {
+        "https://orami.com.br": {
+          "environment": "production",
+          "imageUrl": "/media/exercises/18676db6-363e-45ae-80ad-fc887254868c.webp",
+          "sha256": "46c5f48c35b070ce983adbf5b035cfc05b084906c8c2732b3fa4ef9af4859f94",
+          "publishedAt": "2026-11-09T18:44:27.770Z",
+          "method": "authenticated-portal",
+          "mediaSha256": "2547a6cad928024dfa4913ecd44578e45eb410b16d3685c8a239424eacf234b2",
+          "verifiedAt": "2026-11-09T18:44:52.919Z",
+          "verification": "ID/nome/escopo conferidos por consulta somente leitura em produção; WebP público idêntico à conversão do original aprovado.",
+          "acceptance": {
+            "sha256": "46c5f48c35b070ce983adbf5b035cfc05b084906c8c2732b3fa4ef9af4859f94",
+            "mediaSha256": "2547a6cad928024dfa4913ecd44578e45eb410b16d3685c8a239424eacf234b2",
+            "reviewedAt": "2026-11-09T18:46:02.281504+00:00",
+            "reviewer": "assistant",
+            "notes": "WebP público aberto e inspecionado visualmente após conversão: movimento, anatomia, equipamento, destaques musculares, rótulos e legibilidade preservados. Conferência criptográfica confirmou igualdade com a conversão do original aprovado.",
+            "appCheckedAt": null,
+            "appNotes": "Conferência no aplicativo em aparelho/conta de teste não executada nesta sessão. Vínculo e imagem confirmados em produção e no portal administrativo."
+          }
+        }
+      }
     },
     {
       "slug": "levantamento-terra-romeno",
@@ -641,10 +1186,64 @@
       "catalogName": "Levantamento terra romeno",
       "mappingStatus": "verified_database",
       "mappingNote": "",
-      "imageStatus": "pending",
+      "imageStatus": "published",
       "imagePath": "design/exercise-images/images/levantamento-terra-romeno.png",
       "imageUrl": null,
-      "publishedSha256": null
+      "publishedSha256": null,
+      "productionCatalogCheckedAt": "2026-11-09T18:24:16.546Z",
+      "review": {
+        "result": "approved",
+        "reviewer": "assistant",
+        "reviewedAt": "2026-11-09T18:36:49.597943+00:00",
+        "sha256": "f02f2a631c1f434321c04a10a81a3964f9e6b4b74cceb5ec1a5099aa4c0b78f0",
+        "notes": "Inspeção visual do assistente: terra romeno com flexão moderada e fixa dos joelhos, dobradiça de quadril, coluna neutra, barra próxima às pernas e final ereto sem hiperextensão. Pegada, braços estendidos e apoio dos pés coerentes; posteriores/glúteos e rótulos legíveis, sem deformidades relevantes observadas.",
+        "sources": [
+          {
+            "url": "https://www.acefitness.org/continuing-education/certified/may-2025/8865/the-ace-do-it-better-series-the-romanian-deadlift/",
+            "checkedAt": "2026-11-09"
+          },
+          {
+            "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC8835508/",
+            "checkedAt": "2026-11-09"
+          }
+        ]
+      },
+      "generationBatch": "2026-11-09-lote-10",
+      "generationTool": "built-in image_gen",
+      "backup": {
+        "receiptPath": "/home/luiz/Área de trabalho/fit/exercise-image-backups/2026-11-09T21-18-51-202Z-fbeddeaf/receipt.json",
+        "sha256": "f02f2a631c1f434321c04a10a81a3964f9e6b4b74cceb5ec1a5099aa4c0b78f0"
+      },
+      "publicationAttempts": {
+        "https://orami.com.br": {
+          "state": "confirmed",
+          "sha256": "f02f2a631c1f434321c04a10a81a3964f9e6b4b74cceb5ec1a5099aa4c0b78f0",
+          "attemptedAt": "2026-11-09T18:43:44.344Z",
+          "environment": "production",
+          "method": "authenticated-portal"
+        }
+      },
+      "publications": {
+        "https://orami.com.br": {
+          "environment": "production",
+          "imageUrl": "/media/exercises/7a42b9f9-58da-4ea6-b67e-4bd326a1f724.webp",
+          "sha256": "f02f2a631c1f434321c04a10a81a3964f9e6b4b74cceb5ec1a5099aa4c0b78f0",
+          "publishedAt": "2026-11-09T18:43:44.344Z",
+          "method": "authenticated-portal",
+          "mediaSha256": "630f7b7442c0aa80b3c3685aaa8fc4b97396a2cd4239cb272f4d2008dd68791a",
+          "verifiedAt": "2026-11-09T18:44:52.202Z",
+          "verification": "ID/nome/escopo conferidos por consulta somente leitura em produção; WebP público idêntico à conversão do original aprovado.",
+          "acceptance": {
+            "sha256": "f02f2a631c1f434321c04a10a81a3964f9e6b4b74cceb5ec1a5099aa4c0b78f0",
+            "mediaSha256": "630f7b7442c0aa80b3c3685aaa8fc4b97396a2cd4239cb272f4d2008dd68791a",
+            "reviewedAt": "2026-11-09T18:46:02.281504+00:00",
+            "reviewer": "assistant",
+            "notes": "WebP público aberto e inspecionado visualmente após conversão: movimento, anatomia, equipamento, destaques musculares, rótulos e legibilidade preservados. Conferência criptográfica confirmou igualdade com a conversão do original aprovado.",
+            "appCheckedAt": null,
+            "appNotes": "Conferência no aplicativo em aparelho/conta de teste não executada nesta sessão. Vínculo e imagem confirmados em produção e no portal administrativo."
+          }
+        }
+      }
     },
     {
       "slug": "levantamento-terra",
@@ -654,10 +1253,55 @@
       "catalogName": "Levantamento terra convencional",
       "mappingStatus": "verified_database",
       "mappingNote": "Variação escolhida para o nome genérico: Levantamento terra convencional",
-      "imageStatus": "pending",
+      "imageStatus": "published",
       "imagePath": "design/exercise-images/images/levantamento-terra.png",
       "imageUrl": null,
-      "publishedSha256": null
+      "publishedSha256": null,
+      "review": {
+        "result": "approved",
+        "reviewer": "assistant",
+        "reviewedAt": "2026-11-09T20:10:22.136463+00:00",
+        "sha256": "480fd7b53a226ced220ade0644e676c31166544f59e38f926055e3fdeda79835",
+        "notes": "Inspeção visual do assistente: duas posições, anatomia, pegada/apoios, continuidade do equipamento e rótulos conferidos. Conventional barbell deadlift: left bar on floor close shins knees bent and hips above knees, neutral spine arms straight; right stands tall bar at thighs, no lean backward; highlight glutes quadriceps hamstrings.",
+        "sources": []
+      },
+      "generationBatch": "2026-11-09-lote-20",
+      "generationTool": "built-in image_gen",
+      "productionCatalogCheckedAt": "2026-11-09T19:50:58.918Z",
+      "backup": {
+        "receiptPath": "/home/luiz/Área de trabalho/fit/exercise-image-backups/2026-11-09T21-18-51-202Z-fbeddeaf/receipt.json",
+        "sha256": "480fd7b53a226ced220ade0644e676c31166544f59e38f926055e3fdeda79835"
+      },
+      "publicationAttempts": {
+        "https://orami.com.br": {
+          "state": "confirmed",
+          "sha256": "480fd7b53a226ced220ade0644e676c31166544f59e38f926055e3fdeda79835",
+          "attemptedAt": "2026-11-09T21:12:57.827Z",
+          "environment": "production",
+          "method": "authenticated-portal"
+        }
+      },
+      "publications": {
+        "https://orami.com.br": {
+          "environment": "production",
+          "imageUrl": "/media/exercises/76d583c6-efe9-4890-a8d4-ea51f47f4a01.webp",
+          "sha256": "480fd7b53a226ced220ade0644e676c31166544f59e38f926055e3fdeda79835",
+          "publishedAt": "2026-11-09T21:12:57.827Z",
+          "method": "authenticated-portal",
+          "mediaSha256": "5569612cd5cf8b249b62dbf4aac8bddd660d1e65e29ecc1bef849da084bf84fd",
+          "verifiedAt": "2026-11-09T21:17:13.255Z",
+          "verification": "ID/nome/escopo conferidos por consulta somente leitura em produção; WebP público idêntico à conversão do original aprovado.",
+          "acceptance": {
+            "sha256": "480fd7b53a226ced220ade0644e676c31166544f59e38f926055e3fdeda79835",
+            "mediaSha256": "5569612cd5cf8b249b62dbf4aac8bddd660d1e65e29ecc1bef849da084bf84fd",
+            "reviewer": "assistant",
+            "reviewedAt": "2026-11-09T21:18:50.769098+00:00",
+            "notes": "Versão pública conferida visualmente em painéis de revisão e comparada por SHA-256 à conversão do original aprovado. Rótulos e composição preservados.",
+            "appCheckedAt": null,
+            "appNotes": "Conferência no aparelho pendente; catálogo e mídia pública confirmados."
+          }
+        }
+      }
     },
     {
       "slug": "elevacao-pelvica",
@@ -667,10 +1311,55 @@
       "catalogName": "Elevação pélvica",
       "mappingStatus": "verified_database",
       "mappingNote": "",
-      "imageStatus": "pending",
+      "imageStatus": "published",
       "imagePath": "design/exercise-images/images/elevacao-pelvica.png",
       "imageUrl": null,
-      "publishedSha256": null
+      "publishedSha256": null,
+      "review": {
+        "result": "approved",
+        "reviewer": "assistant",
+        "reviewedAt": "2026-11-09T20:10:22.134076+00:00",
+        "sha256": "9ec547a3fc6ed33dfe44249de747cb46113ddc042ad8de3864d61c2d6469a3a3",
+        "notes": "Inspeção visual do assistente: duas posições, anatomia, pegada/apoios, continuidade do equipamento e rótulos conferidos. Barbell hip thrust: upper back rests crosswise on bench, feet planted knees around90deg at top; left hips lowered, right hips extended torso horizontal, padded bar over hip crease held by hands, highlight glutes.",
+        "sources": []
+      },
+      "generationBatch": "2026-11-09-lote-20",
+      "generationTool": "built-in image_gen",
+      "productionCatalogCheckedAt": "2026-11-09T19:50:58.918Z",
+      "backup": {
+        "receiptPath": "/home/luiz/Área de trabalho/fit/exercise-image-backups/2026-11-09T21-18-51-202Z-fbeddeaf/receipt.json",
+        "sha256": "9ec547a3fc6ed33dfe44249de747cb46113ddc042ad8de3864d61c2d6469a3a3"
+      },
+      "publicationAttempts": {
+        "https://orami.com.br": {
+          "state": "confirmed",
+          "sha256": "9ec547a3fc6ed33dfe44249de747cb46113ddc042ad8de3864d61c2d6469a3a3",
+          "attemptedAt": "2026-11-09T21:12:57.765Z",
+          "environment": "production",
+          "method": "authenticated-portal"
+        }
+      },
+      "publications": {
+        "https://orami.com.br": {
+          "environment": "production",
+          "imageUrl": "/media/exercises/db532b68-2996-4123-8c4a-0f1405655d32.webp",
+          "sha256": "9ec547a3fc6ed33dfe44249de747cb46113ddc042ad8de3864d61c2d6469a3a3",
+          "publishedAt": "2026-11-09T21:12:57.765Z",
+          "method": "authenticated-portal",
+          "mediaSha256": "b19a459f9d32290d6e2e0ccb55864e0cb3b951d142bccc0c3e634e44e5565b9c",
+          "verifiedAt": "2026-11-09T21:17:14.496Z",
+          "verification": "ID/nome/escopo conferidos por consulta somente leitura em produção; WebP público idêntico à conversão do original aprovado.",
+          "acceptance": {
+            "sha256": "9ec547a3fc6ed33dfe44249de747cb46113ddc042ad8de3864d61c2d6469a3a3",
+            "mediaSha256": "b19a459f9d32290d6e2e0ccb55864e0cb3b951d142bccc0c3e634e44e5565b9c",
+            "reviewer": "assistant",
+            "reviewedAt": "2026-11-09T21:18:50.769099+00:00",
+            "notes": "Versão pública conferida visualmente em painéis de revisão e comparada por SHA-256 à conversão do original aprovado. Rótulos e composição preservados.",
+            "appCheckedAt": null,
+            "appNotes": "Conferência no aparelho pendente; catálogo e mídia pública confirmados."
+          }
+        }
+      }
     },
     {
       "slug": "extensao-de-quadril-na-polia",
@@ -693,10 +1382,60 @@
       "catalogName": "Cadeira abdutora",
       "mappingStatus": "verified_database",
       "mappingNote": "",
-      "imageStatus": "pending",
+      "imageStatus": "published",
       "imagePath": "design/exercise-images/images/cadeira-abdutora.png",
       "imageUrl": null,
-      "publishedSha256": null
+      "publishedSha256": null,
+      "productionCatalogCheckedAt": "2026-11-09T18:24:16.546Z",
+      "review": {
+        "result": "approved",
+        "reviewer": "assistant",
+        "reviewedAt": "2026-11-09T18:34:55.733102+00:00",
+        "sha256": "5a6f4470073061d1b3870d81f0119304c69029994f8e1ca41e8af50c1056cc56",
+        "notes": "Inspeção visual do assistente: abdução sentada com abertura das coxas, apoios externos aos joelhos e pés nos suportes da máquina. Tronco apoiado e quadris laterais destacados, anatomia, alavancas e textos coerentes; sem deformidades relevantes observadas.",
+        "sources": [
+          {
+            "url": "https://shop.lifefitness.com/products/insignia-series-hip-abductor-adductor-outlet",
+            "checkedAt": "2026-11-09"
+          }
+        ]
+      },
+      "generationBatch": "2026-11-09-lote-10",
+      "generationTool": "built-in image_gen",
+      "backup": {
+        "receiptPath": "/home/luiz/Área de trabalho/fit/exercise-image-backups/2026-11-09T21-18-51-202Z-fbeddeaf/receipt.json",
+        "sha256": "5a6f4470073061d1b3870d81f0119304c69029994f8e1ca41e8af50c1056cc56"
+      },
+      "publicationAttempts": {
+        "https://orami.com.br": {
+          "state": "confirmed",
+          "sha256": "5a6f4470073061d1b3870d81f0119304c69029994f8e1ca41e8af50c1056cc56",
+          "attemptedAt": "2026-11-09T18:42:46.175Z",
+          "environment": "production",
+          "method": "authenticated-portal"
+        }
+      },
+      "publications": {
+        "https://orami.com.br": {
+          "environment": "production",
+          "imageUrl": "/media/exercises/7f6148e1-267e-45b3-b545-9c3c0c30f76d.webp",
+          "sha256": "5a6f4470073061d1b3870d81f0119304c69029994f8e1ca41e8af50c1056cc56",
+          "publishedAt": "2026-11-09T18:42:46.175Z",
+          "method": "authenticated-portal",
+          "mediaSha256": "7aa632a70d8c758dd15a43dc96d3452e77a233ef80b28eb80bca4df7a5baaa9d",
+          "verifiedAt": "2026-11-09T18:44:52.769Z",
+          "verification": "ID/nome/escopo conferidos por consulta somente leitura em produção; WebP público idêntico à conversão do original aprovado.",
+          "acceptance": {
+            "sha256": "5a6f4470073061d1b3870d81f0119304c69029994f8e1ca41e8af50c1056cc56",
+            "mediaSha256": "7aa632a70d8c758dd15a43dc96d3452e77a233ef80b28eb80bca4df7a5baaa9d",
+            "reviewedAt": "2026-11-09T18:46:02.281504+00:00",
+            "reviewer": "assistant",
+            "notes": "WebP público aberto e inspecionado visualmente após conversão: movimento, anatomia, equipamento, destaques musculares, rótulos e legibilidade preservados. Conferência criptográfica confirmou igualdade com a conversão do original aprovado.",
+            "appCheckedAt": null,
+            "appNotes": "Conferência no aplicativo em aparelho/conta de teste não executada nesta sessão. Vínculo e imagem confirmados em produção e no portal administrativo."
+          }
+        }
+      }
     },
     {
       "slug": "cadeira-adutora",
@@ -706,10 +1445,60 @@
       "catalogName": "Cadeira adutora",
       "mappingStatus": "verified_database",
       "mappingNote": "",
-      "imageStatus": "pending",
+      "imageStatus": "published",
       "imagePath": "design/exercise-images/images/cadeira-adutora.png",
       "imageUrl": null,
-      "publishedSha256": null
+      "publishedSha256": null,
+      "productionCatalogCheckedAt": "2026-11-09T18:24:16.546Z",
+      "review": {
+        "result": "approved",
+        "reviewer": "assistant",
+        "reviewedAt": "2026-11-09T18:35:48.836311+00:00",
+        "sha256": "67e336f533afa66bb26b695fd3a00fd19ba123bfdb8c0a44867a382302e81d22",
+        "notes": "Inspeção visual do assistente: adução com coxas inicialmente abertas e fechamento final, apoios no lado interno das coxas preservados nas duas posições. Pés nos suportes, joelhos flexionados e adutores destacados; mãos, proporções e rótulos sem deformidades relevantes observadas.",
+        "sources": [
+          {
+            "url": "https://shop.lifefitness.com/products/insignia-series-hip-abductor-adductor-outlet",
+            "checkedAt": "2026-11-09"
+          }
+        ]
+      },
+      "generationBatch": "2026-11-09-lote-10",
+      "generationTool": "built-in image_gen",
+      "backup": {
+        "receiptPath": "/home/luiz/Área de trabalho/fit/exercise-image-backups/2026-11-09T21-18-51-202Z-fbeddeaf/receipt.json",
+        "sha256": "67e336f533afa66bb26b695fd3a00fd19ba123bfdb8c0a44867a382302e81d22"
+      },
+      "publicationAttempts": {
+        "https://orami.com.br": {
+          "state": "confirmed",
+          "sha256": "67e336f533afa66bb26b695fd3a00fd19ba123bfdb8c0a44867a382302e81d22",
+          "attemptedAt": "2026-11-09T18:43:10.465Z",
+          "environment": "production",
+          "method": "authenticated-portal"
+        }
+      },
+      "publications": {
+        "https://orami.com.br": {
+          "environment": "production",
+          "imageUrl": "/media/exercises/cca697d7-dc38-4dda-ac40-e2c7633eb8b3.webp",
+          "sha256": "67e336f533afa66bb26b695fd3a00fd19ba123bfdb8c0a44867a382302e81d22",
+          "publishedAt": "2026-11-09T18:43:10.465Z",
+          "method": "authenticated-portal",
+          "mediaSha256": "160b0af06da18a49b0c8108e3c9caddf34387615ec9a4d6cda5ccf6713f695e4",
+          "verifiedAt": "2026-11-09T18:44:52.521Z",
+          "verification": "ID/nome/escopo conferidos por consulta somente leitura em produção; WebP público idêntico à conversão do original aprovado.",
+          "acceptance": {
+            "sha256": "67e336f533afa66bb26b695fd3a00fd19ba123bfdb8c0a44867a382302e81d22",
+            "mediaSha256": "160b0af06da18a49b0c8108e3c9caddf34387615ec9a4d6cda5ccf6713f695e4",
+            "reviewedAt": "2026-11-09T18:46:02.281504+00:00",
+            "reviewer": "assistant",
+            "notes": "WebP público aberto e inspecionado visualmente após conversão: movimento, anatomia, equipamento, destaques musculares, rótulos e legibilidade preservados. Conferência criptográfica confirmou igualdade com a conversão do original aprovado.",
+            "appCheckedAt": null,
+            "appNotes": "Conferência no aplicativo em aparelho/conta de teste não executada nesta sessão. Vínculo e imagem confirmados em produção e no portal administrativo."
+          }
+        }
+      }
     },
     {
       "slug": "abducao-de-quadril-na-polia",
@@ -732,10 +1521,55 @@
       "catalogName": "Panturrilha em pé máquina",
       "mappingStatus": "verified_database",
       "mappingNote": "Variação escolhida para o nome genérico: Panturrilha em pé máquina",
-      "imageStatus": "pending",
+      "imageStatus": "published",
       "imagePath": "design/exercise-images/images/elevacao-de-panturrilhas-em-pe.png",
       "imageUrl": null,
-      "publishedSha256": null
+      "publishedSha256": null,
+      "review": {
+        "result": "approved",
+        "reviewer": "assistant",
+        "reviewedAt": "2026-11-09T20:10:22.084951+00:00",
+        "sha256": "1c11a65f2959857180c10513f7948e4609f4d42c2fab37dd17c8062b08a77c8b",
+        "notes": "Inspeção visual do assistente: duas posições, anatomia, pegada/apoios, continuidade do equipamento e rótulos conferidos. Standing calf raise machine: shoulder pads, forefeet on platform heels free; left heels lowered, right plantarflexion heels raised, knees stable; highlight calves.",
+        "sources": []
+      },
+      "generationBatch": "2026-11-09-lote-20",
+      "generationTool": "built-in image_gen",
+      "productionCatalogCheckedAt": "2026-11-09T19:50:58.918Z",
+      "backup": {
+        "receiptPath": "/home/luiz/Área de trabalho/fit/exercise-image-backups/2026-11-09T21-18-51-202Z-fbeddeaf/receipt.json",
+        "sha256": "1c11a65f2959857180c10513f7948e4609f4d42c2fab37dd17c8062b08a77c8b"
+      },
+      "publicationAttempts": {
+        "https://orami.com.br": {
+          "state": "confirmed",
+          "sha256": "1c11a65f2959857180c10513f7948e4609f4d42c2fab37dd17c8062b08a77c8b",
+          "attemptedAt": "2026-11-09T21:12:26.860Z",
+          "environment": "production",
+          "method": "authenticated-portal"
+        }
+      },
+      "publications": {
+        "https://orami.com.br": {
+          "environment": "production",
+          "imageUrl": "/media/exercises/7c47cb3c-2c57-488a-8765-28e27d13273f.webp",
+          "sha256": "1c11a65f2959857180c10513f7948e4609f4d42c2fab37dd17c8062b08a77c8b",
+          "publishedAt": "2026-11-09T21:12:26.860Z",
+          "method": "authenticated-portal",
+          "mediaSha256": "4b59ac5ce522275d4c8562fe1bb5e0d597d338af6b89829b60c2e8b705cf27d7",
+          "verifiedAt": "2026-11-09T21:17:12.028Z",
+          "verification": "ID/nome/escopo conferidos por consulta somente leitura em produção; WebP público idêntico à conversão do original aprovado.",
+          "acceptance": {
+            "sha256": "1c11a65f2959857180c10513f7948e4609f4d42c2fab37dd17c8062b08a77c8b",
+            "mediaSha256": "4b59ac5ce522275d4c8562fe1bb5e0d597d338af6b89829b60c2e8b705cf27d7",
+            "reviewer": "assistant",
+            "reviewedAt": "2026-11-09T21:18:50.769101+00:00",
+            "notes": "Versão pública conferida visualmente em painéis de revisão e comparada por SHA-256 à conversão do original aprovado. Rótulos e composição preservados.",
+            "appCheckedAt": null,
+            "appNotes": "Conferência no aparelho pendente; catálogo e mídia pública confirmados."
+          }
+        }
+      }
     },
     {
       "slug": "elevacao-de-panturrilhas-sentado",
@@ -758,10 +1592,55 @@
       "catalogName": "Panturrilha no leg press",
       "mappingStatus": "verified_database",
       "mappingNote": "Variação escolhida para o nome genérico: Panturrilha no leg press",
-      "imageStatus": "pending",
+      "imageStatus": "published",
       "imagePath": "design/exercise-images/images/panturrilhas-no-leg-press.png",
       "imageUrl": null,
-      "publishedSha256": null
+      "publishedSha256": null,
+      "review": {
+        "result": "approved",
+        "reviewer": "assistant",
+        "reviewedAt": "2026-11-09T20:10:22.107639+00:00",
+        "sha256": "e10dbd7e09a3202b346228c873022a31027e1606aa4d4048292f2b058558a08d",
+        "notes": "Inspeção visual do assistente: duas posições, anatomia, pegada/apoios, continuidade do equipamento e rótulos conferidos. Calf raise on 45-degree leg press: forefeet on lower footplate, knees softly extended stable, left dorsiflexion heels lower, right plantarflexion pushing plate away, highlight calves.",
+        "sources": []
+      },
+      "generationBatch": "2026-11-09-lote-20",
+      "generationTool": "built-in image_gen",
+      "productionCatalogCheckedAt": "2026-11-09T19:50:58.918Z",
+      "backup": {
+        "receiptPath": "/home/luiz/Área de trabalho/fit/exercise-image-backups/2026-11-09T21-18-51-202Z-fbeddeaf/receipt.json",
+        "sha256": "e10dbd7e09a3202b346228c873022a31027e1606aa4d4048292f2b058558a08d"
+      },
+      "publicationAttempts": {
+        "https://orami.com.br": {
+          "state": "confirmed",
+          "sha256": "e10dbd7e09a3202b346228c873022a31027e1606aa4d4048292f2b058558a08d",
+          "attemptedAt": "2026-11-09T21:12:57.212Z",
+          "environment": "production",
+          "method": "authenticated-portal"
+        }
+      },
+      "publications": {
+        "https://orami.com.br": {
+          "environment": "production",
+          "imageUrl": "/media/exercises/1f1db55c-48d2-4af3-95ac-4559f73a4389.webp",
+          "sha256": "e10dbd7e09a3202b346228c873022a31027e1606aa4d4048292f2b058558a08d",
+          "publishedAt": "2026-11-09T21:12:57.212Z",
+          "method": "authenticated-portal",
+          "mediaSha256": "ae5b21efd79227464b42c800b570fc8a7bcf715c51fa82f1dda38c700bab70cb",
+          "verifiedAt": "2026-11-09T21:17:12.722Z",
+          "verification": "ID/nome/escopo conferidos por consulta somente leitura em produção; WebP público idêntico à conversão do original aprovado.",
+          "acceptance": {
+            "sha256": "e10dbd7e09a3202b346228c873022a31027e1606aa4d4048292f2b058558a08d",
+            "mediaSha256": "ae5b21efd79227464b42c800b570fc8a7bcf715c51fa82f1dda38c700bab70cb",
+            "reviewer": "assistant",
+            "reviewedAt": "2026-11-09T21:18:50.769102+00:00",
+            "notes": "Versão pública conferida visualmente em painéis de revisão e comparada por SHA-256 à conversão do original aprovado. Rótulos e composição preservados.",
+            "appCheckedAt": null,
+            "appNotes": "Conferência no aparelho pendente; catálogo e mídia pública confirmados."
+          }
+        }
+      }
     },
     {
       "slug": "abdominal-no-solo",
@@ -970,6 +1849,862 @@
       "imagePath": "design/exercise-images/images/remo-ergometrico.png",
       "imageUrl": null,
       "publishedSha256": null
+    },
+    {
+      "slug": "rosca-direta-barra-w",
+      "name": "Rosca direta barra W",
+      "group": "Bíceps",
+      "catalogExerciseId": "4ddb25d3-082a-44e3-8d99-0e716781d7de",
+      "catalogName": "Rosca direta barra W",
+      "mappingStatus": "verified_database",
+      "mappingNote": "ID e nome conferidos no catálogo de produção em 09/11/2026.",
+      "imageStatus": "published",
+      "imagePath": "design/exercise-images/images/rosca-direta-barra-w.png",
+      "imageUrl": null,
+      "publishedSha256": null,
+      "productionCatalogCheckedAt": "2026-11-09T18:24:16.546Z",
+      "review": {
+        "result": "approved",
+        "reviewer": "assistant",
+        "reviewedAt": "2026-11-09T18:37:36.603206+00:00",
+        "sha256": "44dff7b6fd66475cebcc90585585d09c1fb53859a8dc75015a4744b6a6669d0a",
+        "notes": "Inspeção visual do assistente: barra W/EZ identificável e contínua nas duas posições, mãos segurando trechos angulados, cotovelos próximos ao tronco e flexão bilateral sem balanço. Destaque dos bíceps, pés, dedos visíveis e textos coerentes; sem deformidades relevantes observadas.",
+        "sources": []
+      },
+      "generationBatch": "2026-11-09-lote-10",
+      "generationTool": "built-in image_gen",
+      "backup": {
+        "receiptPath": "/home/luiz/Área de trabalho/fit/exercise-image-backups/2026-11-09T21-18-51-202Z-fbeddeaf/receipt.json",
+        "sha256": "44dff7b6fd66475cebcc90585585d09c1fb53859a8dc75015a4744b6a6669d0a"
+      },
+      "publicationAttempts": {
+        "https://orami.com.br": {
+          "state": "confirmed",
+          "sha256": "44dff7b6fd66475cebcc90585585d09c1fb53859a8dc75015a4744b6a6669d0a",
+          "attemptedAt": "2026-11-09T18:44:00.388Z",
+          "environment": "production",
+          "method": "authenticated-portal"
+        }
+      },
+      "publications": {
+        "https://orami.com.br": {
+          "environment": "production",
+          "imageUrl": "/media/exercises/1350ff75-a01d-45f0-95f1-365a564afcb8.webp",
+          "sha256": "44dff7b6fd66475cebcc90585585d09c1fb53859a8dc75015a4744b6a6669d0a",
+          "publishedAt": "2026-11-09T18:44:00.388Z",
+          "method": "authenticated-portal",
+          "mediaSha256": "30823f19dc52ba874ea4b0ad8e012944a8a20945d4313934914aceffe9134ab2",
+          "verifiedAt": "2026-11-09T18:44:52.316Z",
+          "verification": "ID/nome/escopo conferidos por consulta somente leitura em produção; WebP público idêntico à conversão do original aprovado.",
+          "acceptance": {
+            "sha256": "44dff7b6fd66475cebcc90585585d09c1fb53859a8dc75015a4744b6a6669d0a",
+            "mediaSha256": "30823f19dc52ba874ea4b0ad8e012944a8a20945d4313934914aceffe9134ab2",
+            "reviewedAt": "2026-11-09T18:46:02.281504+00:00",
+            "reviewer": "assistant",
+            "notes": "WebP público aberto e inspecionado visualmente após conversão: movimento, anatomia, equipamento, destaques musculares, rótulos e legibilidade preservados. Conferência criptográfica confirmou igualdade com a conversão do original aprovado.",
+            "appCheckedAt": null,
+            "appNotes": "Conferência no aplicativo em aparelho/conta de teste não executada nesta sessão. Vínculo e imagem confirmados em produção e no portal administrativo."
+          }
+        }
+      }
+    },
+    {
+      "slug": "crossover-alto",
+      "name": "Crossover alto",
+      "catalogName": "Crossover alto",
+      "catalogExerciseId": "ace87820-bd89-4dca-8120-1eaf73b68f60",
+      "group": "Complementos do catálogo",
+      "imagePath": "design/exercise-images/images/crossover-alto.png",
+      "imageStatus": "published",
+      "mappingStatus": "verified_database",
+      "imageUrl": null,
+      "publishedSha256": null,
+      "review": {
+        "result": "approved",
+        "reviewer": "assistant",
+        "reviewedAt": "2026-11-09T20:10:22.090419+00:00",
+        "sha256": "c0ff771d7d03e752b4900d644fbb6f4e18bc63a05bb1b1be36703ee371cb507a",
+        "notes": "Inspeção visual do assistente: duas posições, anatomia, pegada/apoios, continuidade do equipamento e rótulos conferidos. High cable crossover: two high pulleys, standing split stance; left arms open with soft elbows, right hands come together below chest; cables continuous, highlight pecs.",
+        "sources": []
+      },
+      "generationBatch": "2026-11-09-lote-20",
+      "generationTool": "built-in image_gen",
+      "productionCatalogCheckedAt": "2026-11-09T19:50:58.918Z",
+      "backup": {
+        "receiptPath": "/home/luiz/Área de trabalho/fit/exercise-image-backups/2026-11-09T21-18-51-202Z-fbeddeaf/receipt.json",
+        "sha256": "c0ff771d7d03e752b4900d644fbb6f4e18bc63a05bb1b1be36703ee371cb507a"
+      },
+      "publicationAttempts": {
+        "https://orami.com.br": {
+          "state": "confirmed",
+          "sha256": "c0ff771d7d03e752b4900d644fbb6f4e18bc63a05bb1b1be36703ee371cb507a",
+          "attemptedAt": "2026-11-09T21:12:56.927Z",
+          "environment": "production",
+          "method": "authenticated-portal"
+        }
+      },
+      "publications": {
+        "https://orami.com.br": {
+          "environment": "production",
+          "imageUrl": "/media/exercises/4b128e6d-52f8-4792-a5cc-36667b08c651.webp",
+          "sha256": "c0ff771d7d03e752b4900d644fbb6f4e18bc63a05bb1b1be36703ee371cb507a",
+          "publishedAt": "2026-11-09T21:12:56.927Z",
+          "method": "authenticated-portal",
+          "mediaSha256": "43b53fd6cba1de3dbfc0276ebe079bc61ba008e4d10e9c5de0fac3af85bd38dd",
+          "verifiedAt": "2026-11-09T21:17:14.065Z",
+          "verification": "ID/nome/escopo conferidos por consulta somente leitura em produção; WebP público idêntico à conversão do original aprovado.",
+          "acceptance": {
+            "sha256": "c0ff771d7d03e752b4900d644fbb6f4e18bc63a05bb1b1be36703ee371cb507a",
+            "mediaSha256": "43b53fd6cba1de3dbfc0276ebe079bc61ba008e4d10e9c5de0fac3af85bd38dd",
+            "reviewer": "assistant",
+            "reviewedAt": "2026-11-09T21:18:50.769103+00:00",
+            "notes": "Versão pública conferida visualmente em painéis de revisão e comparada por SHA-256 à conversão do original aprovado. Rótulos e composição preservados.",
+            "appCheckedAt": null,
+            "appNotes": "Conferência no aparelho pendente; catálogo e mídia pública confirmados."
+          }
+        }
+      }
+    },
+    {
+      "slug": "desenvolvimento-de-ombros",
+      "name": "Desenvolvimento de ombros",
+      "catalogName": "Desenvolvimento de ombros",
+      "catalogExerciseId": "00000000-0000-4000-8000-000000000005",
+      "group": "Complementos do catálogo",
+      "imagePath": "design/exercise-images/images/desenvolvimento-de-ombros.png",
+      "imageStatus": "published",
+      "mappingStatus": "verified_database",
+      "imageUrl": null,
+      "publishedSha256": null,
+      "review": {
+        "result": "approved",
+        "reviewer": "assistant",
+        "reviewedAt": "2026-11-09T20:10:22.097854+00:00",
+        "sha256": "da2971733c13919ac03c582b8d70733b78a470bbdfabb63a84f6827a71a93045",
+        "notes": "Inspeção visual do assistente: duas posições, anatomia, pegada/apoios, continuidade do equipamento e rótulos conferidos. Seated dumbbell overhead shoulder press: left dumbbells beside shoulders elbows bent, right arms extend overhead, back supported, highlight deltoids.",
+        "sources": []
+      },
+      "generationBatch": "2026-11-09-lote-20",
+      "generationTool": "built-in image_gen",
+      "productionCatalogCheckedAt": "2026-11-09T19:50:58.918Z",
+      "backup": {
+        "receiptPath": "/home/luiz/Área de trabalho/fit/exercise-image-backups/2026-11-09T21-18-51-202Z-fbeddeaf/receipt.json",
+        "sha256": "da2971733c13919ac03c582b8d70733b78a470bbdfabb63a84f6827a71a93045"
+      },
+      "publicationAttempts": {
+        "https://orami.com.br": {
+          "state": "confirmed",
+          "sha256": "da2971733c13919ac03c582b8d70733b78a470bbdfabb63a84f6827a71a93045",
+          "attemptedAt": "2026-11-09T21:12:56.964Z",
+          "environment": "production",
+          "method": "authenticated-portal"
+        }
+      },
+      "publications": {
+        "https://orami.com.br": {
+          "environment": "production",
+          "imageUrl": "/media/exercises/59e7c8c0-a601-4af5-994f-913ea7bfd73b.webp",
+          "sha256": "da2971733c13919ac03c582b8d70733b78a470bbdfabb63a84f6827a71a93045",
+          "publishedAt": "2026-11-09T21:12:56.964Z",
+          "method": "authenticated-portal",
+          "mediaSha256": "169ae3c652b0dc3a9f066dcccca4e00ba1e11c82b28eb161a53fe4956058c843",
+          "verifiedAt": "2026-11-09T21:17:10.286Z",
+          "verification": "ID/nome/escopo conferidos por consulta somente leitura em produção; WebP público idêntico à conversão do original aprovado.",
+          "acceptance": {
+            "sha256": "da2971733c13919ac03c582b8d70733b78a470bbdfabb63a84f6827a71a93045",
+            "mediaSha256": "169ae3c652b0dc3a9f066dcccca4e00ba1e11c82b28eb161a53fe4956058c843",
+            "reviewer": "assistant",
+            "reviewedAt": "2026-11-09T21:18:50.769106+00:00",
+            "notes": "Versão pública conferida visualmente em painéis de revisão e comparada por SHA-256 à conversão do original aprovado. Rótulos e composição preservados.",
+            "appCheckedAt": null,
+            "appNotes": "Conferência no aparelho pendente; catálogo e mídia pública confirmados."
+          }
+        }
+      }
+    },
+    {
+      "slug": "desenvolvimento-militar-com-barra",
+      "name": "Desenvolvimento militar com barra",
+      "catalogName": "Desenvolvimento militar com barra",
+      "catalogExerciseId": "3c1e96c9-202b-46fe-8fd8-2631aca6b8bc",
+      "group": "Complementos do catálogo",
+      "imagePath": "design/exercise-images/images/desenvolvimento-militar-com-barra.png",
+      "imageStatus": "published",
+      "mappingStatus": "verified_database",
+      "imageUrl": null,
+      "publishedSha256": null,
+      "review": {
+        "result": "approved",
+        "reviewer": "assistant",
+        "reviewedAt": "2026-11-09T20:10:22.100111+00:00",
+        "sha256": "f5a1f96d34785b68b6e2b6361fdae67cc5c9e7108b6d8439d14251ba687cca49",
+        "notes": "Inspeção visual do assistente: duas posições, anatomia, pegada/apoios, continuidade do equipamento e rótulos conferidos. Standing military barbell press: left bar upper chest elbows under bar, right bar overhead arms extended, neutral trunk, highlight deltoids.",
+        "sources": []
+      },
+      "generationBatch": "2026-11-09-lote-20",
+      "generationTool": "built-in image_gen",
+      "productionCatalogCheckedAt": "2026-11-09T19:50:58.918Z",
+      "backup": {
+        "receiptPath": "/home/luiz/Área de trabalho/fit/exercise-image-backups/2026-11-09T21-18-51-202Z-fbeddeaf/receipt.json",
+        "sha256": "f5a1f96d34785b68b6e2b6361fdae67cc5c9e7108b6d8439d14251ba687cca49"
+      },
+      "publicationAttempts": {
+        "https://orami.com.br": {
+          "state": "confirmed",
+          "sha256": "f5a1f96d34785b68b6e2b6361fdae67cc5c9e7108b6d8439d14251ba687cca49",
+          "attemptedAt": "2026-11-09T21:12:57.007Z",
+          "environment": "production",
+          "method": "authenticated-portal"
+        }
+      },
+      "publications": {
+        "https://orami.com.br": {
+          "environment": "production",
+          "imageUrl": "/media/exercises/58279284-789a-4ad2-9baf-54e1a47c7994.webp",
+          "sha256": "f5a1f96d34785b68b6e2b6361fdae67cc5c9e7108b6d8439d14251ba687cca49",
+          "publishedAt": "2026-11-09T21:12:57.007Z",
+          "method": "authenticated-portal",
+          "mediaSha256": "6584b576e6b696b609b7afd4fcc112b8ff320f4a10c4560ae59d0cf3381e3804",
+          "verifiedAt": "2026-11-09T21:17:10.916Z",
+          "verification": "ID/nome/escopo conferidos por consulta somente leitura em produção; WebP público idêntico à conversão do original aprovado.",
+          "acceptance": {
+            "sha256": "f5a1f96d34785b68b6e2b6361fdae67cc5c9e7108b6d8439d14251ba687cca49",
+            "mediaSha256": "6584b576e6b696b609b7afd4fcc112b8ff320f4a10c4560ae59d0cf3381e3804",
+            "reviewer": "assistant",
+            "reviewedAt": "2026-11-09T21:18:50.769108+00:00",
+            "notes": "Versão pública conferida visualmente em painéis de revisão e comparada por SHA-256 à conversão do original aprovado. Rótulos e composição preservados.",
+            "appCheckedAt": null,
+            "appNotes": "Conferência no aparelho pendente; catálogo e mídia pública confirmados."
+          }
+        }
+      }
+    },
+    {
+      "slug": "elevacao-lateral",
+      "name": "Elevação lateral",
+      "catalogName": "Elevação lateral",
+      "catalogExerciseId": "00000000-0000-4000-8000-000000000011",
+      "group": "Complementos do catálogo",
+      "imagePath": "design/exercise-images/images/elevacao-lateral.png",
+      "imageStatus": "published",
+      "mappingStatus": "verified_database",
+      "imageUrl": null,
+      "publishedSha256": null,
+      "review": {
+        "result": "approved",
+        "reviewer": "assistant",
+        "reviewedAt": "2026-11-09T20:10:22.102584+00:00",
+        "sha256": "f98b71013e0d867044ec0621ecb8503e5063dcfef6a1f024eed32a844d83d146",
+        "notes": "Inspeção visual do assistente: duas posições, anatomia, pegada/apoios, continuidade do equipamento e rótulos conferidos. Standing dumbbell lateral raise: left arms down, right arms abducted to shoulder height elbows softly bent, neutral wrists, highlight lateral deltoids.",
+        "sources": []
+      },
+      "generationBatch": "2026-11-09-lote-20",
+      "generationTool": "built-in image_gen",
+      "productionCatalogCheckedAt": "2026-11-09T19:50:58.918Z",
+      "backup": {
+        "receiptPath": "/home/luiz/Área de trabalho/fit/exercise-image-backups/2026-11-09T21-18-51-202Z-fbeddeaf/receipt.json",
+        "sha256": "f98b71013e0d867044ec0621ecb8503e5063dcfef6a1f024eed32a844d83d146"
+      },
+      "publicationAttempts": {
+        "https://orami.com.br": {
+          "state": "confirmed",
+          "sha256": "f98b71013e0d867044ec0621ecb8503e5063dcfef6a1f024eed32a844d83d146",
+          "attemptedAt": "2026-11-09T21:12:57.069Z",
+          "environment": "production",
+          "method": "authenticated-portal"
+        }
+      },
+      "publications": {
+        "https://orami.com.br": {
+          "environment": "production",
+          "imageUrl": "/media/exercises/f941203b-8721-4afe-822d-b8775e69eeb0.webp",
+          "sha256": "f98b71013e0d867044ec0621ecb8503e5063dcfef6a1f024eed32a844d83d146",
+          "publishedAt": "2026-11-09T21:12:57.069Z",
+          "method": "authenticated-portal",
+          "mediaSha256": "764bc069c0f5fe47c7efd712f026489e31af9178c059df6853e1a0d954016d9f",
+          "verifiedAt": "2026-11-09T21:17:10.500Z",
+          "verification": "ID/nome/escopo conferidos por consulta somente leitura em produção; WebP público idêntico à conversão do original aprovado.",
+          "acceptance": {
+            "sha256": "f98b71013e0d867044ec0621ecb8503e5063dcfef6a1f024eed32a844d83d146",
+            "mediaSha256": "764bc069c0f5fe47c7efd712f026489e31af9178c059df6853e1a0d954016d9f",
+            "reviewer": "assistant",
+            "reviewedAt": "2026-11-09T21:18:50.769116+00:00",
+            "notes": "Versão pública conferida visualmente em painéis de revisão e comparada por SHA-256 à conversão do original aprovado. Rótulos e composição preservados.",
+            "appCheckedAt": null,
+            "appNotes": "Conferência no aparelho pendente; catálogo e mídia pública confirmados."
+          }
+        }
+      }
+    },
+    {
+      "slug": "panturrilha-no-degrau",
+      "name": "Panturrilha no degrau",
+      "catalogName": "Panturrilha no degrau",
+      "catalogExerciseId": "452c1a2e-cb03-4dcf-8395-b108a2ae7af7",
+      "group": "Complementos do catálogo",
+      "imagePath": "design/exercise-images/images/panturrilha-no-degrau.png",
+      "imageStatus": "published",
+      "mappingStatus": "verified_database",
+      "imageUrl": null,
+      "publishedSha256": null,
+      "review": {
+        "result": "approved",
+        "reviewer": "assistant",
+        "reviewedAt": "2026-11-09T20:10:22.105748+00:00",
+        "sha256": "8470997ba7891d27390477e0a022c9b93e39a8aedd68321f1bc60eacb7593187",
+        "notes": "Inspeção visual do assistente: duas posições, anatomia, pegada/apoios, continuidade do equipamento e rótulos conferidos. Bodyweight calf raise on step: forefeet on step heels free, left heels down right heels up, neutral legs, highlight calves.",
+        "sources": []
+      },
+      "generationBatch": "2026-11-09-lote-20",
+      "generationTool": "built-in image_gen",
+      "productionCatalogCheckedAt": "2026-11-09T19:50:58.918Z",
+      "backup": {
+        "receiptPath": "/home/luiz/Área de trabalho/fit/exercise-image-backups/2026-11-09T21-18-51-202Z-fbeddeaf/receipt.json",
+        "sha256": "8470997ba7891d27390477e0a022c9b93e39a8aedd68321f1bc60eacb7593187"
+      },
+      "publicationAttempts": {
+        "https://orami.com.br": {
+          "state": "confirmed",
+          "sha256": "8470997ba7891d27390477e0a022c9b93e39a8aedd68321f1bc60eacb7593187",
+          "attemptedAt": "2026-11-09T21:12:57.149Z",
+          "environment": "production",
+          "method": "authenticated-portal"
+        }
+      },
+      "publications": {
+        "https://orami.com.br": {
+          "environment": "production",
+          "imageUrl": "/media/exercises/87a57b3e-7a80-4f94-95f9-ac3131615daa.webp",
+          "sha256": "8470997ba7891d27390477e0a022c9b93e39a8aedd68321f1bc60eacb7593187",
+          "publishedAt": "2026-11-09T21:12:57.149Z",
+          "method": "authenticated-portal",
+          "mediaSha256": "10f5838562797103179b04b3154c0d834c477487725b558f3f029286d0081b14",
+          "verifiedAt": "2026-11-09T21:17:11.825Z",
+          "verification": "ID/nome/escopo conferidos por consulta somente leitura em produção; WebP público idêntico à conversão do original aprovado.",
+          "acceptance": {
+            "sha256": "8470997ba7891d27390477e0a022c9b93e39a8aedd68321f1bc60eacb7593187",
+            "mediaSha256": "10f5838562797103179b04b3154c0d834c477487725b558f3f029286d0081b14",
+            "reviewer": "assistant",
+            "reviewedAt": "2026-11-09T21:18:50.769117+00:00",
+            "notes": "Versão pública conferida visualmente em painéis de revisão e comparada por SHA-256 à conversão do original aprovado. Rótulos e composição preservados.",
+            "appCheckedAt": null,
+            "appNotes": "Conferência no aparelho pendente; catálogo e mídia pública confirmados."
+          }
+        }
+      }
+    },
+    {
+      "slug": "puxada-alta-frente",
+      "name": "Puxada alta frente",
+      "catalogName": "Puxada alta frente",
+      "catalogExerciseId": "6207f1c5-7b02-4f58-86b2-56d913d352a9",
+      "group": "Complementos do catálogo",
+      "imagePath": "design/exercise-images/images/puxada-alta-frente.png",
+      "imageStatus": "published",
+      "mappingStatus": "verified_database",
+      "imageUrl": null,
+      "publishedSha256": null,
+      "review": {
+        "result": "approved",
+        "reviewer": "assistant",
+        "reviewedAt": "2026-11-09T20:10:22.110609+00:00",
+        "sha256": "ba1932936966bcae3ac755ccbed4d58be359a1123ac952bf33b325dd73d6258a",
+        "notes": "Inspeção visual do assistente: duas posições, anatomia, pegada/apoios, continuidade do equipamento e rótulos conferidos. Wide pronated lat pulldown in front: seated thighs under pads, left arms overhead, right bar at upper chest, no behind-neck pull, highlight lats.",
+        "sources": []
+      },
+      "generationBatch": "2026-11-09-lote-20",
+      "generationTool": "built-in image_gen",
+      "productionCatalogCheckedAt": "2026-11-09T19:50:58.918Z",
+      "backup": {
+        "receiptPath": "/home/luiz/Área de trabalho/fit/exercise-image-backups/2026-11-09T21-18-51-202Z-fbeddeaf/receipt.json",
+        "sha256": "ba1932936966bcae3ac755ccbed4d58be359a1123ac952bf33b325dd73d6258a"
+      },
+      "publicationAttempts": {
+        "https://orami.com.br": {
+          "state": "confirmed",
+          "sha256": "ba1932936966bcae3ac755ccbed4d58be359a1123ac952bf33b325dd73d6258a",
+          "attemptedAt": "2026-11-09T21:12:57.265Z",
+          "environment": "production",
+          "method": "authenticated-portal"
+        }
+      },
+      "publications": {
+        "https://orami.com.br": {
+          "environment": "production",
+          "imageUrl": "/media/exercises/bdcff352-a762-45c5-b35a-f357c4bc36ff.webp",
+          "sha256": "ba1932936966bcae3ac755ccbed4d58be359a1123ac952bf33b325dd73d6258a",
+          "publishedAt": "2026-11-09T21:12:57.265Z",
+          "method": "authenticated-portal",
+          "mediaSha256": "f4ffc0aae03c57f5551a7a4fcf6d13f7be75919fddb84ed6231133af278ec4aa",
+          "verifiedAt": "2026-11-09T21:17:12.347Z",
+          "verification": "ID/nome/escopo conferidos por consulta somente leitura em produção; WebP público idêntico à conversão do original aprovado.",
+          "acceptance": {
+            "sha256": "ba1932936966bcae3ac755ccbed4d58be359a1123ac952bf33b325dd73d6258a",
+            "mediaSha256": "f4ffc0aae03c57f5551a7a4fcf6d13f7be75919fddb84ed6231133af278ec4aa",
+            "reviewer": "assistant",
+            "reviewedAt": "2026-11-09T21:18:50.769118+00:00",
+            "notes": "Versão pública conferida visualmente em painéis de revisão e comparada por SHA-256 à conversão do original aprovado. Rótulos e composição preservados.",
+            "appCheckedAt": null,
+            "appNotes": "Conferência no aparelho pendente; catálogo e mídia pública confirmados."
+          }
+        }
+      }
+    },
+    {
+      "slug": "rosca-scott-maquina",
+      "name": "Rosca Scott máquina",
+      "catalogName": "Rosca Scott máquina",
+      "catalogExerciseId": "663dcbe0-190c-4d75-8262-5a8415eba40a",
+      "group": "Complementos do catálogo",
+      "imagePath": "design/exercise-images/images/rosca-scott-maquina.png",
+      "imageStatus": "published",
+      "mappingStatus": "verified_database",
+      "imageUrl": null,
+      "publishedSha256": null,
+      "review": {
+        "result": "approved",
+        "reviewer": "assistant",
+        "reviewedAt": "2026-11-09T20:10:22.113153+00:00",
+        "sha256": "f10423547d7ae3010c99f0e95fe839f95d0bcb9536f65c318c8da38391bd75f3",
+        "notes": "Inspeção visual do assistente: duas posições, anatomia, pegada/apoios, continuidade do equipamento e rótulos conferidos. Preacher curl machine: upper arms supported on angled pad; left elbows almost extended, right elbows flexed, hands hold connected machine handles, highlight biceps.",
+        "sources": []
+      },
+      "generationBatch": "2026-11-09-lote-20",
+      "generationTool": "built-in image_gen",
+      "productionCatalogCheckedAt": "2026-11-09T19:50:58.918Z",
+      "backup": {
+        "receiptPath": "/home/luiz/Área de trabalho/fit/exercise-image-backups/2026-11-09T21-18-51-202Z-fbeddeaf/receipt.json",
+        "sha256": "f10423547d7ae3010c99f0e95fe839f95d0bcb9536f65c318c8da38391bd75f3"
+      },
+      "publicationAttempts": {
+        "https://orami.com.br": {
+          "state": "confirmed",
+          "sha256": "f10423547d7ae3010c99f0e95fe839f95d0bcb9536f65c318c8da38391bd75f3",
+          "attemptedAt": "2026-11-09T21:12:57.301Z",
+          "environment": "production",
+          "method": "authenticated-portal"
+        }
+      },
+      "publications": {
+        "https://orami.com.br": {
+          "environment": "production",
+          "imageUrl": "/media/exercises/cbfa9b80-b01e-4c7a-8464-3db2f4b4ccf3.webp",
+          "sha256": "f10423547d7ae3010c99f0e95fe839f95d0bcb9536f65c318c8da38391bd75f3",
+          "publishedAt": "2026-11-09T21:12:57.301Z",
+          "method": "authenticated-portal",
+          "mediaSha256": "57a6c3d4b476f6dcf0fc2cd439eb789688ed15a0b3fd73a3d0aedc5596b3d050",
+          "verifiedAt": "2026-11-09T21:17:12.543Z",
+          "verification": "ID/nome/escopo conferidos por consulta somente leitura em produção; WebP público idêntico à conversão do original aprovado.",
+          "acceptance": {
+            "sha256": "f10423547d7ae3010c99f0e95fe839f95d0bcb9536f65c318c8da38391bd75f3",
+            "mediaSha256": "57a6c3d4b476f6dcf0fc2cd439eb789688ed15a0b3fd73a3d0aedc5596b3d050",
+            "reviewer": "assistant",
+            "reviewedAt": "2026-11-09T21:18:50.769119+00:00",
+            "notes": "Versão pública conferida visualmente em painéis de revisão e comparada por SHA-256 à conversão do original aprovado. Rótulos e composição preservados.",
+            "appCheckedAt": null,
+            "appNotes": "Conferência no aparelho pendente; catálogo e mídia pública confirmados."
+          }
+        }
+      }
+    },
+    {
+      "slug": "supino-inclinado-com-barra",
+      "name": "Supino inclinado com barra",
+      "catalogName": "Supino inclinado com barra",
+      "catalogExerciseId": "6770a7f2-e34a-4ed7-867f-2c5dad6a300f",
+      "group": "Complementos do catálogo",
+      "imagePath": "design/exercise-images/images/supino-inclinado-com-barra.png",
+      "imageStatus": "published",
+      "mappingStatus": "verified_database",
+      "imageUrl": null,
+      "publishedSha256": null,
+      "review": {
+        "result": "approved",
+        "reviewer": "assistant",
+        "reviewedAt": "2026-11-09T20:10:22.116102+00:00",
+        "sha256": "e6e03b1075910f243c1bd4d56e68a5d77760f435ee062ecf910d15d56eeadd9b",
+        "notes": "Inspeção visual do assistente: duas posições, anatomia, pegada/apoios, continuidade do equipamento e rótulos conferidos. Incline barbell bench press: bench 30 degrees, feet grounded; left bar near upper chest, right arms extended over upper chest; highlight upper pectorals.",
+        "sources": []
+      },
+      "generationBatch": "2026-11-09-lote-20",
+      "generationTool": "built-in image_gen",
+      "productionCatalogCheckedAt": "2026-11-09T19:50:58.918Z",
+      "backup": {
+        "receiptPath": "/home/luiz/Área de trabalho/fit/exercise-image-backups/2026-11-09T21-18-51-202Z-fbeddeaf/receipt.json",
+        "sha256": "e6e03b1075910f243c1bd4d56e68a5d77760f435ee062ecf910d15d56eeadd9b"
+      },
+      "publicationAttempts": {
+        "https://orami.com.br": {
+          "state": "confirmed",
+          "sha256": "e6e03b1075910f243c1bd4d56e68a5d77760f435ee062ecf910d15d56eeadd9b",
+          "attemptedAt": "2026-11-09T21:12:57.343Z",
+          "environment": "production",
+          "method": "authenticated-portal"
+        }
+      },
+      "publications": {
+        "https://orami.com.br": {
+          "environment": "production",
+          "imageUrl": "/media/exercises/ce8fb05e-5fae-4683-a2a2-ea0d390895fc.webp",
+          "sha256": "e6e03b1075910f243c1bd4d56e68a5d77760f435ee062ecf910d15d56eeadd9b",
+          "publishedAt": "2026-11-09T21:12:57.343Z",
+          "method": "authenticated-portal",
+          "mediaSha256": "a882fd4a6d742cd086a26d0e3cd8d12e3ef2c0e6711be6fb771eaf8942c55dcf",
+          "verifiedAt": "2026-11-09T21:17:12.858Z",
+          "verification": "ID/nome/escopo conferidos por consulta somente leitura em produção; WebP público idêntico à conversão do original aprovado.",
+          "acceptance": {
+            "sha256": "e6e03b1075910f243c1bd4d56e68a5d77760f435ee062ecf910d15d56eeadd9b",
+            "mediaSha256": "a882fd4a6d742cd086a26d0e3cd8d12e3ef2c0e6711be6fb771eaf8942c55dcf",
+            "reviewer": "assistant",
+            "reviewedAt": "2026-11-09T21:18:50.769119+00:00",
+            "notes": "Versão pública conferida visualmente em painéis de revisão e comparada por SHA-256 à conversão do original aprovado. Rótulos e composição preservados.",
+            "appCheckedAt": null,
+            "appNotes": "Conferência no aparelho pendente; catálogo e mídia pública confirmados."
+          }
+        }
+      }
+    },
+    {
+      "slug": "supino-maquina",
+      "name": "Supino máquina",
+      "catalogName": "Supino máquina",
+      "catalogExerciseId": "aa5ff224-c75b-4245-8891-1e2078a6cd77",
+      "group": "Complementos do catálogo",
+      "imagePath": "design/exercise-images/images/supino-maquina.png",
+      "imageStatus": "published",
+      "mappingStatus": "verified_database",
+      "imageUrl": null,
+      "publishedSha256": null,
+      "review": {
+        "result": "approved",
+        "reviewer": "assistant",
+        "reviewedAt": "2026-11-09T20:10:22.118409+00:00",
+        "sha256": "26a5fdf1cdd85141f19c46b72df0903e16f5bd33a295dc06c19cdeaf7fb2b84e",
+        "notes": "Inspeção visual do assistente: duas posições, anatomia, pegada/apoios, continuidade do equipamento e rótulos conferidos. Seated chest press machine: back supported handles at chest height; left elbows bent handles near chest, right push forward almost straight; highlight pectorals.",
+        "sources": []
+      },
+      "generationBatch": "2026-11-09-lote-20",
+      "generationTool": "built-in image_gen",
+      "productionCatalogCheckedAt": "2026-11-09T19:50:58.918Z",
+      "backup": {
+        "receiptPath": "/home/luiz/Área de trabalho/fit/exercise-image-backups/2026-11-09T21-18-51-202Z-fbeddeaf/receipt.json",
+        "sha256": "26a5fdf1cdd85141f19c46b72df0903e16f5bd33a295dc06c19cdeaf7fb2b84e"
+      },
+      "publicationAttempts": {
+        "https://orami.com.br": {
+          "state": "confirmed",
+          "sha256": "26a5fdf1cdd85141f19c46b72df0903e16f5bd33a295dc06c19cdeaf7fb2b84e",
+          "attemptedAt": "2026-11-09T21:12:57.403Z",
+          "environment": "production",
+          "method": "authenticated-portal"
+        }
+      },
+      "publications": {
+        "https://orami.com.br": {
+          "environment": "production",
+          "imageUrl": "/media/exercises/11814aeb-5ecb-4944-b260-8c6a20ad64cc.webp",
+          "sha256": "26a5fdf1cdd85141f19c46b72df0903e16f5bd33a295dc06c19cdeaf7fb2b84e",
+          "publishedAt": "2026-11-09T21:12:57.403Z",
+          "method": "authenticated-portal",
+          "mediaSha256": "a24ffca6b1435b573b5701cc6a6c6e9a83e5bb32e214671fe0af26922aff7944",
+          "verifiedAt": "2026-11-09T21:17:13.738Z",
+          "verification": "ID/nome/escopo conferidos por consulta somente leitura em produção; WebP público idêntico à conversão do original aprovado.",
+          "acceptance": {
+            "sha256": "26a5fdf1cdd85141f19c46b72df0903e16f5bd33a295dc06c19cdeaf7fb2b84e",
+            "mediaSha256": "a24ffca6b1435b573b5701cc6a6c6e9a83e5bb32e214671fe0af26922aff7944",
+            "reviewer": "assistant",
+            "reviewedAt": "2026-11-09T21:18:50.769120+00:00",
+            "notes": "Versão pública conferida visualmente em painéis de revisão e comparada por SHA-256 à conversão do original aprovado. Rótulos e composição preservados.",
+            "appCheckedAt": null,
+            "appNotes": "Conferência no aparelho pendente; catálogo e mídia pública confirmados."
+          }
+        }
+      }
+    },
+    {
+      "slug": "triceps-barra-v",
+      "name": "Tríceps barra V",
+      "catalogName": "Tríceps barra V",
+      "catalogExerciseId": "79141703-4d4e-403e-86fe-cb4648057317",
+      "group": "Complementos do catálogo",
+      "imagePath": "design/exercise-images/images/triceps-barra-v.png",
+      "imageStatus": "published",
+      "mappingStatus": "verified_database",
+      "imageUrl": null,
+      "publishedSha256": null,
+      "review": {
+        "result": "approved",
+        "reviewer": "assistant",
+        "reviewedAt": "2026-11-09T20:10:22.120613+00:00",
+        "sha256": "96ff18a8139a0545ba4de3d6fc1aa5fb01f927095a8cef98bf27530a954667de",
+        "notes": "Inspeção visual do assistente: duas posições, anatomia, pegada/apoios, continuidade do equipamento e rótulos conferidos. Cable triceps pushdown with V bar: standing upper arms fixed by sides; left elbows flexed 90 degrees Vhandle near upper abdomen, right elbows extended handle near thighs, continuous high cable; highlight triceps.",
+        "sources": []
+      },
+      "generationBatch": "2026-11-09-lote-20",
+      "generationTool": "built-in image_gen",
+      "productionCatalogCheckedAt": "2026-11-09T19:50:58.918Z",
+      "backup": {
+        "receiptPath": "/home/luiz/Área de trabalho/fit/exercise-image-backups/2026-11-09T21-18-51-202Z-fbeddeaf/receipt.json",
+        "sha256": "96ff18a8139a0545ba4de3d6fc1aa5fb01f927095a8cef98bf27530a954667de"
+      },
+      "publicationAttempts": {
+        "https://orami.com.br": {
+          "state": "confirmed",
+          "sha256": "96ff18a8139a0545ba4de3d6fc1aa5fb01f927095a8cef98bf27530a954667de",
+          "attemptedAt": "2026-11-09T21:12:57.446Z",
+          "environment": "production",
+          "method": "authenticated-portal"
+        }
+      },
+      "publications": {
+        "https://orami.com.br": {
+          "environment": "production",
+          "imageUrl": "/media/exercises/a6d5b885-9e23-4079-849c-847e951d6b96.webp",
+          "sha256": "96ff18a8139a0545ba4de3d6fc1aa5fb01f927095a8cef98bf27530a954667de",
+          "publishedAt": "2026-11-09T21:12:57.446Z",
+          "method": "authenticated-portal",
+          "mediaSha256": "41a253021ef0308683b07acf892abcd0015ad21a4ced59e923403efa61265c5d",
+          "verifiedAt": "2026-11-09T21:17:13.049Z",
+          "verification": "ID/nome/escopo conferidos por consulta somente leitura em produção; WebP público idêntico à conversão do original aprovado.",
+          "acceptance": {
+            "sha256": "96ff18a8139a0545ba4de3d6fc1aa5fb01f927095a8cef98bf27530a954667de",
+            "mediaSha256": "41a253021ef0308683b07acf892abcd0015ad21a4ced59e923403efa61265c5d",
+            "reviewer": "assistant",
+            "reviewedAt": "2026-11-09T21:18:50.769121+00:00",
+            "notes": "Versão pública conferida visualmente em painéis de revisão e comparada por SHA-256 à conversão do original aprovado. Rótulos e composição preservados.",
+            "appCheckedAt": null,
+            "appNotes": "Conferência no aparelho pendente; catálogo e mídia pública confirmados."
+          }
+        }
+      }
+    },
+    {
+      "slug": "triceps-frances-unilateral",
+      "name": "Tríceps francês unilateral",
+      "catalogName": "Tríceps francês unilateral",
+      "catalogExerciseId": "b352e69e-77e9-4a78-8a59-dcb5718501c9",
+      "group": "Complementos do catálogo",
+      "imagePath": "design/exercise-images/images/triceps-frances-unilateral.png",
+      "imageStatus": "published",
+      "mappingStatus": "verified_database",
+      "imageUrl": null,
+      "publishedSha256": null,
+      "review": {
+        "result": "approved",
+        "reviewer": "assistant",
+        "reviewedAt": "2026-11-09T20:10:22.122379+00:00",
+        "sha256": "260dadbee1bb723de6526ac66c6acd7646f08fae9dc27c9cf4ee949bdc0b64bb",
+        "notes": "Inspeção visual do assistente: duas posições, anatomia, pegada/apoios, continuidade do equipamento e rótulos conferidos. Unilateral overhead dumbbell triceps extension: seated, one arm holds dumbbell overhead; left elbow flexed dumbbell behind head, right elbow extends overhead, upper arm vertical, other hand rests on thigh; highlight working triceps.",
+        "sources": []
+      },
+      "generationBatch": "2026-11-09-lote-20",
+      "generationTool": "built-in image_gen",
+      "productionCatalogCheckedAt": "2026-11-09T19:50:58.918Z",
+      "backup": {
+        "receiptPath": "/home/luiz/Área de trabalho/fit/exercise-image-backups/2026-11-09T21-18-51-202Z-fbeddeaf/receipt.json",
+        "sha256": "260dadbee1bb723de6526ac66c6acd7646f08fae9dc27c9cf4ee949bdc0b64bb"
+      },
+      "publicationAttempts": {
+        "https://orami.com.br": {
+          "state": "confirmed",
+          "sha256": "260dadbee1bb723de6526ac66c6acd7646f08fae9dc27c9cf4ee949bdc0b64bb",
+          "attemptedAt": "2026-11-09T21:12:57.502Z",
+          "environment": "production",
+          "method": "authenticated-portal"
+        }
+      },
+      "publications": {
+        "https://orami.com.br": {
+          "environment": "production",
+          "imageUrl": "/media/exercises/0e91e080-39aa-43ba-a967-02a9733122b4.webp",
+          "sha256": "260dadbee1bb723de6526ac66c6acd7646f08fae9dc27c9cf4ee949bdc0b64bb",
+          "publishedAt": "2026-11-09T21:12:57.502Z",
+          "method": "authenticated-portal",
+          "mediaSha256": "50c110ffa0d3ddcda2df5f15364f16004399423e5330dd6dcdbb57490dc8ee6e",
+          "verifiedAt": "2026-11-09T21:17:14.284Z",
+          "verification": "ID/nome/escopo conferidos por consulta somente leitura em produção; WebP público idêntico à conversão do original aprovado.",
+          "acceptance": {
+            "sha256": "260dadbee1bb723de6526ac66c6acd7646f08fae9dc27c9cf4ee949bdc0b64bb",
+            "mediaSha256": "50c110ffa0d3ddcda2df5f15364f16004399423e5330dd6dcdbb57490dc8ee6e",
+            "reviewer": "assistant",
+            "reviewedAt": "2026-11-09T21:18:50.769122+00:00",
+            "notes": "Versão pública conferida visualmente em painéis de revisão e comparada por SHA-256 à conversão do original aprovado. Rótulos e composição preservados.",
+            "appCheckedAt": null,
+            "appNotes": "Conferência no aparelho pendente; catálogo e mídia pública confirmados."
+          }
+        }
+      }
+    },
+    {
+      "slug": "triceps-na-polia-unilateral",
+      "name": "Tríceps na polia unilateral",
+      "catalogName": "Tríceps na polia unilateral",
+      "catalogExerciseId": "97733583-c32b-4392-89b1-4024a2e41942",
+      "group": "Complementos do catálogo",
+      "imagePath": "design/exercise-images/images/triceps-na-polia-unilateral.png",
+      "imageStatus": "published",
+      "mappingStatus": "verified_database",
+      "imageUrl": null,
+      "publishedSha256": null,
+      "review": {
+        "result": "approved",
+        "reviewer": "assistant",
+        "reviewedAt": "2026-11-09T20:10:22.126702+00:00",
+        "sha256": "123d00007cee376e981c41d93783019ba7d3cb247b355bbf49d86e739e5bb424",
+        "notes": "Inspeção visual do assistente: duas posições, anatomia, pegada/apoios, continuidade do equipamento e rótulos conferidos. One-arm high cable triceps pushdown: upper arm fixed alongside torso; left elbow flexed, right extended, one hand on Dhandle attached to high cable, other hand at hip; highlight working triceps.",
+        "sources": []
+      },
+      "generationBatch": "2026-11-09-lote-20",
+      "generationTool": "built-in image_gen",
+      "productionCatalogCheckedAt": "2026-11-09T19:50:58.918Z",
+      "backup": {
+        "receiptPath": "/home/luiz/Área de trabalho/fit/exercise-image-backups/2026-11-09T21-18-51-202Z-fbeddeaf/receipt.json",
+        "sha256": "123d00007cee376e981c41d93783019ba7d3cb247b355bbf49d86e739e5bb424"
+      },
+      "publicationAttempts": {
+        "https://orami.com.br": {
+          "state": "confirmed",
+          "sha256": "123d00007cee376e981c41d93783019ba7d3cb247b355bbf49d86e739e5bb424",
+          "attemptedAt": "2026-11-09T21:12:57.600Z",
+          "environment": "production",
+          "method": "authenticated-portal"
+        }
+      },
+      "publications": {
+        "https://orami.com.br": {
+          "environment": "production",
+          "imageUrl": "/media/exercises/c9b0f1c3-6851-4972-a071-cf60ced13b9a.webp",
+          "sha256": "123d00007cee376e981c41d93783019ba7d3cb247b355bbf49d86e739e5bb424",
+          "publishedAt": "2026-11-09T21:12:57.600Z",
+          "method": "authenticated-portal",
+          "mediaSha256": "b5eea986eb4b3b979d3b3e541028fb1373e62870bb5a190dd7ae5ed35b9f227b",
+          "verifiedAt": "2026-11-09T21:17:13.601Z",
+          "verification": "ID/nome/escopo conferidos por consulta somente leitura em produção; WebP público idêntico à conversão do original aprovado.",
+          "acceptance": {
+            "sha256": "123d00007cee376e981c41d93783019ba7d3cb247b355bbf49d86e739e5bb424",
+            "mediaSha256": "b5eea986eb4b3b979d3b3e541028fb1373e62870bb5a190dd7ae5ed35b9f227b",
+            "reviewer": "assistant",
+            "reviewedAt": "2026-11-09T21:18:50.769123+00:00",
+            "notes": "Versão pública conferida visualmente em painéis de revisão e comparada por SHA-256 à conversão do original aprovado. Rótulos e composição preservados.",
+            "appCheckedAt": null,
+            "appNotes": "Conferência no aparelho pendente; catálogo e mídia pública confirmados."
+          }
+        }
+      }
+    },
+    {
+      "slug": "voador-invertido",
+      "name": "Voador invertido",
+      "catalogName": "Voador invertido",
+      "catalogExerciseId": "e8c030f9-e1d8-4a08-8ae5-8b2432aa4c6a",
+      "group": "Complementos do catálogo",
+      "imagePath": "design/exercise-images/images/voador-invertido.png",
+      "imageStatus": "published",
+      "mappingStatus": "verified_database",
+      "imageUrl": null,
+      "publishedSha256": null,
+      "review": {
+        "result": "approved",
+        "reviewer": "assistant",
+        "reviewedAt": "2026-11-09T20:10:22.129188+00:00",
+        "sha256": "b8dd8f044fad3151a11c7d9cc2dd211513548e21a1cbe2b2271f2ba7862688d9",
+        "notes": "Inspeção visual do assistente: duas posições, anatomia, pegada/apoios, continuidade do equipamento e rótulos conferidos. Reverse pec deck: seated facing chest pad, hands on handles shoulder level; left arms reach forward, right arms spread out horizontally with soft elbows, highlight rear deltoids and upper back.",
+        "sources": []
+      },
+      "generationBatch": "2026-11-09-lote-20",
+      "generationTool": "built-in image_gen",
+      "productionCatalogCheckedAt": "2026-11-09T19:50:58.918Z",
+      "backup": {
+        "receiptPath": "/home/luiz/Área de trabalho/fit/exercise-image-backups/2026-11-09T21-18-51-202Z-fbeddeaf/receipt.json",
+        "sha256": "b8dd8f044fad3151a11c7d9cc2dd211513548e21a1cbe2b2271f2ba7862688d9"
+      },
+      "publicationAttempts": {
+        "https://orami.com.br": {
+          "state": "confirmed",
+          "sha256": "b8dd8f044fad3151a11c7d9cc2dd211513548e21a1cbe2b2271f2ba7862688d9",
+          "attemptedAt": "2026-11-09T21:12:57.644Z",
+          "environment": "production",
+          "method": "authenticated-portal"
+        }
+      },
+      "publications": {
+        "https://orami.com.br": {
+          "environment": "production",
+          "imageUrl": "/media/exercises/7d034b7a-8611-48ab-b4f3-8df1c26c3e87.webp",
+          "sha256": "b8dd8f044fad3151a11c7d9cc2dd211513548e21a1cbe2b2271f2ba7862688d9",
+          "publishedAt": "2026-11-09T21:12:57.644Z",
+          "method": "authenticated-portal",
+          "mediaSha256": "7215ade682690ba37e9f0d2e518cfa4d322f11a9d91c978870b65d728b346605",
+          "verifiedAt": "2026-11-09T21:17:14.653Z",
+          "verification": "ID/nome/escopo conferidos por consulta somente leitura em produção; WebP público idêntico à conversão do original aprovado.",
+          "acceptance": {
+            "sha256": "b8dd8f044fad3151a11c7d9cc2dd211513548e21a1cbe2b2271f2ba7862688d9",
+            "mediaSha256": "7215ade682690ba37e9f0d2e518cfa4d322f11a9d91c978870b65d728b346605",
+            "reviewer": "assistant",
+            "reviewedAt": "2026-11-09T21:18:50.769124+00:00",
+            "notes": "Versão pública conferida visualmente em painéis de revisão e comparada por SHA-256 à conversão do original aprovado. Rótulos e composição preservados.",
+            "appCheckedAt": null,
+            "appNotes": "Conferência no aparelho pendente; catálogo e mídia pública confirmados."
+          }
+        }
+      }
+    },
+    {
+      "slug": "voador-peitoral",
+      "name": "Voador peitoral",
+      "catalogName": "Voador peitoral",
+      "catalogExerciseId": "26e822ab-b09c-4a3f-803d-7349da5b3e25",
+      "group": "Complementos do catálogo",
+      "imagePath": "design/exercise-images/images/voador-peitoral.png",
+      "imageStatus": "published",
+      "mappingStatus": "verified_database",
+      "imageUrl": null,
+      "publishedSha256": null,
+      "review": {
+        "result": "approved",
+        "reviewer": "assistant",
+        "reviewedAt": "2026-11-09T20:10:22.131728+00:00",
+        "sha256": "493f5404b7a71f5e076da375e158df97ce845c7dbfc0f8d423528ac6f76f8b8a",
+        "notes": "Inspeção visual do assistente: duas posições, anatomia, pegada/apoios, continuidade do equipamento e rótulos conferidos. Pec deck chest fly: seated back supported, left arms open at shoulder level elbows softly bent holding handles, right hands close in front chest, same levers; highlight pectorals.",
+        "sources": []
+      },
+      "generationBatch": "2026-11-09-lote-20",
+      "generationTool": "built-in image_gen",
+      "productionCatalogCheckedAt": "2026-11-09T19:50:58.918Z",
+      "backup": {
+        "receiptPath": "/home/luiz/Área de trabalho/fit/exercise-image-backups/2026-11-09T21-18-51-202Z-fbeddeaf/receipt.json",
+        "sha256": "493f5404b7a71f5e076da375e158df97ce845c7dbfc0f8d423528ac6f76f8b8a"
+      },
+      "publicationAttempts": {
+        "https://orami.com.br": {
+          "state": "confirmed",
+          "sha256": "493f5404b7a71f5e076da375e158df97ce845c7dbfc0f8d423528ac6f76f8b8a",
+          "attemptedAt": "2026-11-09T21:12:57.715Z",
+          "environment": "production",
+          "method": "authenticated-portal"
+        }
+      },
+      "publications": {
+        "https://orami.com.br": {
+          "environment": "production",
+          "imageUrl": "/media/exercises/8154ae7f-e36e-4f3e-bd6d-0b05851e19d0.webp",
+          "sha256": "493f5404b7a71f5e076da375e158df97ce845c7dbfc0f8d423528ac6f76f8b8a",
+          "publishedAt": "2026-11-09T21:12:57.715Z",
+          "method": "authenticated-portal",
+          "mediaSha256": "ce5f61f11a9983af3777acc62167aaf6cae1824d83a17882157a3400b2d5167b",
+          "verifiedAt": "2026-11-09T21:17:10.790Z",
+          "verification": "ID/nome/escopo conferidos por consulta somente leitura em produção; WebP público idêntico à conversão do original aprovado.",
+          "acceptance": {
+            "sha256": "493f5404b7a71f5e076da375e158df97ce845c7dbfc0f8d423528ac6f76f8b8a",
+            "mediaSha256": "ce5f61f11a9983af3777acc62167aaf6cae1824d83a17882157a3400b2d5167b",
+            "reviewer": "assistant",
+            "reviewedAt": "2026-11-09T21:18:50.769125+00:00",
+            "notes": "Versão pública conferida visualmente em painéis de revisão e comparada por SHA-256 à conversão do original aprovado. Rótulos e composição preservados.",
+            "appCheckedAt": null,
+            "appNotes": "Conferência no aparelho pendente; catálogo e mídia pública confirmados."
+          }
+        }
+      }
     }
   ],
   "productionPublishedAt": "2026-11-05",

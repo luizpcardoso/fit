@@ -28,10 +28,11 @@ for (const theme of ['light', 'dark']) test(`refeição: categoria, nome livre, 
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
   const meals = async (date = today) => (await request.get(`${apiURL}/nutrition/meals?date=${date}`, { headers })).json();
   await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await page.getByRole('tab', { name: 'Alimentação', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Adicionar refeição', exact: true })).toBeVisible();
   await page.clock.setFixedTime(new Date(`${today}T09:06:00-03:00`));
-  await expect(page.getByText('Registre ao menos uma refeição para começar a calcular seu balanço calórico.', {exact: true})).toBeVisible();
-  const emptyCardHeight = (await page.getByTestId('home-energy-card').boundingBox())!.height;
+  await expect(page.getByText('Ainda sem registros hoje. Adicione sua primeira refeição para acompanhar o dia.', {exact: true})).toBeVisible();
+  const emptyCardHeight = (await page.getByTestId('home-food-card').boundingBox())!.height;
   await page.getByRole('button', { name: 'Adicionar refeição', exact: true }).click();
   await expect(page.getByRole('radio', { name: 'Agora', exact: true })).toBeChecked();
   await expect(page.getByLabel('Horário exato (HH:MM)', { exact: true })).toHaveCount(0);
@@ -71,7 +72,7 @@ for (const theme of ['light', 'dark']) test(`refeição: categoria, nome livre, 
   const [saved] = await meals();
   expect(saved).toMatchObject({ name: 'Marmita congelada', category: 'lunch', time: '12:47', calories: 500 });
   await page.setViewportSize({ width: 390, height: 844 });
-  expect((await page.getByTestId('home-energy-card').boundingBox())!.height).toBe(emptyCardHeight);
+  await expect.poll(async () => (await page.getByTestId('home-food-card').boundingBox())!.height).toBe(emptyCardHeight);
   await page.getByRole('button', { name: 'Ver alimentação do dia', exact: true }).click();
   await page.getByRole('button', { name: 'Editar Marmita congelada', exact: true }).click();
   await expect(page.getByRole('radio', { name: 'Almoço', exact: true })).toBeChecked();
@@ -156,6 +157,7 @@ for (const theme of ['light', 'dark']) test(`refeição da dieta: metadados pess
   await page.addInitScript(({ account, theme }) => { localStorage.setItem('fit.auth.tokens', JSON.stringify(account)); localStorage.setItem('fit.appearance.theme', theme); }, { account, theme });
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
   await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await page.getByRole('tab', { name: 'Alimentação', exact: true }).click();
   await page.getByRole('button', { name: 'Adicionar refeição', exact: true }).click();
   await page.getByRole('radio', { name: 'Usar minha dieta', exact: true }).click();
   await page.getByRole('button', { name: 'Abrir Almoço às 12:30', exact: true }).click();

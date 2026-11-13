@@ -133,3 +133,21 @@ Validação: `npm run typecheck`, lint mobile, suíte padrão; `RUN_DB_TESTS=1 n
 ## Estabilidade dos cards do feed
 
 O resumo de curtidas/comentários reserva a mesma altura mesmo antes da primeira interação. Contagens zeradas não exibem emojis de reação. Fotos usam o mesmo enquadramento nos estados de carregamento, erro e sucesso; o rodapé da lista também reserva espaço durante a paginação. A altura do conteúdo pode variar entre publicações, mas adicionar uma curtida/comentário não desloca as seguintes. O teste `social-feed.spec.ts` compara a altura antes/depois dessas interações. `layout-stability.spec.ts`, com API real e banco isolado, compara também erro, nova tentativa e carregamento da foto em 320 px nos dois temas.
+
+## Respostas e reações em comentários
+
+Comentários principais oferecem “Responder”; as respostas aparecem agrupadas abaixo deles, com apenas um nível. O editor identifica o comentário de destino e permite cancelar a resposta. Respostas não oferecem outra ação de responder. A API rejeita pais inexistentes, removidos, de outro post e comentários que já são respostas. A exclusão do comentário principal preserva o marcador “Comentário removido” e as respostas existentes.
+
+`POST /groups/:groupId/posts/:postId/comments` aceita `parentCommentId` opcional. Cada comentário retorna `parentCommentId` (nulo nos principais) e `reactionCounts`. `PUT /groups/:groupId/comments/:commentId/reaction` aceita as mesmas cinco reações dos posts ou `null` para retirar; há uma reação por pessoa, substituída ao escolher outra. Comentários e respostas removidos não aceitam reações. As operações exigem associação ativa e acesso ao post pela data de entrada. Comentários desativados impedem também novas respostas.
+
+A migration `051-comment-replies-and-reactions` adiciona o vínculo e a tabela de reações. Aplicar as migrations antes de disponibilizar a API atualizada. O teste `comment-threads.integration.test.ts` cria e remove seu próprio banco com `test` no nome e cobre profundidade, isolamento, validação, reações e conteúdo removido. O E2E `social-feed.spec.ts` inclui a resposta e a reação no aplicativo.
+
+## Fotos dos autores no feed
+
+Posts, comentários e respostas exibem a foto de perfil já retornada em `author.avatarUrl`. Quando a pessoa não tem foto ou a miniatura falha, aparece a inicial do nome. Avatares com foto abrem uma visualização ampliada ao toque, com imagem inteira sem recorte, carregamento, erro com nova tentativa e botão Fechar; Voltar do Android fecha somente a foto. O modal de comentários permanece aberto ao sair da imagem. Cada avatar possui área de toque mínima de 44 × 44, inclusive nas respostas.
+
+O componente `social-avatar.tsx` reutiliza a URL existente e não consulta dados adicionais do perfil. A alteração não cria endpoints, não muda a visibilidade dos avatares nem requer migration. Eventos com foto de autor também permitem ampliar; eventos sem foto preservam o ícone da atividade. O E2E `social-feed.spec.ts`, com API/banco isolados e uploads reais, cobre fotos nos posts/comentários/respostas, abertura e fechamento, larguras de 320/390 px e continuidade da conversa.
+
+## Acesso pelo contador de comentários
+
+O contador “1 comentário”/“N comentários” é um botão com área mínima de toque de 44 × 44 e abre a conversa da publicação, incluindo suas respostas. A faixa de contagens reserva 44 px mesmo sem interações para manter estável a altura dos cards. Quando novos comentários estão desativados, o contador ainda permite ler a conversa existente, com aviso no lugar do editor. As permissões de acesso continuam validadas pela API. O E2E social cobre os contadores singular/plural e leitura de uma conversa com comentários desativados.

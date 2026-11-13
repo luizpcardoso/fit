@@ -7,6 +7,23 @@ import { useAppTheme } from '@/theme/theme-provider';
 
 // Ilustrações geradas por scripts/generate-scenes.mjs. O lado esquerdo já vem escurecido para texto branco.
 export const SceneImages = {
+  injectableSyringe: require('../../assets/images/scenes/injectable-syringe.webp'),
+  injectableAmpoule: require('../../assets/images/scenes/injectable-ampoule.webp'),
+  injectableVial: require('../../assets/images/scenes/injectable-vial.webp'),
+  injectableVialReta: require('../../assets/images/scenes/injectable-vial-reta.webp'),
+  injectableVialTirze: require('../../assets/images/scenes/injectable-vial-tirze.webp'),
+  injectableVialSema: require('../../assets/images/scenes/injectable-vial-sema.webp'),
+  injectableVialDura: require('../../assets/images/scenes/injectable-vial-dura.webp'),
+  injectableVialEnan: require('../../assets/images/scenes/injectable-vial-enan.webp'),
+  injectableVialTesto: require('../../assets/images/scenes/injectable-vial-testo.webp'),
+  injectableVialProp: require('../../assets/images/scenes/injectable-vial-prop.webp'),
+  injectableVialPep: require('../../assets/images/scenes/injectable-vial-pep.webp'),
+  healthTablet: require('../../assets/images/scenes/health-tablet.webp'),
+  healthCapsule: require('../../assets/images/scenes/health-capsule.webp'),
+  healthBottle: require('../../assets/images/scenes/health-bottle.webp'),
+  healthDrops: require('../../assets/images/scenes/health-drops.webp'),
+  healthPowder: require('../../assets/images/scenes/health-powder.webp'),
+  healthShaker: require('../../assets/images/scenes/health-shaker.webp'),
   sunrise: require('../../assets/images/scenes/sunrise.webp'),
   workout: require('../../assets/images/scenes/workout.webp'),
   mind: require('../../assets/images/scenes/mind.webp'),

@@ -51,6 +51,7 @@ if (!gradle.includes('deploy/android-signing.gradle')) await writeFile(gradlePat
 // Gradle does not track EXPO_PUBLIC variables as bundle inputs. Always regenerate
 // the JS bundle so a release cannot silently reuse another server's address.
 await rm(resolve(mobile, 'android/app/build/generated/assets/react/release/index.android.bundle'), { force: true });
+await run('./gradlew', [':app:createReleaseUpdatesResources', '--rerun-tasks', '--no-daemon', '--max-workers=2'], resolve(mobile, 'android'));
 await run('./gradlew', [':app:assembleRelease', '--no-daemon', '--max-workers=2', '-Dorg.gradle.jvmargs=-Xmx3072m -XX:MaxMetaspaceSize=1024m'], resolve(mobile, 'android'));
 const outputDir = resolve(root, 'artifacts/android');
 await mkdir(outputDir, { recursive: true });

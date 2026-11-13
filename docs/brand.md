@@ -52,7 +52,7 @@ Regras: imagens são decorativas (`aria-hidden`), o assunto fica à direita e o 
 | Cena | Onde |
 | --- | --- |
 | `sunrise` | login e cadastro |
-| `pulseTall` (recorte vertical de `pulse`) | cartão Fitness no Início |
+| `pulseTall` (recorte vertical de `pulse`) | disponível para cartões de destaque verticais |
 | `workoutSquare` / `workout` | ficha ativa / faixa do Fitness sem ficha ativa |
 | `mind` | check-in de Mente |
 | `health` | aba Saúde |
@@ -63,6 +63,10 @@ Regras: imagens são decorativas (`aria-hidden`), o assunto fica à direita e o 
 | `cardPlans`, `cardHistory`, `cardCardio` | cartões Fichas, Histórico e Cardio do Fitness |
 | `thumbMind`, `thumbPlans`, `thumbFood`, `thumbCardio`, `thumbBody`, `thumbMedication`, `thumbSupplement`, `thumbInjectable` | atalhos, folha Registrar, editor de atalhos e estado vazio da área correspondente |
 | `thumbDiet`, `thumbGroups`, `thumbProfessional` | estados vazios de Minha dieta, Grupos/feed e Meus profissionais |
+
+### Fundos do acompanhamento no Início
+
+Treino, Alimentação e Balanço usam `HomeAccompanimentCard`: superfície do tema, borda e cabeçalho comuns, com arte linear transparente ao fundo no alto à direita. Haltere, tigela e ciclos de consumo/gasto identificam os temas sem competir com os dados. A arte usa a cor `link` do tema com 9% de opacidade, sem texto incorporado, e fica oculta das tecnologias assistivas. Fontes: `design/scenes/home-{workout,food,balance}.svg`; WebP locais gerados por `node scripts/generate-home-card-art.mjs`. Esses fundos substituem `pulseTall` no painel de treino do Início.
 
 ## Nome e voz
 

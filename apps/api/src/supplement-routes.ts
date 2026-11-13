@@ -1,5 +1,5 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
-import { healthPageQuerySchema, supplementDismissalInputSchema, supplementInputSchema, supplementIntakeInputSchema, updateSupplementSchema } from '@fit/contracts';
+import { occasionalIntakeInputSchema, healthPageQuerySchema, supplementDismissalInputSchema, supplementInputSchema, supplementIntakeInputSchema, updateSupplementSchema } from '@fit/contracts';
 import { z } from 'zod';
 import type { SupplementRepository } from './supplement-repository.js';
 
@@ -20,6 +20,15 @@ export async function registerSupplementRoutes(app: FastifyInstance, repo: Suppl
   app.get(`${prefix}/today`, { ...base, schema: { ...base.schema, summary: 'Resumo diário' } }, async request => {
     const daily = await repo.today(request.user.sub, query.parse(request.query).date);
     return medication ? { ...daily, items: daily.items.map(({ supplement, ...item }) => ({ ...item, medication: supplement })) } : daily;
+  });
+  app.get(`${prefix}/occasional`, base, request => repo.occasionalDay(request.user.sub, query.parse(request.query).date));
+  app.post(`${prefix}/:id/occasional-intakes`, base, async (request, reply) => {
+    const input = occasionalIntakeInputSchema.parse(request.body);
+    return await repo.consumeOccasional(request.user.sub, params.parse(request.params).id, input) ? reply.code(204).send() : notFound(reply);
+  });
+  app.delete(`${prefix}/:id/occasional-intakes/:intakeId`, base, async (request, reply) => {
+    const input = z.strictObject({ id: z.string().uuid(), intakeId: z.string().uuid() }).parse(request.params);
+    return await repo.undoOccasional(request.user.sub, input.id, input.intakeId) ? reply.code(204).send() : notFound(reply);
   });
   app.post(`${prefix}/:id/intakes`, { ...base, schema: { ...base.schema, summary: 'Registra tomada' } }, async (request, reply) => {
     const input = supplementIntakeInputSchema.parse(request.body);

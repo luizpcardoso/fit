@@ -8,7 +8,7 @@ async function loadRelease() {
     const response = await fetch("/downloads/release.json", { cache: "no-store" });
     if (!response.ok) throw new Error("release unavailable");
     const release = await response.json();
-    if (!/^\d+\.\d+\.\d+$/.test(release.version) || !/^\d+\.\d{2}$/.test(release.displayVersion) || !Number.isSafeInteger(release.bytes) || release.bytes <= 0) throw new Error("invalid release");
+    if (!/^\d+\.\d+\.\d+$/.test(release.version) || !/^\d+\.\d{2}(?:\.\d{2})?$/.test(release.displayVersion) || !Number.isSafeInteger(release.bytes) || release.bytes <= 0) throw new Error("invalid release");
     const url = new URL(release.downloadUrl, window.location.origin);
     if (url.origin !== window.location.origin || !/^\/downloads\/(orami-\d+\.\d+\.\d+-android\.apk|fit\.apk)$/.test(url.pathname) || url.search || url.hash) throw new Error("invalid download");
     const filename = `orami-${release.version}-android.apk`;

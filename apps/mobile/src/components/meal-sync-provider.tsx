@@ -1,8 +1,8 @@
-import { createContext, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type PropsWithChildren } from 'react';
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type PropsWithChildren } from 'react';
 import { AppState } from 'react-native';
 import * as Crypto from 'expo-crypto';
 import { useAuth } from '@/auth/auth-context';
-import { createMealSync, type MealSyncState, type StoredMeals } from '@/utils/meal-sync-core';
+import { affectsNutritionSummary, createMealSync, type MealSyncState, type StoredMeals } from '@/utils/meal-sync-core';
 import { mealStorage } from '@/utils/meal-sync-storage';
 import { registerPendingLocalChanges } from '@/utils/pending-local-changes';
 
@@ -27,7 +27,7 @@ export function MealSyncProvider({ children }: PropsWithChildren) {
     const unregister = registerPendingLocalChanges(owner, async () => { const saved = await mealStorage.read<StoredMeals>(owner); return !!saved?.entries.length; });
     const sub = AppState.addEventListener('change', () => { void controller.checkpoint(); });
     const unsubscribe = api.subscribeToChanges(path => {
-      if ((path.startsWith('/nutrition/') && path !== '/nutrition/meal-sync') || path.startsWith('/body-measurements') || path.includes('professional-assignments')) void controller.invalidate().catch(() => {});
+      if (affectsNutritionSummary(path)) void controller.invalidate().catch(() => {});
     });
     return () => {
       sub.remove(); unsubscribe(); unregister(); controller.dispose();
@@ -35,6 +35,9 @@ export function MealSyncProvider({ children }: PropsWithChildren) {
     };
   }, [api, controller, owner]);
   const visible = state.owner === owner ? state.value : empty;
-  return <Context.Provider value={{ ...visible, api: controller?.api ?? api, cachedSummary: date => controller?.cachedSummary(date) ?? null, sync: () => controller?.sync() ?? Promise.resolve(), refresh: () => controller?.refresh() ?? Promise.resolve() }}>{children}</Context.Provider>;
+  // The controller's cache is mutable. A reader belongs to one published snapshot so
+  // memoized consumers recompute after local meals, sync confirmations and hydration.
+  const cachedSummary = useCallback((date: string) => visible.ready ? controller?.cachedSummary(date) ?? null : null, [controller, visible]);
+  return <Context.Provider value={{ ...visible, api: controller?.api ?? api, cachedSummary, sync: () => controller?.sync() ?? Promise.resolve(), refresh: () => controller?.refresh() ?? Promise.resolve() }}>{children}</Context.Provider>;
 }
 export function useMealSync() { const value = useContext(Context); if (!value) throw new Error('Registros de alimentação indisponíveis.'); return value; }

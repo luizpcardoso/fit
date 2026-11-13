@@ -121,7 +121,8 @@ export const createGroupPostSchema = z.strictObject({
   commentsEnabled: z.boolean().optional(),
 }).refine(value => Boolean(value.text || value.photoDataUrl), 'Escreva uma mensagem ou selecione uma foto.');
 export const updateGroupPostSchema = z.strictObject({ text: z.string().trim().min(1).max(2000), commentsEnabled: z.boolean().optional() });
-export const createGroupCommentSchema = z.strictObject({ text: z.string().trim().min(1).max(1000) });
+export const updateGroupCommentSchema = z.strictObject({ text: z.string().trim().min(1).max(1000) });
+export const createGroupCommentSchema = updateGroupCommentSchema.extend({ parentCommentId: z.string().uuid().nullable().optional() });
 export const updateGroupReactionSchema = z.strictObject({ reaction: groupReactionSchema.nullable() });
 export const createGroupReportSchema = z.strictObject({ targetType: z.enum(['post', 'comment']), targetId: z.string().uuid(), reason: groupReportReasonSchema, details: z.string().trim().max(500).nullable().optional() });
 export const resolveGroupReportSchema = z.strictObject({ resolution: z.enum(['dismissed', 'content_removed']), note: z.string().trim().max(500).nullable().optional() });
@@ -144,7 +145,7 @@ export type GroupMember = { user:GroupUser;role:GroupRole;joinedAt:string };
 export type GroupInvite = { id:string;group:{id:string;name:string;avatarUrl:string|null};invitedBy:GroupUser;status:'pending'|'accepted'|'declined'|'cancelled'|'expired';createdAt:string;expiresAt:string };
 export type GroupReactionCount = { reaction:GroupReaction;count:number;reactedByMe:boolean };
 export type GroupPost = { id:string;groupId:string;author:GroupUser;kind:'manual'|'event'|'announcement';eventType:GroupEventType|null;text:string|null;photoUrl:string|null;photoAspectRatio?:number|null;commentsEnabled:boolean;reactionCounts:GroupReactionCount[];commentCount:number;createdAt:string;updatedAt:string;edited:boolean };
-export type GroupComment = { id:string;postId:string;author:GroupUser;text:string;createdAt:string;updatedAt:string;edited:boolean;removed:boolean };
+export type GroupComment = { id:string;postId:string;parentCommentId:string|null;reactionCounts:GroupReactionCount[];author:GroupUser;text:string;createdAt:string;updatedAt:string;edited:boolean;removed:boolean };
 export type GroupNotification = { id:string;type:'invite'|'comment'|'role_changed'|'removed'|'report_resolved';title:string;message:string;groupId:string|null;postId:string|null;readAt:string|null;createdAt:string };
 export type GroupReport = { id:string;targetType:'post'|'comment';targetId:string;reason:GroupReportReason;details:string|null;status:'pending'|'dismissed'|'content_removed';reporter:GroupUser;createdAt:string;resolvedAt:string|null };
 export type GroupDashboard = { postsUnseen?:number;totalUnseen:number;pendingInvites:number;notificationsUnread:number };
@@ -217,8 +218,13 @@ export type HealthKind = z.infer<typeof healthKindSchema>;
 export const supplementUnitSchema = z.enum(['capsule', 'tablet', 'g', 'mg', 'ml', 'dose', 'scoop', 'drop', 'other']);
 const formatSupplementMinutes = (minutes: number) => { const normalized = ((minutes % 1440) + 1440) % 1440; return `${String(Math.floor(normalized / 60)).padStart(2,'0')}:${String(normalized % 60).padStart(2,'0')}`; };
 export const suggestSupplementTimes = (frequency: number) => Array.from({ length: frequency }, (_, index) => formatSupplementMinutes(Math.round((420 + index * 1440 / frequency) / 30) * 30));
+export const healthIllustrationSchema = z.enum(['tablet', 'capsule', 'bottle', 'drops', 'powder', 'shaker']);
+export type HealthIllustration = z.infer<typeof healthIllustrationSchema>;
+export const healthUsageModeSchema = z.enum(['recurring', 'occasional']);
 const supplementBaseSchema = z.strictObject({
   name: z.string().trim().min(2).max(100),
+  usageMode: healthUsageModeSchema.optional(),
+  illustration: healthIllustrationSchema.nullable().optional(),
   amount: z.number().positive().max(10000).nullable().optional(),
   unit: supplementUnitSchema.nullable().optional(),
   dailyFrequency: z.number().int().min(1).max(6).default(1),
@@ -252,6 +258,15 @@ export type HealthToday = Omit<SupplementToday, 'items'> & { items: HealthTodayI
 export type Medication = HealthItem;
 export type MedicationTodayItem = Omit<SupplementTodayItem, 'supplement'> & { medication: Medication };
 export type MedicationToday = Omit<SupplementToday, 'items'> & { items: MedicationTodayItem[] };
+
+// Occasional events never participate in scheduled slots or routine totals.
+export const occasionalIntakeInputSchema = z.strictObject({
+  operationId: z.string().uuid(), date: z.string().date(),
+  time: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
+});
+export type OccasionalIntakeInput = z.infer<typeof occasionalIntakeInputSchema>;
+export type OccasionalIntake = { id: string; itemId: string; date: string; time: string };
+export type HealthOccasionalDay = { date: string; items: HealthItem[]; intakes: OccasionalIntake[]; count: number };
 
 export const localDateSchema = z.string().date();
 export const localTimeSchema = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
@@ -385,7 +400,10 @@ export const feedbackInputSchema = z.strictObject({category:z.enum(['feedback','
 export type FeedbackInput = z.infer<typeof feedbackInputSchema>;
 export const injectableUnitSchema = z.enum(['mg', 'ml', 'iu', 'clicks', 'other']);
 export const injectableWeekdaySchema = z.number().int().min(1).max(7);
+export const injectableIllustrationSchema = z.enum(['syringe', 'ampoule', 'vial', 'vial-reta', 'vial-tirze', 'vial-sema', 'vial-dura', 'vial-enan', 'vial-testo', 'vial-prop', 'vial-pep']);
+export type InjectableIllustrationId = z.infer<typeof injectableIllustrationSchema>;
 export const injectableInputSchema = z.strictObject({
+  illustration: injectableIllustrationSchema.nullable().optional(),
   name: z.string().trim().min(2).max(100),
   dose: z.number().positive().max(100000),
   unit: injectableUnitSchema,

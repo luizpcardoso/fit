@@ -628,7 +628,7 @@ export default function SocialFeedScreen({ groupId: id }: { groupId?: string }) 
         </View>
       </Modal>
       <ReportContentSheet groupId={reportGroupId || id || ""} target={reportTarget} onClose={() => setReportTarget(null)} />
-      <PostReactionsSheet key={reactionsPost?.postId ?? "closed"} target={reactionsPost} onClose={() => setReactionsPost(null)} />
+      <PostReactionsSheet key={`reactions-${reactionsPost?.postId ?? "closed"}`} target={reactionsPost} onClose={() => setReactionsPost(null)} />
     </SafeAreaView>
   );
 }

@@ -14,6 +14,7 @@ import type {
   GroupInvite,
   GroupMember,
   GroupNotification,
+  GroupPostReaction,
   GroupReaction,
   GroupReport,
   GroupReportReason,
@@ -801,20 +802,82 @@ export class GroupRepository {
       { replacements: [userId, postId, groupId], type: QueryTypes.SELECT },
     );
     if (!post) return "missing" as const;
-    if (!reaction)
+    if (!reaction) {
       await this.db.query(
         "DELETE FROM group_post_reactions WHERE post_id=? AND user_id=?",
         { replacements: [postId, userId], type: QueryTypes.DELETE },
       );
-    else
+      return "ok" as const;
+    }
+    await this.db.transaction(async (t) => {
+      // Reactions to one post are serialized, so the grouped notification is created or updated once.
+      await this.db.query("SELECT id FROM group_posts WHERE id=? FOR UPDATE", { replacements: [postId], type: QueryTypes.SELECT, transaction: t });
+      const [existing] = await this.db.query<{ id: string }>(
+        "SELECT id FROM group_post_reactions WHERE post_id=? AND user_id=?",
+        { replacements: [postId, userId], type: QueryTypes.SELECT, transaction: t },
+      );
       await this.db.query(
         "INSERT INTO group_post_reactions (id,post_id,user_id,reaction,created_at,updated_at) VALUES (?,?,?,?,UTC_TIMESTAMP(6),UTC_TIMESTAMP(6)) ON DUPLICATE KEY UPDATE reaction=VALUES(reaction),updated_at=UTC_TIMESTAMP(6)",
         {
           replacements: [randomUUID(), postId, userId, reaction],
           type: QueryTypes.INSERT,
+          transaction: t,
         },
       );
+      // Only a new reaction tells the author; changing the emoji does not.
+      if (!existing && post.author_user_id !== userId) await this.notifyReaction(post.author_user_id, userId, groupId, postId, t);
+    });
     return "ok" as const;
+  }
+  /**
+   * One notification per post for the author: while it is unread, new reactions update it instead of adding rows.
+   * After it is read, another one is only created an hour later, so toggling a reaction cannot be used to nag.
+   */
+  private async notifyReaction(authorId: string, reactorId: string, groupId: string, postId: string, t: Transaction) {
+    const [allowed] = await this.db.query<{ ok: number }>(
+      "SELECT 1 ok FROM group_members m WHERE m.group_id=? AND m.user_id=? AND m.status='active' AND NOT EXISTS (SELECT 1 FROM user_blocks b WHERE b.blocker_user_id=m.user_id AND b.blocked_user_id=?)",
+      { replacements: [groupId, authorId, reactorId], type: QueryTypes.SELECT, transaction: t },
+    );
+    if (!allowed) return;
+    const [latest] = await this.db.query<{ id: string; unread: number; recent: number }>(
+      "SELECT id,read_at IS NULL unread,created_at>=UTC_TIMESTAMP(6)-INTERVAL 1 HOUR recent FROM group_notifications WHERE user_id=? AND type='reaction' AND post_id=? ORDER BY created_at DESC LIMIT 1",
+      { replacements: [authorId, postId], type: QueryTypes.SELECT, transaction: t },
+    );
+    if (latest && !Number(latest.unread) && Number(latest.recent)) return;
+    const [count] = await this.db.query<{ total: number }>(
+      "SELECT COUNT(*) total FROM group_post_reactions r WHERE r.post_id=? AND r.user_id<>? AND NOT EXISTS (SELECT 1 FROM user_blocks b WHERE b.blocker_user_id=? AND b.blocked_user_id=r.user_id)",
+      { replacements: [postId, authorId, authorId], type: QueryTypes.SELECT, transaction: t },
+    );
+    const others = Number(count?.total ?? 1) - 1;
+    const reactor = await this.user(reactorId, t);
+    const message = (others <= 0
+      ? `${reactor.displayName} reagiu à sua publicação.`
+      : `${reactor.displayName} e mais ${others} ${others === 1 ? "pessoa" : "pessoas"} reagiram à sua publicação.`).slice(0, 300);
+    if (latest && Number(latest.unread))
+      await this.db.query(
+        "UPDATE group_notifications SET message=?,created_at=UTC_TIMESTAMP(6) WHERE id=?",
+        { replacements: [message, latest.id], type: QueryTypes.UPDATE, transaction: t },
+      );
+    else await this.notify(authorId, "reaction", "Nova reação", message, groupId, postId, t);
+  }
+  /** Who reacted to a post the viewer can read; people the viewer has hidden are left out. */
+  async postReactions(userId: string, groupId: string, postId: string): Promise<GroupPostReaction[] | null> {
+    const m = await this.membership(userId, groupId);
+    if (!m) return null;
+    const [post] = await this.db.query<{ id: string }>(
+      "SELECT p.id FROM group_posts p JOIN group_members viewer ON viewer.group_id=p.group_id AND viewer.user_id=? AND viewer.status='active' WHERE p.id=? AND p.group_id=? AND p.created_at>=viewer.joined_at AND p.deleted_at IS NULL",
+      { replacements: [userId, postId, groupId], type: QueryTypes.SELECT },
+    );
+    if (!post) return null;
+    const rows = await this.db.query<any>(
+      "SELECT r.reaction,r.updated_at reactedAt,u.id,u.username,COALESCE(u.display_name,CONCAT(u.first_name,' ',u.last_name)) displayName,u.avatar_url avatarUrl FROM group_post_reactions r JOIN users u ON u.id=r.user_id WHERE r.post_id=? AND NOT EXISTS (SELECT 1 FROM user_blocks b WHERE b.blocker_user_id=? AND b.blocked_user_id=r.user_id) ORDER BY r.updated_at DESC,r.id LIMIT 200",
+      { replacements: [postId, userId], type: QueryTypes.SELECT },
+    );
+    return rows.map((r: any) => ({
+      user: { id: r.id, username: r.username, displayName: r.displayName, avatarUrl: r.avatarUrl },
+      reaction: r.reaction,
+      reactedAt: iso(r.reactedAt),
+    }));
   }
   async comments(
     userId: string,

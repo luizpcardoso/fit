@@ -146,7 +146,9 @@ export type GroupInvite = { id:string;group:{id:string;name:string;avatarUrl:str
 export type GroupReactionCount = { reaction:GroupReaction;count:number;reactedByMe:boolean };
 export type GroupPost = { id:string;groupId:string;author:GroupUser;kind:'manual'|'event'|'announcement';eventType:GroupEventType|null;text:string|null;photoUrl:string|null;photoAspectRatio?:number|null;commentsEnabled:boolean;reactionCounts:GroupReactionCount[];commentCount:number;createdAt:string;updatedAt:string;edited:boolean };
 export type GroupComment = { id:string;postId:string;parentCommentId:string|null;reactionCounts:GroupReactionCount[];author:GroupUser;text:string;createdAt:string;updatedAt:string;edited:boolean;removed:boolean };
-export type GroupNotification = { id:string;type:'invite'|'comment'|'role_changed'|'removed'|'report_resolved';title:string;message:string;groupId:string|null;postId:string|null;readAt:string|null;createdAt:string };
+/** Who reacted to a post, with the same public identity already shown for authors. */
+export type GroupPostReaction = { user:GroupUser;reaction:GroupReaction;reactedAt:string };
+export type GroupNotification = { id:string;type:'invite'|'comment'|'reaction'|'role_changed'|'removed'|'report_resolved';title:string;message:string;groupId:string|null;postId:string|null;readAt:string|null;createdAt:string };
 export type GroupReport = { id:string;targetType:'post'|'comment';targetId:string;reason:GroupReportReason;details:string|null;status:'pending'|'dismissed'|'content_removed';reporter:GroupUser;createdAt:string;resolvedAt:string|null };
 export type GroupDashboard = { postsUnseen?:number;totalUnseen:number;pendingInvites:number;notificationsUnread:number };
 

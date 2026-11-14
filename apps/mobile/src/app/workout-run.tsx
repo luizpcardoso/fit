@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ComponentRef, type ReactNode } from 'react';
-import { AccessibilityInfo, Animated, AppState, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, Vibration, View } from 'react-native';
+import { Animated, AppState, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, Vibration, View } from 'react-native';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
@@ -21,6 +21,7 @@ import { formatDecimalInput, formatDecimalValue } from '@/utils/input-format';
 import { formatMeasure } from '@/utils/numbers';
 import { localDate } from '@/utils/dates';
 import { tapFeedback } from '@/utils/haptics';
+import { useReduceMotion } from '@/hooks/use-reduce-motion';
 
 type ExerciseCompletionUndo = { runId: string; exerciseId: string; completedSets: number[]; skipped: boolean; performed?: PerformedSet[] };
 type Panel = 'exercises' | 'exercise' | 'image' | 'options' | 'instructions' | null;
@@ -41,16 +42,6 @@ function useNow(active = true) {
     return () => { clearInterval(timer); sub.remove(); };
   }, [active]);
   return now;
-}
-function useReduceMotion() {
-  const [reduce, setReduce] = useState(false);
-  useEffect(() => {
-    let active = true;
-    void AccessibilityInfo.isReduceMotionEnabled().then(value => { if (active) setReduce(value); }).catch(() => {});
-    const subscription = AccessibilityInfo.addEventListener('reduceMotionChanged', setReduce);
-    return () => { active = false; subscription.remove(); };
-  }, []);
-  return reduce;
 }
 
 export default function WorkoutRunScreen() {

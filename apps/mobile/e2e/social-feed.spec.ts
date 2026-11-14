@@ -40,6 +40,19 @@ test('Social reúne grupos, preserva interações e oferece gestão e publicaç�
  await page.getByRole('button',{name:'Reagir: Curtir',exact:true}).first().click();
  await expect(page.getByRole('button',{name:'Reagir: Curtir',exact:true}).first()).toHaveAttribute('aria-selected','true');
  expect((await post.boundingBox())!.height).toBe(beforeLike!.height);
+ // As demais reações ficam atrás de "Mais reações"; escolher outra troca a anterior sem mudar a altura do card.
+ await post.getByRole('button',{name:'Mais reações',exact:true}).click();
+ await post.getByRole('button',{name:'Reagir: Força',exact:true}).click();
+ await expect(post.getByRole('button',{name:'Reagir: Força',exact:true})).toHaveAttribute('aria-selected','true');
+ await expect(post.getByRole('button',{name:'Reagir: Curtir',exact:true})).toHaveCount(0);
+ expect((await post.boundingBox())!.height).toBe(beforeLike!.height);
+ // O total de reações abre a lista de quem reagiu.
+ await post.getByRole('button',{name:'Ver quem reagiu (1)',exact:true}).click();
+ const reactionsSheet=page.getByTestId('post-reactions-sheet');
+ await expect(reactionsSheet.getByRole('heading',{name:'Reações (1)',exact:true})).toBeVisible();
+ await expect(reactionsSheet.getByText('Força',{exact:true})).toBeVisible();
+ await reactionsSheet.getByRole('button',{name:'Fechar',exact:true}).click();
+ await expect(reactionsSheet).toHaveCount(0);
  await page.getByRole('button',{name:`Ampliar foto de ${owner.user.displayName}`,exact:true}).first().click();
  await expect(page.getByTestId('social-avatar-preview')).toBeVisible();
  await expect(page.getByRole('heading',{name:`Foto de ${owner.user.displayName}`,exact:true})).toBeVisible();

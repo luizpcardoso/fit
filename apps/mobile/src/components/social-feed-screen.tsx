@@ -42,14 +42,9 @@ import {groupPostFrameRatio,prepareMobilePhoto} from '@/utils/mobile-photo';
 import {GroupMediaImage} from '@/components/group-media-image';
 import {SocialAvatar} from '@/components/social-avatar';
 import { formatRelativeDay, localDate } from '@/utils/dates';
+import { PostReactionsSheet } from '@/components/post-reactions-sheet';
+import { ReactionControl, myReaction, reactions, withMyReaction } from '@/components/reaction-control';
 
-const reactions: { key: GroupReaction; emoji: string; label: string }[] = [
-  { key: "like", emoji: "👍", label: "Curtir" },
-  { key: "love", emoji: "❤️", label: "Amei" },
-  { key: "strength", emoji: "💪", label: "Força" },
-  { key: "fire", emoji: "🔥", label: "Mandou bem" },
-  { key: "applause", emoji: "👏", label: "Parabéns" },
-];
 const eventIcons: Record<string, keyof typeof MaterialCommunityIcons.glyphMap> =
   {
     workout_completed: "dumbbell",
@@ -144,7 +139,10 @@ export default function SocialFeedScreen({ groupId: id }: { groupId?: string }) 
   };
   const [commentsPost, setCommentsPost] = useState<SocialPost | null>(null);
   const [actionPost, setActionPost] = useState<SocialPost | null>(null);
-  const load = useCallback(async () => {
+  const postsRef = useRef<SocialPost[]>([]);
+  useEffect(() => { postsRef.current = posts; }, [posts]);
+  // 'merge' refreshes the newest page and keeps the older pages already on screen, so coming back to the feed does not lose the reading position.
+  const load = useCallback(async (mode: 'merge' | 'replace' = 'merge') => {
     setError("");
     try {
       const [g, f] = await Promise.all([
@@ -152,8 +150,11 @@ export default function SocialFeedScreen({ groupId: id }: { groupId?: string }) 
         id ? api.listGroupPosts(id) : api.listSocialFeed(),
       ]);
       setGroup(g);
-      setPosts(f.items as SocialPost[]);
-      setNextCursor(f.nextCursor);
+      const fresh = f.items as SocialPost[], last = fresh[fresh.length - 1];
+      const ids = new Set(fresh.map(post => post.id));
+      const older = mode === 'merge' && last && f.nextCursor ? postsRef.current.filter(post => !ids.has(post.id) && new Date(post.createdAt).getTime() <= new Date(last.createdAt).getTime()) : [];
+      setPosts(older.length ? [...fresh, ...older] : fresh);
+      setNextCursor(current => older.length ? current : f.nextCursor);
       if (id) void api
         .markGroupSeen(id)
         .catch((markError) =>
@@ -181,7 +182,7 @@ export default function SocialFeedScreen({ groupId: id }: { groupId?: string }) 
   );
   const refresh = () => {
     setRefreshing(true);
-    void load();
+    void load('replace');
   };
   const loadMore=async()=>{if(!nextCursor||loadingMore||loading||refreshing)return;setLoadingMore(true);try{const page=id?await api.listGroupPosts(id,nextCursor):await api.listSocialFeed(nextCursor);setPosts(current=>[...current,...(page.items as SocialPost[]).filter(p=>!current.some(existing=>existing.id===p.id))]);setNextCursor(page.nextCursor)}catch{setError('Não foi possível carregar mais publicações. Tente novamente.')}finally{setLoadingMore(false)}};
   const pickPhoto = async () => {
@@ -226,21 +227,27 @@ export default function SocialFeedScreen({ groupId: id }: { groupId?: string }) 
       setPublishing(false);
     }
   };
-  const reactionLocks = useRef(new Set<string>());
-  const react = async (post: GroupPost, reaction: GroupReaction) => {
-    if(reactionLocks.current.has(post.id)) return;
-    reactionLocks.current.add(post.id);
-    const previous=post.reactionCounts.find(item=>item.reactedByMe)?.reaction;
-    const next=previous===reaction?null:reaction;
-    try {
-      await api.reactToGroupPost(post.groupId,post.id,next);
-      setPosts(current=>current.map(item=>item.id!==post.id?item:{...item,reactionCounts:reactions.map(({key})=>{
-        const old=item.reactionCounts.find(count=>count.reaction===key);
-        return {reaction:key,count:(old?.count??0)-(old?.reactedByMe?1:0)+(next===key?1:0),reactedByMe:next===key};
-      }).filter(count=>count.count>0)}));
-    } catch(failure) {
-      showToast(groupErrorMessage(failure,{network:'Reação não enviada. Confira sua conexão e tente novamente.'}),'error');
-    } finally {reactionLocks.current.delete(post.id);}
+  // The card changes on the tap; requests go out one at a time per post and always end on the last choice.
+  const reactionSync = useRef(new Map<string, { confirmed: GroupReaction | null; wanted: GroupReaction | null }>());
+  const [reactionPicker, setReactionPicker] = useState<string | null>(null);
+  const [reactionsPost, setReactionsPost] = useState<{ groupId: string; postId: string } | null>(null);
+  const showReaction = (postId: string, next: GroupReaction | null) => setPosts(current => current.map(item => item.id !== postId ? item : { ...item, reactionCounts: withMyReaction(item.reactionCounts, next) }));
+  const react = (post: GroupPost, reaction: GroupReaction) => {
+    const pending = reactionSync.current.get(post.id);
+    const previous = pending ? pending.wanted : myReaction(post.reactionCounts);
+    const next = previous === reaction ? null : reaction;
+    showReaction(post.id, next);
+    if (pending) { pending.wanted = next; return; }
+    const state = { confirmed: previous, wanted: next };
+    reactionSync.current.set(post.id, state);
+    void (async () => {
+      try {
+        while (state.wanted !== state.confirmed) { const target = state.wanted; await api.reactToGroupPost(post.groupId, post.id, target); state.confirmed = target; }
+      } catch (failure) {
+        showReaction(post.id, state.confirmed);
+        showToast(groupErrorMessage(failure,{network:'Reação não enviada. Confira sua conexão e tente novamente.'}),'error');
+      } finally { reactionSync.current.delete(post.id); }
+    })();
   };
   const removePost = async () => {
     const post = actionPost;
@@ -286,10 +293,10 @@ export default function SocialFeedScreen({ groupId: id }: { groupId?: string }) 
     if (!confirmed) return;
     try {
       await api.setUserBlocked(post.author.id, true);
-      await load();
+      await load('replace');
       showDialog("Usuário ocultado", `As publicações de ${name} não aparecerão mais para você.`, [
         { text: "Entendi", style: "cancel" },
-        { text: "Desfazer", onPress: async () => { await api.setUserBlocked(post.author.id, false); await load(); showToast(`As publicações de ${name} voltaram a aparecer.`); } },
+        { text: "Desfazer", onPress: async () => { await api.setUserBlocked(post.author.id, false); await load('replace'); showToast(`As publicações de ${name} voltaram a aparecer.`); } },
       ]);
     } catch (failure) {
       showToast(groupErrorMessage(failure, { conflict: "Não foi possível ocultar este usuário." }), "error");
@@ -347,7 +354,7 @@ export default function SocialFeedScreen({ groupId: id }: { groupId?: string }) 
           <View style={s.feedCaption}><Text style={s.navText}>Publicações dos seus grupos</Text><Text style={s.time}>Mais recentes</Text></View>
         </View> : null}{error ? <View style={s.error}>
           <Text accessibilityRole="alert" style={s.errorText}>{error}</Text>
-          <Pressable accessibilityRole="button" onPress={load} style={{ minHeight: 44, justifyContent: 'center' }}><Text style={s.link}>Tentar novamente</Text></Pressable>
+          <Pressable accessibilityRole="button" onPress={() => void load()} style={{ minHeight: 44, justifyContent: 'center' }}><Text style={s.link}>Tentar novamente</Text></Pressable>
         </View> : null}</View>}
         ListEmptyComponent={loading ? <ActivityIndicator accessibilityLabel="Carregando publicações" color={c.link} size="large" style={s.loading}/> : !error ? <View style={s.empty}>
           <MaterialCommunityIcons name="post-outline" size={30} color={c.link}/>
@@ -409,17 +416,16 @@ export default function SocialFeedScreen({ groupId: id }: { groupId?: string }) 
             ) : null}
             {(
               <View style={s.engagementSummary}>
-                <Text style={s.reactionTotal}>
-                  {post.reactionCounts
-                    .filter(item => item.count > 0)
-                    .map(
-                      (item) =>
-                        reactions.find((reaction) => reaction.key === item.reaction)
-                          ?.emoji,
-                    )
-                    .join("")}{" "}
-                  {post.reactionCounts.reduce((total, item) => total + item.count, 0) || ""}
-                </Text>
+                {post.reactionCounts.some(item => item.count > 0) ? <Pressable accessibilityRole="button"
+                  accessibilityLabel={`Ver quem reagiu (${post.reactionCounts.reduce((total, item) => total + item.count, 0)})`}
+                  onPress={() => setReactionsPost({ groupId: post.groupId, postId: post.id })}
+                  style={s.reactionTotalButton}
+                >
+                  <Text style={s.reactionTotal}>
+                    {post.reactionCounts.filter(item => item.count > 0).map(item => reactions.find(reaction => reaction.key === item.reaction)?.emoji).join("")}{" "}
+                    {post.reactionCounts.reduce((total, item) => total + item.count, 0)}
+                  </Text>
+                </Pressable> : <View/>}
                 {post.commentCount ? (
                   <Pressable accessibilityRole="button"
                     accessibilityLabel={`Abrir conversa (${post.commentCount} ${post.commentCount === 1 ? "comentário" : "comentários"})`}
@@ -434,31 +440,8 @@ export default function SocialFeedScreen({ groupId: id }: { groupId?: string }) 
               </View>
             )}
             <View style={s.postActions}>
-              <ScrollView automaticallyAdjustKeyboardInsets={false}
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={s.reactions}
-              >
-                {reactions.map((reaction) => {
-                  const selected = post.reactionCounts.some(
-                    (item) =>
-                      item.reaction === reaction.key && item.reactedByMe,
-                  );
-                  return (
-                    <Pressable
-                      accessibilityLabel={`Reagir: ${reaction.label}`}
-                      accessibilityRole="button"
-                      aria-selected={selected}
-                      key={reaction.key}
-                      onPress={() => react(post, reaction.key)}
-                      style={[s.reaction, selected && s.reactionSelected]}
-                    >
-                      <Text style={s.emoji}>{reaction.emoji}</Text>
-                    </Pressable>
-                  );
-                })}
-              </ScrollView>
-              <Pressable accessibilityRole="button"
+              <ReactionControl counts={post.reactionCounts} onReact={reaction => react(post, reaction)} open={reactionPicker === post.id} onOpenChange={open => setReactionPicker(current => open ? post.id : current === post.id ? null : current)}/>
+              {reactionPicker === post.id ? null : <Pressable accessibilityRole="button"
                 accessibilityLabel={post.commentsEnabled ? `Comentar${post.commentCount ? ` (${post.commentCount} ${post.commentCount === 1 ? "comentário" : "comentários"})` : ""}` : "Comentários desativados nesta publicação"}
                 aria-disabled={!post.commentsEnabled}
                 disabled={!post.commentsEnabled}
@@ -473,7 +456,7 @@ export default function SocialFeedScreen({ groupId: id }: { groupId?: string }) 
                 <Text style={[s.commentText, !post.commentsEnabled && { color: c.textMuted }]}>
                   {post.commentsEnabled ? "Comentar" : "Sem comentários"}
                 </Text>
-              </Pressable>
+              </Pressable>}
             </View>
           </View>
         )}
@@ -645,6 +628,7 @@ export default function SocialFeedScreen({ groupId: id }: { groupId?: string }) 
         </View>
       </Modal>
       <ReportContentSheet groupId={reportGroupId || id || ""} target={reportTarget} onClose={() => setReportTarget(null)} />
+      <PostReactionsSheet key={reactionsPost?.postId ?? "closed"} target={reactionsPost} onClose={() => setReactionsPost(null)} />
     </SafeAreaView>
   );
 }
@@ -655,6 +639,7 @@ function PostPhoto({ groupId, postId, aspectRatio }: { groupId: string; postId: 
   const [source, setSource] = useState<{ uri: string;headers?:{authorization?:string};cacheKey?:string } | null>(null);
   const [failed, setFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
+  const [viewing, setViewing] = useState(false);
   useEffect(() => {
     let active = true;
     api
@@ -704,16 +689,31 @@ function PostPhoto({ groupId, postId, aspectRatio }: { groupId: string; postId: 
       </View>
     );
   return source ? (
-    <CachedImage
-      testID="group-post-photo"
-      source={source}
-      onError={() => setFailed(true)}
-      contentFit="contain"
-      cachePolicy="disk"
-      recyclingKey={postId}
-      accessibilityLabel="Foto da publicação"
-      style={{ width: "100%", aspectRatio: groupPostFrameRatio(aspectRatio), backgroundColor: c.surfaceSoft }}
-    />
+    <>
+      <Pressable accessibilityRole="button" accessibilityLabel="Ampliar foto da publicação" onPress={() => setViewing(true)} style={{ width: "100%" }}>
+        <CachedImage
+          testID="group-post-photo"
+          source={source}
+          onError={() => setFailed(true)}
+          contentFit="contain"
+          cachePolicy="disk"
+          recyclingKey={postId}
+          accessibilityLabel="Foto da publicação"
+          style={{ width: "100%", aspectRatio: groupPostFrameRatio(aspectRatio), backgroundColor: c.surfaceSoft }}
+        />
+      </Pressable>
+      <Modal visible={viewing} animationType="fade" onRequestClose={() => setViewing(false)}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: c.background }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 16, paddingVertical: 8 }}>
+            <Text accessibilityRole="header" style={{ flex: 1, color: c.text, fontSize: 18, fontWeight: "800" }}>Foto da publicação</Text>
+            <Pressable accessibilityRole="button" accessibilityLabel="Fechar foto" onPress={() => setViewing(false)} style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center" }}>
+              <MaterialCommunityIcons name="close" size={24} color={c.text} />
+            </Pressable>
+          </View>
+          {viewing ? <CachedImage testID="group-post-photo-full" source={source} contentFit="contain" cachePolicy="disk" accessibilityLabel="Foto da publicação ampliada" style={{ flex: 1, margin: 16 }} /> : null}
+        </SafeAreaView>
+      </Modal>
+    </>
   ) : (
     <View
       style={{
@@ -749,8 +749,7 @@ function CommentsModal({
   const [comments, setComments] = useState<GroupComment[]>([]);
   const [text, setText] = useState("");
   const [replyTo, setReplyTo] = useState<GroupComment | null>(null);
-  const [reacting, setReacting] = useState<string | null>(null);
-  const reactionLock = useRef(false);
+  const reactionLocks = useRef(new Set<string>());
   const orderedComments = comments.filter(comment=>!comment.parentCommentId).flatMap(comment=>[
     comment,...comments.filter(reply=>reply.parentCommentId===comment.id),
   ]);
@@ -773,18 +772,19 @@ function CommentsModal({
       setLoading(false);
     }
   }, [api, groupId, visiblePost]);
+  // Shown at once; a failed request restores the list from the server.
   const reactToComment = async (comment:GroupComment,reaction:GroupReaction) => {
-    if (reactionLock.current) return;
-    reactionLock.current=true;
-    setReacting(comment.id);
+    if (reactionLocks.current.has(comment.id)) return;
+    reactionLocks.current.add(comment.id);
     setSendError("");
+    const next = myReaction(comment.reactionCounts) === reaction ? null : reaction;
+    setComments(current => current.map(item => item.id === comment.id ? { ...item, reactionCounts: withMyReaction(item.reactionCounts, next) } : item));
     try {
-      const selected=comment.reactionCounts?.some(item=>item.reaction===reaction && item.reactedByMe);
-      await api.reactToGroupComment(groupId,comment.id,selected?null:reaction);
-      await load();
+      await api.reactToGroupComment(groupId,comment.id,next);
     } catch(failure) {
       setSendError(groupErrorMessage(failure));
-    } finally {reactionLock.current=false;setReacting(null);}
+      await load();
+    } finally {reactionLocks.current.delete(comment.id);}
   };
   // The parent remounts this modal per post (key), so state starts clean for each one.
   useEffect(() => {
@@ -905,12 +905,7 @@ function CommentsModal({
                 </Text>
                 {!comment.removed ? <>
                   {!comment.parentCommentId && visiblePost?.commentsEnabled ? <Pressable accessibilityRole="button" accessibilityLabel={`Responder a ${comment.author.displayName}`} disabled={sending} onPress={()=>setReplyTo(comment)} style={{minHeight:44,justifyContent:'center'}}><Text style={s.link}>Responder</Text></Pressable> : null}
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.reactions}>
-                    {reactions.map(({key,emoji,label})=>{
-                      const count=comment.reactionCounts?.find(item=>item.reaction===key);
-                      return <Pressable key={key} accessibilityRole="button" accessibilityLabel={`Reagir ao comentário: ${label}${count?.count ? ` (${count.count})` : ''}`} aria-pressed={Boolean(count?.reactedByMe)} aria-disabled={reacting!==null} aria-busy={reacting===comment.id} disabled={reacting!==null} onPress={()=>void reactToComment(comment,key)} style={[s.reaction,count?.reactedByMe && s.reactionSelected]}><Text style={s.emoji}>{emoji}</Text>{count?.count ? <Text style={s.meta}>{count.count}</Text> : null}</Pressable>;
-                    })}
-                  </ScrollView>
+                  <ReactionControl counts={comment.reactionCounts} labelPrefix="Reagir ao comentário" showCounts onReact={reaction => void reactToComment(comment, reaction)}/>
                 </> : null}
               </View>
             </View>
@@ -1144,6 +1139,7 @@ const styles = (c: AppPalette) =>
       paddingTop: 8,
     },
     reactionTotal: { color: c.textMuted, fontSize: 12 },
+    reactionTotalButton: { minHeight: 44, minWidth: 44, justifyContent: "center" },
     commentTotal: { color: c.textMuted, fontSize: 12 },
     commentCountButton: { minHeight: 44, minWidth: 44, justifyContent: "center", alignItems: "flex-end" },
     postActions: {
@@ -1155,20 +1151,6 @@ const styles = (c: AppPalette) =>
       flexDirection: "row",
       alignItems: "center",
     },
-    reactions: { gap: 2 },
-    reaction: {
-      width: 44,
-      height: 44,
-      borderRadius: Radius.pill,
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    reactionSelected: {
-      backgroundColor: c.primarySoft,
-      borderWidth: 1,
-      borderColor: c.primary,
-    },
-    emoji: { fontSize: 18 },
     commentButton: {
       marginLeft: "auto",
       minHeight: 44,

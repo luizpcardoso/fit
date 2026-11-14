@@ -32,6 +32,7 @@ const icons: Record<
   professional_invite: "account-tie-outline",
   invite: "account-plus-outline",
   comment: "comment-outline",
+  reaction: "thumb-up-outline",
   role_changed: "shield-account-outline",
   removed: "account-remove-outline",
   report_resolved: "flag-checkered",
@@ -108,7 +109,7 @@ export default function GroupNotifications() {
             >
               <View style={s.icon}>
                 <MaterialCommunityIcons
-                  name={icons[item.type]}
+                  name={icons[item.type] ?? "bell-outline"}
                   size={21}
                   color={c.link}
                 />

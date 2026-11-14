@@ -62,7 +62,7 @@ Eventos automáticos exibem uma mensagem social curta e não expõem detalhes se
 
 O feed é paginado em lotes de 30 publicações. Cada post pode conter texto, uma foto ou ambos. Há cinco reações: curtir, coração, força, fogo e aplausos. Comentários podem ser desabilitados para o grupo ou para uma publicação específica.
 
-As notificações detalhadas são geradas para convite e comentário. As demais atividades sociais alimentam o contador de atualizações não vistas por grupo e o resumo da Home.
+As notificações detalhadas são geradas para convite, comentário e reação em publicação (ver “Quem reagiu e aviso de reação”). As demais atividades sociais alimentam o contador de atualizações não vistas por grupo e o resumo da Home.
 
 ## Moderação
 
@@ -77,6 +77,7 @@ Membros podem denunciar publicações ou comentários visíveis por assédio, co
 - `GET/PATCH/DELETE /groups/:groupId/members`: membros e papéis.
 - `GET/POST /groups/:groupId/posts`: feed e publicação.
 - `PUT /groups/:groupId/posts/:postId/reaction`: criar, trocar ou retirar reação.
+- `GET /groups/:groupId/posts/:postId/reactions`: quem reagiu à publicação.
 - `GET/POST /groups/:groupId/posts/:postId/comments`: comentários.
 - `GET/PATCH /groups/notifications`: notificações internas.
 - `POST/GET/PATCH /groups/:groupId/reports`: denúncias e resolução.
@@ -126,7 +127,7 @@ Cabeçalho com Notificações e Configurações do Social, navegação para Meus
 
 `GET /social/feed?before=…` é autenticado, valida `socialFeedQuerySchema` e retorna `SocialFeedPage`: `items` com `SocialPost` (post existente + `group: {id,name,role,active}`) e `nextCursor`. Consulta única no servidor, 30 posts/página, ordenada por timestamp com microssegundos + ID como desempate; não busca todos os grupos no cliente. Reutiliza isolamento por associação ativa, entrada mais recente, bloqueios, exclusão e expiração de mídia. Sem migration nova.
 
-`social-feed-screen.tsx` compartilha a implementação dos feeds agregado/filtrado e suas interações. Reagir atualiza o card sem voltar ao topo ou descartar páginas. A leitura no Social marca somente grupos com posts visíveis por pelo menos 800 ms (60% do card); `POST /groups/:id/seen` aceita `postId` opcional e avança o marco de leitura até esse post autorizado, sem retroceder nem marcar publicações mais novas. Consumidores antigos sem corpo mantêm o comportamento existente.
+`social-feed-screen.tsx` compartilha a implementação dos feeds agregado/filtrado e suas interações. Reagir atualiza o card sem voltar ao topo ou descartar páginas. Ao voltar para o feed (de um grupo, do editor ou dos comentários), só a página mais recente é atualizada e mesclada: as páginas antigas já carregadas e a posição de leitura são mantidas. Puxar para atualizar e ocultar/mostrar uma pessoa recarregam a lista inteira. A leitura no Social marca somente grupos com posts visíveis por pelo menos 800 ms (60% do card); `POST /groups/:id/seen` aceita `postId` opcional e avança o marco de leitura até esse post autorizado, sem retroceder nem marcar publicações mais novas. Consumidores antigos sem corpo mantêm o comportamento existente.
 
 Validação: `npm run typecheck`, lint mobile, suíte padrão; `RUN_DB_TESTS=1 node --import tsx --test apps/api/test/social-feed.integration.test.ts` cria/remove banco temporário e verifica paginação com empates, entrada, terceiros, bloqueio e revogação. E2E `social-feed.spec.ts` exige `FIT_SOCIAL_ISOLATED=1` e API em banco efêmero (`FIT_E2E_API_URL`); verifica origem, reações, comentários, gestão, publicação e larguras 320/390. Não executar contra banco compartilhado. Desenvolvimento via Expo, sem APK/OTA ou implantação no servidor.
 
@@ -151,3 +152,19 @@ O componente `social-avatar.tsx` reutiliza a URL existente e não consulta dados
 ## Acesso pelo contador de comentários
 
 O contador “1 comentário”/“N comentários” é um botão com área mínima de toque de 44 × 44 e abre a conversa da publicação, incluindo suas respostas. A faixa de contagens reserva 44 px mesmo sem interações para manter estável a altura dos cards. Quando novos comentários estão desativados, o contador ainda permite ler a conversa existente, com aviso no lugar do editor. As permissões de acesso continuam validadas pela API. O E2E social cobre os contadores singular/plural e leitura de uma conversa com comentários desativados.
+
+## Reação em um toque e foto ampliável
+
+Cada publicação e cada comentário têm um botão principal de reação (`components/reaction-control.tsx`): um toque dá “Curtir” ou retira a reação atual; tocar e segurar, ou o botão “Mais reações”, abre as cinco opções no lugar do botão, sem mudar a altura do card. Continua valendo uma reação por pessoa. Nos comentários, as reações que já têm contagem aparecem ao lado com o número.
+
+A reação aparece na hora, com vibração curta no Android e uma animação breve (respeitando “reduzir movimento”). O envio segue em segundo plano, um por vez por publicação, e sempre termina na última escolha; se falhar, o card volta ao estado confirmado e um aviso é exibido. Reagir a um comentário não recarrega mais a conversa nem bloqueia os demais botões.
+
+Tocar na foto de uma publicação abre a imagem inteira em tela cheia, com Fechar e Voltar do Android; não há zoom por pinça. Nenhum endpoint, contrato ou permissão mudou.
+
+## Quem reagiu e aviso de reação
+
+O total de reações do card é um botão que abre a folha “Reações” (`components/post-reactions-sheet.tsx`), com foto, nome e reação de cada pessoa. `GET /groups/:groupId/posts/:postId/reactions` devolve `GroupPostReaction[]` (`user` com a mesma identidade pública já exibida nos autores, `reaction`, `reactedAt`), até 200 itens, do mais recente ao mais antigo. Vale o mesmo acesso da leitura de comentários: membro ativo, publicação posterior à entrada e não removida; caso contrário, 404. Pessoas que o leitor ocultou não aparecem na lista dele, então a lista pode ter menos itens que o total do card.
+
+O autor recebe a notificação interna `reaction` (“Nova reação”) quando outra pessoa reage pela primeira vez à publicação. Trocar o emoji, retirar a reação e reagir à própria publicação não avisam. Existe no máximo um aviso não lido por publicação: novas reações atualizam o texto (“Ana e mais 2 pessoas reagiram à sua publicação.”) e a data do mesmo aviso. Depois de lido, outro aviso só é criado uma hora mais tarde, para que tirar e recolocar a reação não vire insistência. Não há aviso se o autor ocultou quem reagiu ou não é mais membro ativo. Reações em comentários não geram aviso. Não há notificação push nesta entrega; o aviso aparece em Notificações e no contador existente.
+
+A migration `052-reaction-notification-type` acrescenta `reaction` ao enum de `group_notifications.type`; aplique antes de subir a API. Versões anteriores do app listam o aviso com ícone genérico. Teste: `RUN_DB_TESTS=1 node --import tsx --test apps/api/test/post-reactions.integration.test.ts` cria e remove um banco `fit_reactions_test_*` e cobre 401, não membro, parâmetro inválido, entrada posterior, publicação removida, campos públicos, pessoas ocultadas, agrupamento e a regra de uma hora. O E2E `social-feed.spec.ts` abre a folha pelo total do card.

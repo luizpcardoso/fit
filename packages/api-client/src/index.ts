@@ -123,6 +123,7 @@ export function createApiClient(options: ClientOptions) {
       return {uri:`${options.baseUrl}/groups/${groupId}/posts/${postId}/photo`,headers:{...transportHeaders,...(tokens?{authorization:`Bearer ${tokens.accessToken}`}:{})},cacheKey:`group-photo-${groupId}-${postId}`};
     },
     reactToGroupPost:(groupId:string,postId:string,reaction:GroupReaction|null)=>request<void>(`/groups/${groupId}/posts/${postId}/reaction`,{method:'PUT',body:JSON.stringify({reaction})}),
+    listGroupPostReactions:(groupId:string,postId:string)=>request<import('@fit/contracts').GroupPostReaction[]>(`/groups/${groupId}/posts/${postId}/reactions`),
     listGroupComments:(groupId:string,postId:string)=>request<GroupComment[]>(`/groups/${groupId}/posts/${postId}/comments`),
     createGroupComment:(groupId:string,postId:string,text:string,parentCommentId?:string)=>request<{id:string}>(`/groups/${groupId}/posts/${postId}/comments`,{method:'POST',body:JSON.stringify({text,parentCommentId})}),
     reactToGroupComment:(groupId:string,commentId:string,reaction:GroupReaction|null)=>request<void>(`/groups/${groupId}/comments/${commentId}/reaction`,{method:'PUT',body:JSON.stringify({reaction})}),

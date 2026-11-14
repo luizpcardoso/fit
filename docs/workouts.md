@@ -131,9 +131,15 @@ O resumo fixo indica o total de exercícios e quantos treinos já têm exercíci
 
 A lista da divisão começa recolhida: cada card mostra número, nome, miniatura e resumo de séries, repetições, carga e descanso. Tocar no nome ou na seta abre apenas aquele exercício. Reordenação, remoção e observações ficam no card expandido.
 
-A edição usa uma cópia temporária separada. “Salvar exercício” valida o contrato compartilhado, atualiza somente o rascunho da ficha em memória e recolhe o card, sem chamar a API. “Cancelar edição” restaura os valores anteriores; se houve alterações, pede confirmação. Trocar de exercício, divisão ou quantidade de divisões, ou abrir a seleção de novos exercícios, também protege ajustes pendentes.
+Os campos do card aberto alteram o rascunho da ficha na hora, sem botão próprio de salvar ou cancelar o exercício; nada é enviado à API até “Salvar ficha”, a única ação que persiste. Trocar de exercício, de treino ou abrir a seleção recolhe o card aberto. Erros de validação ao salvar reabrem o exercício indicado com a mensagem.
 
-“Salvar ficha” é a única ação que persiste a ficha. Fica desabilitado até salvar ou cancelar o exercício aberto. O fluxo final mantém a autenticação, autorização, idempotência e validação no backend existentes. Não há endpoint novo para esse salvamento local.
+“Reordenar”, ao lado de “+ Adicionar” quando o treino tem dois ou mais exercícios, troca os cards recolhidos por um modo com setas para cima/baixo em cada linha; “Concluir” volta ao modo normal. As mesmas setas continuam no card aberto. Não há arrastar e soltar.
+
+### Seletor de exercícios
+
+A busca fica fixa no topo, fora da rolagem, e consulta o catálogo 300 ms depois de a digitação parar; os resultados anteriores permanecem na tela enquanto os novos chegam. Abaixo dela, chips filtram os resultados carregados por grupo muscular principal. O exercício personalizado fica no início da lista, antes do catálogo, e não mais depois de todos os resultados. Seleção em lote, limite de 50 por treino e confirmação no rodapé continuam iguais.
+
+No formulário, “Sobre a ficha” pede nome e validade antes da imagem (opcional). As abas dos treinos mostram também o nome personalizado do treino, quando houver. O rascunho continua somente em memória.
 
 ## Clareza no cadastro de ficha
 

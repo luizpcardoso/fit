@@ -17,6 +17,8 @@ type Props = {
   count: number;
   imageUrl?: string | null;
   draft: WorkoutExerciseInput | null;
+  /** Shows move buttons on the collapsed card instead of the expand arrow. */
+  reordering?: boolean;
   error: string;
   onToggle(): void;
   onChange(change: Partial<WorkoutExerciseInput>): void;
@@ -26,14 +28,18 @@ type Props = {
 };
 
 /** Field edits update the plan draft immediately; persistence belongs to Save plan. */
-export function WorkoutExerciseCard({ exercise, index, count, imageUrl, draft, error, onToggle, onChange, onMove, onRemove, onPreview }: Props) {
+export function WorkoutExerciseCard({ exercise, index, count, imageUrl, draft, reordering = false, error, onToggle, onChange, onMove, onRemove, onPreview }: Props) {
   const { colors: c } = useAppTheme();
   const s = styles(c);
   const expanded = draft != null;
   return <View style={[s.card, expanded && s.expanded]}>
     <View style={s.header}>
       <ExerciseThumbnail name={exercise.name} uri={imageUrl} onPreview={onPreview}/>
-      <Pressable accessibilityRole="button" accessibilityLabel={`Configurar ${exercise.name}`}
+      {reordering ? <>
+        <View style={s.copy}><Text style={s.name}>{index + 1} · {exercise.name}</Text></View>
+        <Pressable accessibilityRole="button" accessibilityLabel={`Mover ${exercise.name} para cima`} disabled={index === 0} onPress={() => onMove(-1)} style={[s.tool, index === 0 && s.disabled]}><MaterialCommunityIcons name="arrow-up" size={21} color={c.link}/></Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel={`Mover ${exercise.name} para baixo`} disabled={index === count - 1} onPress={() => onMove(1)} style={[s.tool, index === count - 1 && s.disabled]}><MaterialCommunityIcons name="arrow-down" size={21} color={c.link}/></Pressable>
+      </> : <Pressable accessibilityRole="button" accessibilityLabel={`Configurar ${exercise.name}`}
         accessibilityHint="Abre ou recolhe a configuração deste exercício"  aria-expanded={expanded}
         onPress={onToggle} style={s.toggle}>
         <View style={s.copy}>
@@ -41,7 +47,7 @@ export function WorkoutExerciseCard({ exercise, index, count, imageUrl, draft, e
           <Text style={s.summary}>{exercise.sets} séries · {exercise.reps} reps · {exercise.load == null ? 'Sem carga' : `${formatDecimalValue(exercise.load)} kg`} · {exercise.restSeconds == null ? 'Sem descanso' : `${exercise.restSeconds} s descanso`}</Text>
         </View>
         <MaterialCommunityIcons name={expanded ? 'chevron-up' : 'chevron-down'} size={23} color={c.link}/>
-      </Pressable>
+      </Pressable>}
     </View>
     {draft ? <View style={s.editor}>
       <View style={s.row}>

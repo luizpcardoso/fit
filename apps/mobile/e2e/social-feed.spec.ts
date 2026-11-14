@@ -101,6 +101,16 @@ test('Social reúne grupos, preserva interações e oferece gestão e publicaç�
  await expect(page.getByText('Novos comentários estão desativados nesta publicação.',{exact:true})).toBeVisible();
  await expect(page.getByRole('textbox',{name:'Escrever comentário',exact:true})).toHaveCount(0);
  await page.getByRole('button',{name:'Fechar comentários',exact:true}).click();
+ // Semana do grupo: o placar começa vazio e a pessoa entra por escolha própria.
+ await page.getByRole('button',{name:`Abrir grupo ${groups[0].name}`,exact:true}).first().click();
+ await page.getByRole('button',{name:'Semana do grupo',exact:true}).click();
+ const weekSheet=page.getByTestId('group-week-sheet');
+ await expect(weekSheet.getByText(/Ninguém entrou no placar ainda/)).toBeVisible();
+ await weekSheet.getByRole('switch',{name:'Participar do placar deste grupo',exact:true}).click();
+ await expect(weekSheet.getByText(/\(você\)/)).toBeVisible();
+ await weekSheet.getByRole('button',{name:'Fechar',exact:true}).click();
+ await expect(weekSheet).toHaveCount(0);
+ await page.goBack();
  await page.getByRole('button',{name:'Configurações da Comunidade',exact:true}).click();
  await expect(page.getByRole('heading',{name:'Configurações da Comunidade',exact:true})).toBeVisible();
  await expect(page.getByRole('button',{name:'Pessoas ocultadas',exact:false})).toBeVisible();

@@ -78,6 +78,8 @@ Membros podem denunciar publicações ou comentários visíveis por assédio, co
 - `GET/POST /groups/:groupId/posts`: feed e publicação.
 - `PUT /groups/:groupId/posts/:postId/reaction`: criar, trocar ou retirar reação.
 - `GET /groups/:groupId/posts/:postId/reactions`: quem reagiu à publicação.
+- `GET /groups/:groupId/week?date=AAAA-MM-DD`: resumo e placar da semana do grupo.
+- `PUT /groups/:groupId/participation`: adesão individual ao placar.
 - `GET/POST /groups/:groupId/posts/:postId/comments`: comentários.
 - `GET/PATCH /groups/notifications`: notificações internas.
 - `POST/GET/PATCH /groups/:groupId/reports`: denúncias e resolução.
@@ -181,3 +183,13 @@ A migration `052-reaction-notification-type` acrescenta `reaction` ao enum de `g
 ## Contagem de novidades por grupo
 
 `unseenCount` (lista de grupos) e os totais de comentários e reações do painel deixam de incluir o que a própria pessoa fez: publicações, comentários e reações dela, inclusive a publicação automática de entrada no grupo, não contam como novidade para ela. Antes, reagir a uma publicação aumentava o próprio contador de “não lidas”. A regra de leitura (`last_seen_at`) e `postsUnseen` não mudaram.
+
+## Semana do grupo e placar por adesão
+
+No cabeçalho do feed do grupo, “Semana” abre a folha “Semana do grupo” (`components/group-week-sheet.tsx`), sem ocupar espaço acima das publicações. Ela mostra a semana de segunda a domingo que contém a data local enviada pelo app.
+
+- **Atividades compartilhadas / pessoas ativas:** contam apenas publicações de conquista de treino e cardio já feitas no grupo na semana, com o mesmo acesso do feed (posteriores à entrada, não removidas, sem autores ocultados pelo leitor). O corte da semana usa a data de criação da publicação em UTC, então uma atividade perto da meia-noite de domingo pode cair na semana vizinha.
+- **Placar:** decisão do produto — adesão individual, por grupo, desligada por padrão (`group_share_preferences.show_in_ranking`, migration `053-group-ranking-opt-in`). Só quem ligou “Participar do placar” aparece, com a contagem de treinos concluídos na semana (`workout_sessions` com status `completed`). Nada mais é exposto: nem ficha, nem cargas, nem horários, nem cardio. Quem não aderiu nunca é listado, mesmo tendo treinado; qualquer membro ativo vê o placar; pessoas ocultadas pelo leitor não aparecem para ele. Sair do placar retira a pessoa na hora.
+- `PUT /groups/:groupId/participation` aceita só `{ showInRanking }` (corpo estrito), deriva a pessoa da sessão e não altera as preferências de compartilhamento automático da mesma linha. `GET /groups/:groupId/week` exige membro ativo (404 caso contrário) e data `AAAA-MM-DD` (400 caso contrário).
+
+Teste: `RUN_DB_TESTS=1 node --import tsx --test apps/api/test/group-week.integration.test.ts` (banco temporário `fit_group_week_test_*`): 401, não membro, data inválida, corpo inválido ou com campos extras, placar vazio sem adesão, contagem por semana e status, pessoas ocultadas, saída do placar e atividades compartilhadas. O E2E `social-feed.spec.ts` abre a folha e adere ao placar.

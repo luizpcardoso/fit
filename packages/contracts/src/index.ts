@@ -111,6 +111,9 @@ export const updateGroupSchema = z.strictObject({
   postingMode: groupPostingModeSchema.optional(), commentsEnabled: z.boolean().optional(), active: z.boolean().optional(),
 }).refine(value => Object.keys(value).length > 0, 'Informe ao menos um campo.');
 export const groupEventSettingsSchema = z.strictObject({ workout_completed: z.boolean(), cardio_completed: z.boolean(), weekly_goal: z.boolean(), weekly_streak: z.boolean(), member_joined: z.boolean() });
+/** Opt-in, per person and group, to appear in the group's weekly ranking. */
+export const groupParticipationSchema = z.strictObject({ showInRanking: z.boolean() });
+export const groupWeekQuerySchema = z.strictObject({ date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine(value => !Number.isNaN(Date.parse(`${value}T00:00:00Z`)), 'Data inválida') });
 export const groupSharePreferencesSchema = z.strictObject({ workout_completed: z.boolean(), cardio_completed: z.boolean(), weekly_goal: z.boolean(), weekly_streak: z.boolean() });
 export const createGroupInviteSchema = z.strictObject({ username: socialUsernameSchema });
 export const groupInviteDecisionSchema = z.strictObject({ decision: z.enum(['accepted', 'declined']) });
@@ -146,6 +149,9 @@ export type GroupInvite = { id:string;group:{id:string;name:string;avatarUrl:str
 export type GroupReactionCount = { reaction:GroupReaction;count:number;reactedByMe:boolean };
 export type GroupPost = { id:string;groupId:string;author:GroupUser;kind:'manual'|'event'|'announcement';eventType:GroupEventType|null;text:string|null;photoUrl:string|null;photoAspectRatio?:number|null;commentsEnabled:boolean;reactionCounts:GroupReactionCount[];commentCount:number;createdAt:string;updatedAt:string;edited:boolean };
 export type GroupComment = { id:string;postId:string;parentCommentId:string|null;reactionCounts:GroupReactionCount[];author:GroupUser;text:string;createdAt:string;updatedAt:string;edited:boolean;removed:boolean };
+export type GroupParticipation = z.infer<typeof groupParticipationSchema>;
+/** The group's week (seg–dom): activity already shared in it, plus the count of workouts of members who opted into the ranking. */
+export type GroupWeekSummary = { weekStart:string;weekEnd:string;sharedActivities:number;activePeople:number;participating:boolean;ranking:{user:GroupUser;workouts:number}[] };
 /** Who reacted to a post, with the same public identity already shown for authors. */
 export type GroupPostReaction = { user:GroupUser;reaction:GroupReaction;reactedAt:string };
 export type GroupNotification = { id:string;type:'invite'|'comment'|'reaction'|'role_changed'|'removed'|'report_resolved';title:string;message:string;groupId:string|null;postId:string|null;readAt:string|null;createdAt:string };

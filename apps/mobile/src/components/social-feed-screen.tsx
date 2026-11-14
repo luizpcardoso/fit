@@ -45,6 +45,7 @@ import { PostReactionsSheet } from '@/components/post-reactions-sheet';
 import { SkeletonCard, SkeletonGroup } from '@/components/skeleton';
 import { Pressable } from '@/components/pressable';
 import { BottomSheet } from '@/components/bottom-sheet';
+import { GroupWeekSheet } from '@/components/group-week-sheet';
 import { ReactionControl, myReaction, reactions, withMyReaction } from '@/components/reaction-control';
 
 const eventIcons: Record<string, keyof typeof MaterialCommunityIcons.glyphMap> =
@@ -241,6 +242,7 @@ export default function SocialFeedScreen({ groupId: id }: { groupId?: string }) 
   const reactionSync = useRef(new Map<string, { confirmed: GroupReaction | null; wanted: GroupReaction | null }>());
   const [reactionPicker, setReactionPicker] = useState<string | null>(null);
   const [reactionsPost, setReactionsPost] = useState<{ groupId: string; postId: string } | null>(null);
+  const [weekOpen, setWeekOpen] = useState(false);
   const showReaction = (postId: string, next: GroupReaction | null) => setPosts(current => current.map(item => item.id !== postId ? item : { ...item, reactionCounts: withMyReaction(item.reactionCounts, next) }));
   const react = (post: GroupPost, reaction: GroupReaction) => {
     const pending = reactionSync.current.get(post.id);
@@ -330,7 +332,7 @@ export default function SocialFeedScreen({ groupId: id }: { groupId?: string }) 
       </View> : (<View style={s.topBar}>
         {group?.coverUrl ? <GroupMediaImage url={group.coverUrl} kind="cover" style={s.headerCover} fallback={<View style={s.headerCoverFallback}/>} /> : null}
         <ScreenHeader backLabel="Comunidade" onBack={() => router.canGoBack() ? router.back() : router.replace('/groups')} right={group ? <Pressable accessibilityRole="button" accessibilityLabel="Configurações do grupo" hitSlop={4} onPress={() => router.push({pathname:'/group-manage',params:{id:group.id,section:'feed'}})} style={s.headerIcon}><MaterialCommunityIcons name="tune-variant" size={22} color={c.link}/></Pressable> : null}/>
-        <View style={s.groupIdentity}>{group ? <GroupMediaImage url={group.avatarUrl} kind="avatar" style={s.headerAvatar} fallback={<Text style={s.headerAvatarText}>{group.name.slice(0,2).toUpperCase()}</Text>}/> : null}<View style={s.flex}><Text numberOfLines={1} accessibilityRole="header" style={s.title}>{group?.name || 'Grupo'}</Text><Text style={s.headerMeta}>{group ? `${group.memberCount} ${group.memberCount === 1 ? 'membro' : 'membros'} · Mais recentes${group.active ? '' : ' · Grupo inativo'}` : 'Carregando…'}</Text></View></View>
+        <View style={s.groupIdentity}>{group ? <GroupMediaImage url={group.avatarUrl} kind="avatar" style={s.headerAvatar} fallback={<Text style={s.headerAvatarText}>{group.name.slice(0,2).toUpperCase()}</Text>}/> : null}<View style={s.flex}><Text numberOfLines={1} accessibilityRole="header" style={s.title}>{group?.name || 'Grupo'}</Text><Text style={s.headerMeta}>{group ? `${group.memberCount} ${group.memberCount === 1 ? 'membro' : 'membros'} · Mais recentes${group.active ? '' : ' · Grupo inativo'}` : 'Carregando…'}</Text></View>{group ? <Pressable accessibilityRole="button" accessibilityLabel="Semana do grupo" onPress={() => setWeekOpen(true)} style={s.weekPill}><MaterialCommunityIcons name="trophy-outline" size={18} color={c.link}/><Text style={s.link}>Semana</Text></Pressable> : null}</View>
       </View>)}
       <View style={{ flex: 1 }}>
       <FlatList
@@ -625,6 +627,7 @@ export default function SocialFeedScreen({ groupId: id }: { groupId?: string }) 
             ) : null}
       </BottomSheet>
       <ReportContentSheet groupId={reportGroupId || id || ""} target={reportTarget} onClose={() => setReportTarget(null)} />
+      {id ? <GroupWeekSheet groupId={id} visible={weekOpen} onClose={() => setWeekOpen(false)} /> : null}
       <PostReactionsSheet key={`reactions-${reactionsPost?.postId ?? "closed"}`} target={reactionsPost} onClose={() => setReactionsPost(null)} />
     </SafeAreaView>
   );
@@ -968,6 +971,7 @@ const styles = (c: AppPalette) =>
     headerCover:{height:96,marginHorizontal:-16,marginTop:-4,marginBottom:8,backgroundColor:c.surfaceSoft},
     headerCoverFallback:{flex:1,backgroundColor:c.surfaceSoft},
     groupIdentity:{flexDirection:'row',alignItems:'center',gap:10},
+    weekPill:{minHeight:44,paddingHorizontal:12,borderRadius:Radius.pill,flexDirection:'row',alignItems:'center',gap:6,backgroundColor:c.primarySoft},
     headerAvatar:{width:48,height:48,borderRadius:18,backgroundColor:c.primarySoft,alignItems:'center',justifyContent:'center'},
     headerAvatarText:{color:c.onPrimarySoft,fontWeight:'800'},
     headerIcon: { width: 44, height: 44, borderRadius: Radius.md, alignItems: 'center', justifyContent: 'center', backgroundColor: c.surfaceSoft },

@@ -14,6 +14,8 @@ import type {
   GroupInvite,
   GroupMember,
   GroupNotification,
+  GroupParticipation,
+  GroupWeekSummary,
   GroupPostReaction,
   GroupReaction,
   GroupReport,
@@ -326,6 +328,43 @@ export class GroupRepository {
     return "ok" as const;
   }
 
+  /** Stores only the ranking opt-in; the automatic-share switches of the same row are left as they are. */
+  async updateParticipation(userId: string, groupId: string, input: GroupParticipation) {
+    const m = await this.membership(userId, groupId);
+    if (!m) return "missing" as const;
+    await this.db.query(
+      "INSERT INTO group_share_preferences (group_id,user_id,show_in_ranking,updated_at) VALUES (?,?,?,UTC_TIMESTAMP(6)) ON DUPLICATE KEY UPDATE show_in_ranking=VALUES(show_in_ranking),updated_at=UTC_TIMESTAMP(6)",
+      { replacements: [groupId, userId, input.showInRanking], type: QueryTypes.INSERT },
+    );
+    return "ok" as const;
+  }
+  /**
+   * Week (Monday to Sunday) that contains `date`. Shared activity comes from posts the viewer can already read;
+   * the ranking counts completed workouts only for members who opted in, and never returns anything else about them.
+   */
+  async weekSummary(userId: string, groupId: string, date: string): Promise<GroupWeekSummary | null> {
+    const m = await this.membership(userId, groupId);
+    if (!m) return null;
+    const day = new Date(`${date}T00:00:00Z`);
+    const start = new Date(day.getTime() - ((day.getUTCDay() + 6) % 7) * 86_400_000);
+    const weekStart = start.toISOString().slice(0, 10), weekEnd = new Date(start.getTime() + 6 * 86_400_000).toISOString().slice(0, 10);
+    const hidden = "NOT EXISTS (SELECT 1 FROM user_blocks b WHERE b.blocker_user_id=? AND b.blocked_user_id=";
+    const [shared] = await this.db.query<{ total: number; people: number }>(
+      `SELECT COUNT(*) total,COUNT(DISTINCT p.author_user_id) people FROM group_posts p JOIN group_members viewer ON viewer.group_id=p.group_id AND viewer.user_id=? AND viewer.status='active' WHERE p.group_id=? AND p.kind='event' AND p.event_type IN ('workout_completed','cardio_completed') AND p.deleted_at IS NULL AND p.created_at>=viewer.joined_at AND p.created_at>=? AND p.created_at<DATE_ADD(?,INTERVAL 7 DAY) AND ${hidden}p.author_user_id)`,
+      { replacements: [userId, groupId, weekStart, weekStart, userId], type: QueryTypes.SELECT },
+    );
+    const rows = await this.db.query<any>(
+      `SELECT u.id,u.username,COALESCE(u.display_name,CONCAT(u.first_name,' ',u.last_name)) displayName,u.avatar_url avatarUrl,(SELECT COUNT(*) FROM workout_sessions s WHERE s.user_id=u.id AND s.status='completed' AND s.performed_on BETWEEN ? AND ?) workouts FROM group_members gm JOIN group_share_preferences sp ON sp.group_id=gm.group_id AND sp.user_id=gm.user_id AND sp.show_in_ranking=1 JOIN users u ON u.id=gm.user_id WHERE gm.group_id=? AND gm.status='active' AND ${hidden}gm.user_id) ORDER BY workouts DESC,displayName,u.id LIMIT 200`,
+      { replacements: [weekStart, weekEnd, groupId, userId], type: QueryTypes.SELECT },
+    );
+    return {
+      weekStart, weekEnd,
+      sharedActivities: Number(shared?.total ?? 0),
+      activePeople: Number(shared?.people ?? 0),
+      participating: rows.some((row: any) => row.id === userId),
+      ranking: rows.map((row: any) => ({ user: { id: row.id, username: row.username, displayName: row.displayName, avatarUrl: row.avatarUrl }, workouts: Number(row.workouts) })),
+    };
+  }
   async members(
     userId: string,
     groupId: string,

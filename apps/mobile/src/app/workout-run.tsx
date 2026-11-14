@@ -132,6 +132,14 @@ export default function WorkoutRunScreen() {
     clearLoadDraft(target);
     update(value => sets.reduce((next, set) => updateWorkoutRunSetValues(next, target.id, set, { loadKg, reps: recordedFor(target.id, set)?.reps ?? prefill(target, set).reps }), value));
   };
+  /** − / + buttons: the new load is applied at once, as if it had been typed and confirmed. */
+  const stepLoad = (target: WorkoutExercise, delta: number) => {
+    const loadKg = Math.max(0, Math.min(2000, Math.round(((parseLoad(shownLoad(target)) ?? 0) + delta) * 100) / 100));
+    const sets = p?.exercises.find(e => e.id === target.id)?.completedSets ?? [];
+    if (!sets.length) { setLoadDrafts(current => ({ ...current, [loadKey(target.id)]: formatDecimalValue(loadKg) })); return; }
+    clearLoadDraft(target);
+    update(value => sets.reduce((next, set) => updateWorkoutRunSetValues(next, target.id, set, { loadKg, reps: recordedFor(target.id, set)?.reps ?? prefill(target, set).reps }), value));
+  };
   const canUndoCompletion = Boolean(run && exercise && item && completionUndo?.runId === run.id && completionUndo.exerciseId === exercise.id && item.completedSets.length === exercise.sets);
   const completeExercise = () => { setPanel(null); void act(async () => {
     if (!run || !exercise) return;
@@ -190,7 +198,7 @@ export default function WorkoutRunScreen() {
   const problem = error || session.error;
 
   return <SafeAreaView style={s.safe} edges={['top', 'bottom']}>
-    <FixedScreenHeader backLabel="Fitness" right={open ? <>
+    <FixedScreenHeader right={open ? <>
       <Pressable accessibilityRole="button" accessibilityLabel="Finalizar treino agora" aria-disabled={disabled || !performed} disabled={disabled || !performed} onPress={() => { void finish(); }} style={[s.headerAction, !performed && s.disabled]}><Text style={s.link}>Finalizar</Text></Pressable>
       <Pressable accessibilityRole="button" accessibilityLabel="Opções do treino" onPress={() => setPanel('options')} style={s.iconButton}><MaterialCommunityIcons name="dots-horizontal" size={24} color={c.link}/></Pressable>
     </> : null}/>
@@ -224,10 +232,14 @@ export default function WorkoutRunScreen() {
           <View style={s.bubbles}>
             {Array.from({ length: exercise.sets }, (_, set) => <SetBubble key={`${exercise.id}:${set}`} set={set} checked={item.completedSets.includes(set)} next={set === nextSet && running} blocked={disabled || !running} reduceMotion={reduceMotion} onPress={() => toggleSet(set)} c={c}/>)}
           </View>
-          <View style={s.loadRow}>
-            <Text style={[s.heading, s.flex]}>Carga <Text style={s.caption}>{previousFor(exercise.id, 0)?.loadKg != null ? `· última vez ${formatMeasure(previousFor(exercise.id, 0)!.loadKg!, 'kg', 2)}` : '· opcional'}</Text></Text>
-            <TextInput accessibilityLabel={`Carga de ${exercise.name}, em quilos`} editable={!disabled && open} value={shownLoad(exercise)} onChangeText={text => setLoadDrafts(current => ({ ...current, [loadKey(exercise.id)]: formatDecimalInput(text, 4, 2) }))} onEndEditing={() => commitLoad(exercise)} onBlur={() => commitLoad(exercise)} keyboardType="decimal-pad" placeholder="—" placeholderTextColor={c.textMuted} selectTextOnFocus style={s.input}/>
-            <Text style={s.caption}>kg</Text>
+          <View style={s.loadBlock}>
+            <Text style={s.heading}>Carga <Text style={s.caption}>{previousFor(exercise.id, 0)?.loadKg != null ? `· última vez ${formatMeasure(previousFor(exercise.id, 0)!.loadKg!, 'kg', 2)}` : '· opcional'}</Text></Text>
+            <View style={s.loadRow}>
+              <Pressable accessibilityRole="button" accessibilityLabel={`Diminuir carga de ${exercise.name} em 2,5 quilos`} disabled={disabled || !open} onPress={() => stepLoad(exercise, -2.5)} style={[s.loadStep, disabled && s.disabled]}><MaterialCommunityIcons name="minus" size={22} color={c.link}/></Pressable>
+              <TextInput accessibilityLabel={`Carga de ${exercise.name}, em quilos`} editable={!disabled && open} value={shownLoad(exercise)} onChangeText={text => setLoadDrafts(current => ({ ...current, [loadKey(exercise.id)]: formatDecimalInput(text, 4, 2) }))} onEndEditing={() => commitLoad(exercise)} onBlur={() => commitLoad(exercise)} keyboardType="decimal-pad" placeholder="—" placeholderTextColor={c.textMuted} selectTextOnFocus style={s.input}/>
+              <Pressable accessibilityRole="button" accessibilityLabel={`Aumentar carga de ${exercise.name} em 2,5 quilos`} disabled={disabled || !open} onPress={() => stepLoad(exercise, 2.5)} style={[s.loadStep, disabled && s.disabled]}><MaterialCommunityIcons name="plus" size={22} color={c.link}/></Pressable>
+              <Text style={s.caption}>kg</Text>
+            </View>
           </View>
           <Text accessibilityLiveRegion="polite" accessibilityLabel={`${item.completedSets.length} de ${exercise.sets} séries concluídas`} style={[s.caption, s.reserved]}>{p.status === 'paused' ? 'Treino pausado. Retome para marcar séries.' : nextSet === undefined ? 'Exercício concluído.' : `${item.completedSets.length} de ${exercise.sets} séries · toque numa série para marcar ou desmarcar.`}</Text>
           {exercise.notes ? <Pressable accessibilityRole="button" accessibilityLabel="Ver orientações do exercício" onPress={() => setPanel('instructions')} style={s.instructions}><MaterialCommunityIcons name="information-outline" size={20} color={c.link}/><Text numberOfLines={2} style={[s.caption, s.flex]}>{exercise.notes}</Text><MaterialCommunityIcons name="chevron-right" size={20} color={c.link}/></Pressable> : null}
@@ -400,7 +412,8 @@ const styles = (c: AppPalette) => StyleSheet.create({
   bubble: { width: 52, height: 52, borderRadius: 26, borderWidth: 2, borderColor: c.fieldBorder, alignItems: 'center', justifyContent: 'center', backgroundColor: c.surface },
   bubbleNext: { borderColor: c.primary, backgroundColor: c.primarySoft }, bubbleDone: { borderColor: c.success, backgroundColor: c.success },
   bubbleText: { ...Type.bodyLarge, fontWeight: '800', color: c.textMuted },
-  loadRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingTop: 10, borderTopWidth: 1, borderTopColor: c.border },
+  loadBlock: { gap: 8, paddingTop: 10, borderTopWidth: 1, borderTopColor: c.border }, loadRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  loadStep: { width: 44, height: 44, borderRadius: Radius.md, alignItems: 'center', justifyContent: 'center', backgroundColor: c.surfaceSoft },
   input: { width: 88, minHeight: 44, borderWidth: 1, borderColor: c.fieldBorder, borderRadius: Radius.md, paddingHorizontal: 8, textAlign: 'center', ...Type.bodyLarge, fontWeight: '700', color: c.text, backgroundColor: c.surface, fontVariant: ['tabular-nums'] },
   instructions: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: Radius.lg, padding: 10, backgroundColor: c.surfaceSoft },
   upcoming: { ...Type.label, color: c.textMuted, paddingHorizontal: 4 }, upcomingName: { fontWeight: '800', color: c.text },

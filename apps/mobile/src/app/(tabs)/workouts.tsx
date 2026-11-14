@@ -82,7 +82,7 @@ export default function WorkoutsScreen(){
     {loading&&!plans.length&&section==='plans'?<SkeletonGroup label="Carregando treinos" style={s.planSection}><SkeletonCard lines={3} action/><SkeletonCard/><SkeletonCard/></SkeletonGroup>:null}
 
     {section==='plans'&&!showArchived&&activePlan?<View style={[s.activePanel,CardShadow]}><WorkoutPlanCover coverId={activePlan.coverId}/>
-      <View style={s.activeHeader}><View style={s.activeBadge}><View style={s.liveDot}/><Text style={s.activeBadgeText}>Ficha ativa</Text></View><Pressable accessibilityRole="button" accessibilityLabel="Abrir ficha ativa" onPress={()=>openPlan(activePlan.id)} style={s.iconButton}><MaterialCommunityIcons name="arrow-top-right" size={22} color={c.heroMuted}/></Pressable></View>
+      <View style={s.activeBadge}><View style={s.liveDot}/><Text style={s.activeBadgeText}>Ficha ativa</Text></View>
       <Text style={s.activeTitle}>{activePlan.name}</Text>
       <Text style={s.activeDescription}>{latestActiveSession?withPeriod(`Seu último treino desta ficha foi em ${formatShortDate(latestActiveSession.performedOn)}`):'Esta ficha está pronta para iniciar seu próximo treino.'}</Text>
       <View style={s.stats}>
@@ -95,7 +95,7 @@ export default function WorkoutsScreen(){
       <Pressable accessibilityRole="button" onPress={()=>openPlan(activePlan.id)} style={s.activeAction}><Text style={s.activeActionText}>Ver ficha e iniciar treino</Text><MaterialCommunityIcons name="arrow-right" size={19} color={c.primaryStrong}/></Pressable>
     </View>:null}
 
-    {section==='plans'&&!showArchived&&!activePlan&&availablePlans.length?<View style={s.noActive}><View style={s.noActiveIcon}><MaterialCommunityIcons name="alert-circle-outline" size={22} color={c.warning}/></View><View style={s.flex}><Text style={s.noActiveTitle}>Nenhuma ficha ativa</Text><Text style={s.muted}>Abra uma das suas fichas e defina qual será usada nos próximos treinos.</Text></View><Pressable accessibilityRole="button" accessibilityLabel="Escolher ficha ativa" onPress={()=>openPlan(availablePlans[0].id)} style={s.inlineAction}><Text style={s.link}>Escolher</Text></Pressable></View>:null}
+    {section==='plans'&&!showArchived&&!activePlan&&availablePlans.length?<View style={s.noActive}><View style={s.noActiveIcon}><MaterialCommunityIcons name="alert-circle-outline" size={22} color={c.warning}/></View><View style={s.flex}><Text style={s.noActiveTitle}>Nenhuma ficha ativa</Text><Text style={s.muted}>Abra uma das fichas abaixo e toque em “Ativar ficha” para usá-la nos próximos treinos.</Text></View></View>:null}
 
     {section==='cardio'?<CardioSection date={localDate()}/>:null}
 

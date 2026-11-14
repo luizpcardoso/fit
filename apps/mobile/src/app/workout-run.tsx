@@ -23,6 +23,7 @@ import { formatDecimalInput, formatDecimalValue } from '@/utils/input-format';
 import { formatMeasure } from '@/utils/numbers';
 import { localDate } from '@/utils/dates';
 import { tapFeedback } from '@/utils/haptics';
+import { peopleSummary, trainedToday } from '@/utils/groups';
 import { useReduceMotion } from '@/hooks/use-reduce-motion';
 
 type ExerciseCompletionUndo = { runId: string; exerciseId: string; completedSets: number[]; skipped: boolean; performed?: PerformedSet[] };
@@ -337,8 +338,12 @@ function RestBar({ progress: p, restSeconds, disabled, onChange, c }: { progress
 
 /** End-of-workout summary: what was done, what was left, and what it meant for the week. */
 function WorkoutResult({ run, progress: p, dirty, busy, previousVolume, reduceMotion, onShare, onDone, onAnother, onHistory }: { run: NonNullable<ReturnType<typeof useWorkoutRun>['run']>; progress: WorkoutRunProgress; dirty: boolean; busy: boolean; previousVolume: number; reduceMotion: boolean; onShare(): void; onDone(): void; onAnother(): void; onHistory(): void }) {
-  const { colors: c } = useAppTheme(), s = styles(c), { api } = useAuth();
+  const { colors: c } = useAppTheme(), s = styles(c), { api, user } = useAuth();
   const [goal, setGoal] = useState<WorkoutGoalSummary | null>(null);
+  // Who else shared a workout today in the person's groups; purely informative, from posts they can already read.
+  const [company, setCompany] = useState<string[]>([]);
+  const viewerId = user?.id;
+  useEffect(() => { if (dirty || p.status !== 'completed') return; let active = true; api.listSocialFeed().then(page => { if (active) setCompany(trainedToday(page.items, viewerId).map(item => item.user.displayName)); }, () => {}); return () => { active = false; }; }, [api, dirty, p.status, viewerId]);
   useEffect(() => { if (dirty || p.status !== 'completed') return; let active = true; api.getWorkoutGoal(localDate()).then(value => { if (active) setGoal(value); }, () => {}); return () => { active = false; }; }, [api, dirty, p.status]);
   // The result arrives as a moment of its own: the card rises and the badge pops.
   const [enter] = useState(() => new Animated.Value(reduceMotion ? 1 : 0)), [badge] = useState(() => new Animated.Value(reduceMotion ? 1 : .4));
@@ -367,6 +372,7 @@ function WorkoutResult({ run, progress: p, dirty, busy, previousVolume, reduceMo
     {!discarded ? <View style={s.stats}>{stat(formatWorkoutTime(workoutRunElapsed(p, p.finishedAt ?? p.startedAt)), 'duração')}{stat(`${doneSets}`, doneSets === 1 ? 'série' : 'séries')}{stat(`${complete.length}/${run.exercises.length}`, 'exercícios completos')}{volume > 0 ? stat(formatMeasure(volume, 'kg', 0), 'volume') : null}</View> : <Text style={[s.muted, s.centered]}>Este treino não conta para sua meta.</Text>}
     {!discarded && difference !== null ? <View style={s.goalBox}><MaterialCommunityIcons name={difference > 0 ? 'trending-up' : difference < 0 ? 'trending-down' : 'trending-neutral'} size={20} color={c.link}/><Text style={[s.body, s.flex]}>{difference === 0 ? 'Mesmo volume do último treino.' : <><Text style={s.heading}>{formatMeasure(Math.abs(difference), 'kg', 0)}</Text> {difference > 0 ? 'a mais' : 'a menos'} que no último treino.</>}</Text></View> : null}
     {!discarded && goal?.configured ? <View style={s.goalBox}><MaterialCommunityIcons name="calendar-check-outline" size={20} color={c.link}/><Text style={[s.body, s.flex]}>Meta da semana: <Text style={s.heading}>{goal.completed} de {goal.weeklyTarget}</Text>{goal.remaining ? ` · faltam ${goal.remaining}` : ' · concluída'}</Text></View> : null}
+    {!discarded && company.length ? <View style={s.goalBox}><MaterialCommunityIcons name="account-group-outline" size={20} color={c.link}/><Text style={[s.body, s.flex]}><Text style={s.heading}>{peopleSummary(company)}</Text> também {company.length === 1 ? 'treinou' : 'treinaram'} hoje nos seus grupos.</Text></View> : null}
     {dirty ? <Text style={s.caption}>Resultado salvo neste celular. O histórico e a meta atualizam quando a conexão voltar; você pode sair desta tela.</Text> : null}
     {!discarded ? <>{group('Completos', complete, 'check-circle')}{group('Parciais', partial, 'circle-half-full')}{group('Não feitos', skipped, 'circle-outline')}</> : null}
     <Pressable accessibilityRole="button" disabled={busy} onPress={onDone} style={[s.primaryButton, busy && s.disabled]}><Text style={s.primaryText}>{dirty ? 'Sair e sincronizar depois' : 'Concluir'}</Text></Pressable>

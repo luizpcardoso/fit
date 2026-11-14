@@ -43,7 +43,8 @@ test('home apresenta comunidade vazia, falha, convite, grupos e novidades com de
   const invites = await (await request.get(`${apiURL}/groups/invites`, { headers: viewerHeaders })).json();
   expect((await request.patch(`${apiURL}/groups/invites/${invites[0].id}`, { headers: viewerHeaders, data: { decision: 'accepted' } })).status()).toBe(204);
   await page.goto('/');
-  await expect(card.getByRole('button', { name: /^Abrir Grupo home,/ })).toBeVisible();
+  // Entrar no grupo não conta como novidade para a própria pessoa: sem publicações de outros, está tudo em dia.
+  await expect(card.getByRole('button', { name: 'Abrir meus grupos', exact: true })).toBeVisible();
   expect((await request.post(`${apiURL}/groups/${group.id}/posts`, { headers: ownerHeaders, data: { text: 'Conquista de hoje' } })).status()).toBe(201);
   await page.goto('/');
   const joinedGroups = await (await request.get(`${apiURL}/groups`, { headers: viewerHeaders })).json();
@@ -57,8 +58,21 @@ test('home apresenta comunidade vazia, falha, convite, grupos e novidades com de
   await expect(card.getByRole('button', { name: /^Abrir Grupo home,/ })).toBeVisible();
   const afterPreview = await (await request.get(`${apiURL}/groups`, { headers: viewerHeaders })).json();
   expect(afterPreview.find((item: { id: string }) => item.id === group.id).unseenCount).toBe(unreadBefore);
+  // A publicação aparece no Início e aceita reação em um toque, ainda sem marcar o grupo como lido.
+  const preview = card.getByTestId(/^home-community-post-/).first();
+  await expect(preview.getByText('Conquista de hoje', { exact: true })).toBeVisible();
+  await preview.getByRole('button', { name: 'Reagir: Curtir', exact: true }).click();
+  await expect(preview.getByRole('button', { name: 'Reagir: Curtir', exact: true })).toHaveAttribute('aria-selected', 'true');
+  const afterReaction = await (await request.get(`${apiURL}/groups`, { headers: viewerHeaders })).json();
+  expect(afterReaction.find((item: { id: string }) => item.id === group.id).unseenCount).toBe(unreadBefore);
   await card.getByRole('button', { name: /^Abrir Grupo home,/ }).click();
   await expect(page).toHaveURL(/\/group-detail\?id=/);
-  await expect(page.getByText('Conquista de hoje', { exact: true })).toBeVisible();
+  await expect(page.getByTestId(/^feed-post-/).getByText('Conquista de hoje', { exact: true })).toBeVisible();
+  // O convite pode ser aceito direto no Início, por um toque explícito.
+  await page.goto('/');
+  await card.getByRole('button', { name: 'Aceitar convite para Grupo convite', exact: true }).click();
+  await expect(card.getByText('Convite · Grupo convite', { exact: true })).toHaveCount(0);
+  const joinedAfterAccept = await (await request.get(`${apiURL}/groups`, { headers: viewerHeaders })).json();
+  expect(joinedAfterAccept.some((item: { id: string }) => item.id === secondGroup.id)).toBe(true);
   expect(errors).toEqual([]);
 });

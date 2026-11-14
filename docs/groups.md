@@ -177,3 +177,7 @@ A migration `052-reaction-notification-type` acrescenta `reaction` ao enum de `g
 - Horários recentes aparecem como tempo decorrido (“agora”, “há 12 min”, “há 3 h”, até seis horas); depois, dia e hora como antes.
 - A primeira carga usa esqueletos de card. As ações da publicação e a lista de reações usam a folha inferior compartilhada (`components/bottom-sheet.tsx`).
 - Nova publicação (`group-post.tsx`): com um único grupo possível ele já vem marcado; `?groupId=` pré-seleciona um destino; o aviso de 48 horas só aparece quando há foto. O editor em folha dentro do grupo foi mantido, com o rascunho em memória descrito acima; os dois editores continuam existindo.
+
+## Contagem de novidades por grupo
+
+`unseenCount` (lista de grupos) e os totais de comentários e reações do painel deixam de incluir o que a própria pessoa fez: publicações, comentários e reações dela, inclusive a publicação automática de entrada no grupo, não contam como novidade para ela. Antes, reagir a uma publicação aumentava o próprio contador de “não lidas”. A regra de leitura (`last_seen_at`) e `postsUnseen` não mudaram.

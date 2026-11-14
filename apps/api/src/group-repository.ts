@@ -159,7 +159,7 @@ export class GroupRepository {
 
   async list(userId: string): Promise<GroupSummary[]> {
     const rows = await this.db.query<any>(
-      `SELECT g.id,g.name,g.description,g.avatar_url avatarUrl,g.avatar_path avatarPath,g.cover_path coverPath,g.updated_at updatedAt,m.role,g.active,g.created_at createdAt,(SELECT COUNT(*) FROM group_members x WHERE x.group_id=g.id AND x.status='active') memberCount,((SELECT COUNT(*) FROM group_posts p WHERE p.group_id=g.id AND p.deleted_at IS NULL AND p.created_at>=m.joined_at AND p.created_at>COALESCE(m.last_seen_at,m.joined_at))+(SELECT COUNT(*) FROM group_comments c JOIN group_posts p ON p.id=c.post_id WHERE p.group_id=g.id AND p.created_at>=m.joined_at AND c.deleted_at IS NULL AND c.created_at>COALESCE(m.last_seen_at,m.joined_at))+(SELECT COUNT(*) FROM group_post_reactions r JOIN group_posts p ON p.id=r.post_id WHERE p.group_id=g.id AND p.created_at>=m.joined_at AND r.created_at>COALESCE(m.last_seen_at,m.joined_at))) unseenCount FROM group_members m JOIN \`groups\` g ON g.id=m.group_id WHERE m.user_id=? AND m.status='active' ORDER BY g.active DESC,g.updated_at DESC`,
+      `SELECT g.id,g.name,g.description,g.avatar_url avatarUrl,g.avatar_path avatarPath,g.cover_path coverPath,g.updated_at updatedAt,m.role,g.active,g.created_at createdAt,(SELECT COUNT(*) FROM group_members x WHERE x.group_id=g.id AND x.status='active') memberCount,((SELECT COUNT(*) FROM group_posts p WHERE p.group_id=g.id AND p.author_user_id<>m.user_id AND p.deleted_at IS NULL AND p.created_at>=m.joined_at AND p.created_at>COALESCE(m.last_seen_at,m.joined_at))+(SELECT COUNT(*) FROM group_comments c JOIN group_posts p ON p.id=c.post_id WHERE p.group_id=g.id AND c.author_user_id<>m.user_id AND p.created_at>=m.joined_at AND c.deleted_at IS NULL AND c.created_at>COALESCE(m.last_seen_at,m.joined_at))+(SELECT COUNT(*) FROM group_post_reactions r JOIN group_posts p ON p.id=r.post_id WHERE p.group_id=g.id AND r.user_id<>m.user_id AND p.created_at>=m.joined_at AND r.created_at>COALESCE(m.last_seen_at,m.joined_at))) unseenCount FROM group_members m JOIN \`groups\` g ON g.id=m.group_id WHERE m.user_id=? AND m.status='active' ORDER BY g.active DESC,g.updated_at DESC`,
       { replacements: [userId], type: QueryTypes.SELECT },
     );
     // Storage keys stay internal: the files are served only through the member-checked media route.
@@ -1042,11 +1042,11 @@ export class GroupRepository {
         { replacements: [userId], type: QueryTypes.SELECT },
       ),
       this.db.query<any>(
-        "SELECT COUNT(*) total FROM group_comments c JOIN group_posts p ON p.id=c.post_id JOIN group_members m ON m.group_id=p.group_id AND m.user_id=? AND m.status='active' WHERE c.deleted_at IS NULL AND p.created_at>=m.joined_at AND c.created_at>COALESCE(m.last_seen_at,m.joined_at)",
+        "SELECT COUNT(*) total FROM group_comments c JOIN group_posts p ON p.id=c.post_id JOIN group_members m ON m.group_id=p.group_id AND m.user_id=? AND m.status='active' WHERE c.deleted_at IS NULL AND c.author_user_id<>m.user_id AND p.created_at>=m.joined_at AND c.created_at>COALESCE(m.last_seen_at,m.joined_at)",
         { replacements: [userId], type: QueryTypes.SELECT },
       ),
       this.db.query<any>(
-        "SELECT COUNT(*) total FROM group_post_reactions r JOIN group_posts p ON p.id=r.post_id JOIN group_members m ON m.group_id=p.group_id AND m.user_id=? AND m.status='active' WHERE p.created_at>=m.joined_at AND r.created_at>COALESCE(m.last_seen_at,m.joined_at)",
+        "SELECT COUNT(*) total FROM group_post_reactions r JOIN group_posts p ON p.id=r.post_id JOIN group_members m ON m.group_id=p.group_id AND m.user_id=? AND m.status='active' WHERE r.user_id<>m.user_id AND p.created_at>=m.joined_at AND r.created_at>COALESCE(m.last_seen_at,m.joined_at)",
         { replacements: [userId], type: QueryTypes.SELECT },
       ),
       this.db.query<any>(

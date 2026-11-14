@@ -52,5 +52,5 @@ Trabalhe pela raiz deste repositório (`fit/`), que fica dentro da pasta de trab
 
 ## Versões do app
 
-- Formato público `MAIOR.INSTALAÇÃO.OTA`, com os dois últimos grupos em duas casas: versão atual `1.07.13`. Alterações compatíveis por OTA incrementam o último grupo (ex.: `1.07.09`); quando a atualização exigir reinstalação, incremente o grupo de instalação e zere o último (ex.: `1.08.00`). O primeiro grupo muda somente por decisão explícita do usuário (ex.: `2.00.00`).
+- Formato público `MAIOR.INSTALAÇÃO.OTA`, com os dois últimos grupos em duas casas: versão atual `1.07.14`. Alterações compatíveis por OTA incrementam o último grupo (ex.: `1.07.09`); quando a atualização exigir reinstalação, incremente o grupo de instalação e zere o último (ex.: `1.08.00`). O primeiro grupo muda somente por decisão explícita do usuário (ex.: `2.00.00`).
 - A versão pública usada pelo código JS fica em `apps/mobile/src/constants/release-version.ts`, para não alterar o fingerprint nativo em OTA. Para qualquer novo APK, sincronize a versão SemVer técnica sem zeros à esquerda e incremente `android.versionCode`; republicar o mesmo conteúdo OTA em um APK não muda o grupo de instalação. Consulte `docs/versioning.md` e valide o runtime antes de publicar.

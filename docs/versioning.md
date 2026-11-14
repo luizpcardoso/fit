@@ -1,6 +1,6 @@
 # Versionamento do aplicativo
 
-A versão pública segue `MAIOR.INSTALAÇÃO.OTA`, com duas casas nos dois últimos grupos. A versão atual é `1.07.13`.
+A versão pública segue `MAIOR.INSTALAÇÃO.OTA`, com duas casas nos dois últimos grupos. A versão atual é `1.07.14`.
 
 - Mudança compatível com atualização automática: incrementar o último grupo, por exemplo `1.07.09`.
 - Mudança que exige reinstalação: incrementar o grupo de instalação e zerar o último, por exemplo `1.08.00`; incrementar também `android.versionCode`.
@@ -198,3 +198,12 @@ Downloads integrais de `orami-1.0.7-android.apk` e do alias `/downloads/fit.apk`
 - Manifesto ativado atomicamente após validar tamanho e hash no servidor; link versionado, alias `/downloads/fit.apk` e checksum atualizados. Os dois downloads públicos integrais reproduziram o tamanho e SHA-256 locais. Home, portal e `/health` respondem 200; alimentação sem sessão e login inválido respondem 401.
 - API e contratos já coincidiam com produção; nenhuma migração ou reinicialização foi necessária. Esta publicação distribui um novo APK; manifestos OTA anteriores foram preservados, sem nova atualização automática para seus runtimes.
 - Backup privado dos metadados, fontes mobile e manifestos anteriores em `deploy/backups/release-10713-20261113`, no servidor, e `~/.local/share/fit/deployment-backups/release-10713-20261113`, localmente. APKs anteriores mantidos.
+
+### Versão 1.07.14 — 13/11/2026
+
+- Fontes da `main` no commit `777a1b0`, com incremento dos metadados de release. Inclui ajustes da Home para telas largas, alinhamento dos cartões, comunidade e atualização dos resumos de alimentação após mudanças no perfil, peso e atividades.
+- APK público `orami-1.7.14-android.apk`, versão técnica `1.7.14`, pública `1.07.14`, `versionCode` 15, 108801552 bytes e SHA-256 `ca75700e338175b7869d282d60202dc9e77a6a1d1b13670fffbd2761fc123710`. Runtime embutido e resolvido: `9a8b9fdb7df7ab105131824ab868f53e7cd2610f`. Assinatura comparada com a 1.07.13 e preservada; versão e API HTTPS conferidas dentro do bundle.
+- Manifesto de download ativado atomicamente após conferir o arquivo no servidor; alias `/downloads/fit.apk` e checksums atualizados. Os dois downloads públicos integrais reproduziram o tamanho e SHA-256 locais. Home, portal e `/health` respondem 200; alimentação sem sessão e login inválido respondem 401. APKs anteriores preservados.
+- Atualização automática assinada `83568fe6-2302-49f9-96c5-1f7ce061fdbe`, para runtime `a126f4cba79af52c114ce47cde695bad7d968e2e` do instalador 1.07.13. Manifesto ativado atomicamente após enviar assets; assinatura, SHA-256 do bundle público e versão 1.07.14 conferidos. Manifestos de outros runtimes preservados.
+- Typecheck dos workspaces, lint mobile, suíte padrão, teste de consistência de versões e E2E da Home com API real/MySQL local isolado aprovados. Banco temporário removido e serviços de teste encerrados. Nenhum aparelho Android físico conectado para homologação.
+- API, contratos e site já coincidiam com produção; nenhuma migração ou reinicialização foi necessária. Backup privado dos fontes e metadados anteriores em `deploy/backups/release-10714-20261113`, no servidor, e `~/.local/share/fit/deployment-backups/release-10714-20261113`, localmente.

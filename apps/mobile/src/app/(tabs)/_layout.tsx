@@ -35,7 +35,7 @@ function AndroidTabBackHandler() {
 
 export default function TabLayout() {
   // The dock reserves its own height (and the system navigation inset) in the layout flow.
-  return <><AndroidTabBackHandler/><Tabs tabBar={props => <NavigationDock {...props} icons={icons}/>} screenOptions={{ headerShown: false }}>
+  return <><AndroidTabBackHandler/><Tabs tabBar={props => <NavigationDock {...props} icons={icons}/>} screenOptions={{ headerShown: false, animation: 'fade' }}>
     <Tabs.Screen name="index" options={{ title: 'Início' }} />
     <Tabs.Screen name="workouts" options={{ title: 'Fitness' }} />
     <Tabs.Screen name="nutrition" options={{ title: 'Nutrição' }} />

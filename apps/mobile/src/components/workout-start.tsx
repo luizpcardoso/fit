@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Pressable } from '@/components/pressable';
 import { BottomSheet } from './bottom-sheet';
+import { Skeleton, SkeletonCard, SkeletonGroup } from './skeleton';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import type { WorkoutGoalSummary, WorkoutSession } from '@fit/contracts';
@@ -52,7 +53,7 @@ export function WorkoutStart({ planId, divisionId, suggestedDivisionId }: { plan
       }
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Não foi possível iniciar. Tente novamente.'); } finally { setBusy(false); }
   };
-  if (!session.ready || (session.plansLoading && !choices.length)) return <ActivityIndicator accessibilityLabel="Preparando seus treinos" color={c.link}/>;
+  if (!session.ready || (session.plansLoading && !choices.length)) return <SafeAreaView style={{ flex: 1, backgroundColor: c.background }}><FixedScreenHeader backLabel="Fitness" showHome/><SkeletonGroup label="Preparando seus treinos" style={s.content}><Skeleton width="75%" height={28}/><Skeleton width="100%" height={14}/><SkeletonCard lines={4} action/></SkeletonGroup></SafeAreaView>;
   return <SafeAreaView style={{ flex: 1, backgroundColor: c.background }}><FixedScreenHeader backLabel="Fitness" showHome/><ScrollView contentContainerStyle={s.content}>
     <Text accessibilityRole="header" style={[s.title, { color: c.text }]}>Qual treino vamos fazer?</Text>
     <Text style={[s.body, { color: c.textMuted }]}>{planned ? `Planejado para hoje: Treino ${planned.division.label} · ${planned.division.name}. Você pode escolher outro.` : 'Confirme o treino antes de começar. Você pode escolher qualquer treino disponível.'}</Text>

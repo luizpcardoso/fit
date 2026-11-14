@@ -7,8 +7,8 @@ import { SceneBanner, SceneThumb } from '@/components/scene';
 import MaterialCommunityIcons from '@/components/icon';
 import type { WorkoutPlan, WorkoutSession } from '@fit/contracts';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { useCallback, useState } from 'react';
-import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useEffect, useRef, useState, type ComponentRef } from 'react';
+import { Animated, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Pressable } from '@/components/pressable';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CardioSection } from '@/components/cardio-section';
@@ -16,7 +16,9 @@ import { FeatureCategoryGrid } from '@/components/feature-category-grid';
 import { formatRelativeDay, formatShortDate, formatSpokenDate, localDate, shiftDate, parseLocalDate, withPeriod } from '@/utils/dates';
 import { isWorkoutRunOpen } from '@fit/contracts';
 import { useWorkoutRun } from '@/components/workout-run-provider';
-import { ScreenHeader } from '@/components/screen-header';
+import { FixedScreenHeader } from '@/components/screen-header';
+import { Skeleton, SkeletonCard, SkeletonGroup } from '@/components/skeleton';
+import { useReduceMotion } from '@/hooks/use-reduce-motion';
 import { useLoadMore } from '@/hooks/use-load-more';
 import { LoadMore } from '@/components/load-more';
 
@@ -30,6 +32,15 @@ export default function WorkoutsScreen(){
   const load=useCallback(async()=>{setError('');try{const[p,sessionsResult]=await Promise.all([api.listWorkoutPlans(),api.listWorkoutSessions()]);setPlans(p);setSessions(sessionsResult)}catch{setError('Não foi possível carregar seus treinos.')}finally{setLoading(false);setRefreshing(false)}},[api]);
   useFocusEffect(useCallback(()=>{void load()},[load]));
   const refresh=()=>{setRefreshing(true);void load()};
+  // Changing section starts at the top and fades the new content in, instead of swapping it in place.
+  const scroll=useRef<ComponentRef<typeof ScrollView>>(null);const reduceMotion=useReduceMotion();const[sectionOpacity]=useState(()=>new Animated.Value(1));const firstSection=useRef(true);
+  useEffect(()=>{
+    if(firstSection.current){firstSection.current=false;return}
+    scroll.current?.scrollTo({y:0,animated:false});
+    if(reduceMotion)return;
+    sectionOpacity.setValue(0);
+    Animated.timing(sectionOpacity,{toValue:1,duration:200,useNativeDriver:true}).start();
+  },[section,reduceMotion,sectionOpacity]);
 
   const availablePlans=plans.filter(plan=>plan.status==='available');
   const archivedPlans=plans.filter(plan=>plan.status==='archived');
@@ -46,10 +57,12 @@ export default function WorkoutsScreen(){
   const showArchivedToggle=section==='plans'&&(showArchived||archivedPlans.length>0);
   const plansEmpty=section==='plans'&&!loading&&!error&&!activePlan&&!listedPlans.length;
 
-  return <SafeAreaView style={s.safe} edges={['top']}><ScrollView refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={c.primary}/>} contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
-    {section!=='overview'?<ScreenHeader backLabel="Fitness" showHome={false} onBack={()=>selectSection('overview')}/>:null}
+  return <SafeAreaView style={s.safe} edges={['top']}>
+    {section!=='overview'?<FixedScreenHeader backLabel="Fitness" showHome={false} onBack={()=>selectSection('overview')}/>:null}
+    <ScrollView ref={scroll} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={c.primary}/>} showsVerticalScrollIndicator={false}><Animated.View style={[s.content,{opacity:sectionOpacity}]}>
     <View style={s.header}><View style={s.headerTitle}><Text accessibilityRole="header" style={s.title}>{section==='overview'?'Fitness':section==='plans'?'Fichas':section==='training'?'Histórico':'Cardio'}</Text><Text style={s.subtitle}>{section==='overview'?'Fichas, histórico e cardio em um só lugar':section==='plans'?'Crie e organize suas fichas de treino':section==='training'?'Treinos realizados e correções':'Registre tempo, intensidade e gasto calórico'}</Text></View>{section==='plans'&&!plansEmpty&&!showArchived?<Pressable accessibilityRole="button" onPress={()=>router.push('/workout-create')} style={s.primarySmall}><MaterialCommunityIcons name="plus" size={18} color={c.onPrimary}/><Text style={s.primaryText}>Nova ficha</Text></Pressable>:null}</View>
 
+    {section==='overview'&&loading&&!plans.length?<SkeletonGroup label="Carregando treinos"><View style={[s.activePanel,s.heroSkeleton]}><Skeleton width="35%" height={12}/><Skeleton width="70%" height={26}/><Skeleton width="55%" height={14}/><Skeleton height={48} radius={16}/></View></SkeletonGroup>:null}
     {section==='overview'&&!loading&&!error?(activePlan?<View style={[s.activePanel,CardShadow]}><WorkoutPlanCover coverId={activePlan.coverId}/>
       <View style={s.activeBadge}><View style={s.liveDot}/><Text style={s.activeBadgeText}>Ficha ativa</Text></View>
       <Text accessibilityRole="header" numberOfLines={2} style={s.activeTitle}>{activePlan.name}</Text>
@@ -66,7 +79,7 @@ export default function WorkoutsScreen(){
     {showArchivedToggle?<Pressable accessibilityRole="button" aria-selected={showArchived} onPress={()=>setShowArchived(value=>!value)} style={[s.archivedButton,showArchived&&s.archivedButtonSelected]}><MaterialCommunityIcons name={showArchived?'arrow-left':'archive-outline'} size={19} color={showArchived?c.onPrimary:c.link}/><Text style={[s.archivedButtonText,showArchived&&s.archivedButtonTextSelected]}>{showArchived?'Voltar para fichas atuais':`Fichas arquivadas${archivedPlans.length?` (${archivedPlans.length})`:''}`}</Text></Pressable>:null}
 
     {error&&section!=='cardio'?<View accessibilityRole="alert" style={s.error}><Text style={s.errorText}>{error}</Text><Pressable accessibilityRole="button" onPress={()=>{setLoading(true);void load();}} style={s.inlineAction}><Text style={s.link}>Tentar novamente</Text></Pressable></View>:null}
-    {loading&&!plans.length&&section!=='cardio'?<ActivityIndicator accessibilityLabel="Carregando treinos" color={c.link} size="large" style={s.loading}/>:null}
+    {loading&&!plans.length&&section==='plans'?<SkeletonGroup label="Carregando treinos" style={s.planSection}><SkeletonCard lines={3} action/><SkeletonCard/><SkeletonCard/></SkeletonGroup>:null}
 
     {section==='plans'&&!showArchived&&activePlan?<View style={[s.activePanel,CardShadow]}><WorkoutPlanCover coverId={activePlan.coverId}/>
       <View style={s.activeHeader}><View style={s.activeBadge}><View style={s.liveDot}/><Text style={s.activeBadgeText}>Ficha ativa</Text></View><Pressable accessibilityRole="button" accessibilityLabel="Abrir ficha ativa" onPress={()=>openPlan(activePlan.id)} style={s.iconButton}><MaterialCommunityIcons name="arrow-top-right" size={22} color={c.heroMuted}/></Pressable></View>
@@ -91,7 +104,7 @@ export default function WorkoutsScreen(){
     {section==='plans'&&listedPlans.length?<View style={s.planSection}><View style={s.sectionHeader}><Text style={s.section}>{showArchived?'Fichas arquivadas':activePlan?'Outras fichas':'Minhas fichas'}</Text><Text style={s.sectionCount}>{listedPlans.length}</Text></View>{listedPlans.map(plan=><Pressable accessibilityRole="button" key={plan.id} onPress={()=>openPlan(plan.id)} style={[s.card,CardShadow]}><WorkoutPlanCover coverId={plan.coverId}/><View style={s.cardTop}><View style={s.planIcon}><MaterialCommunityIcons name={showArchived?'archive-outline':'clipboard-text-outline'} size={21} color={c.link}/></View><View style={s.flex}><Text style={s.cardTitle}>{plan.name}</Text><Text style={s.muted}>{plan.divisions.length} {plan.divisions.length===1?'treino':'treinos'} · {plan.completedSessions} {plan.completedSessions===1?'treino realizado':'treinos realizados'}</Text></View><MaterialCommunityIcons name="chevron-right" size={21} color={c.textMuted}/></View><PlanValidity plan={plan}/><View style={s.chips}>{plan.divisions.map(division=><Text key={division.id} style={s.chip}>Treino {division.label} · {division.name}</Text>)}</View></Pressable>)}</View>:null}
 
     {section==='training'?<WorkoutHistory/>:null}
-  </ScrollView></SafeAreaView>;
+  </Animated.View></ScrollView></SafeAreaView>;
 }
 
 
@@ -108,7 +121,7 @@ function WorkoutHistory(){
   const weeks=history.items.reduce<{start:string;sessions:WorkoutSession[]}[]>((groups,session)=>{const start=weekStart(session.performedOn);const last=groups[groups.length-1];if(last?.start===start)last.sessions.push(session);else groups.push({start,sessions:[session]});return groups},[]);
   return <View style={s.historySection}>
     <View style={s.sectionHeader}><View style={s.flex}><Text style={s.section}>Treinos realizados</Text><Text style={s.sectionSubtitle}>Do mais recente ao mais antigo. Toque para corrigir.</Text></View>{history.total?<Text style={s.sectionCount}>{history.total}</Text>:null}</View>
-    {history.loading&&!history.items.length?<ActivityIndicator accessibilityLabel="Carregando histórico" color={c.link} size="large" style={s.loading}/>:null}
+    {history.loading&&!history.items.length?<SkeletonGroup label="Carregando histórico" style={s.weekGroup}><SkeletonCard lines={1}/><SkeletonCard lines={1}/><SkeletonCard lines={1}/></SkeletonGroup>:null}
     {history.error&&!history.items.length?<View accessibilityRole="alert" style={s.error}><Text style={s.errorText}>{history.error}</Text><Pressable accessibilityRole="button" onPress={()=>void history.reload()} style={s.inlineAction}><Text style={s.link}>Tentar novamente</Text></Pressable></View>:null}
     {!history.loading&&!history.error&&!history.items.length?<View style={s.historyEmpty}><View style={s.historyEmptyIcon}><MaterialCommunityIcons name="history" size={23} color={c.textMuted}/></View><View style={s.flex}><Text style={s.historyEmptyTitle}>Seu histórico está vazio</Text><Text style={s.muted}>Ao concluir um treino, o registro aparecerá aqui.</Text></View></View>:null}
     {weeks.map((week,weekIndex)=>{
@@ -133,7 +146,7 @@ const createStyles = (c: AppPalette) => StyleSheet.create({
   primarySmall:{backgroundColor:c.primary,paddingHorizontal:13,paddingVertical:11,borderRadius: 16,flexDirection:'row',alignItems:'center',gap:5},primary:{backgroundColor:c.primary,paddingHorizontal:22,paddingVertical:14,borderRadius: 16,alignItems:'center',marginTop:8},primaryText:{color:c.onPrimary,fontWeight:'800',...Type.body},centered:{textAlign:'center'},inlineAction:{minHeight:44,minWidth:44,justifyContent:'center',paddingHorizontal:4},iconButton:{width:44,height:44,alignItems:'center',justifyContent:'center'},
   archivedButton:{alignSelf:'flex-start',minHeight:44,paddingHorizontal:12,paddingVertical:9,borderRadius:12,backgroundColor:c.surfaceSoft,flexDirection:'row',gap:7,alignItems:'center'},archivedButtonSelected:{backgroundColor:c.primary},archivedButtonText:{color:c.link,fontSize:12,fontWeight:'800'},archivedButtonTextSelected:{color:c.onPrimary},
   error:{backgroundColor:c.dangerSoft,padding:14,borderRadius: 16,gap:6},errorText:{color:c.danger},link:{color:c.link,fontWeight:'800',fontSize:12},muted:{...Type.label,color:c.textMuted},
-  activePanel:{backgroundColor:c.primaryStrong,borderRadius:24,overflow:'hidden',padding:18,gap:13},activeHeader:{flexDirection:'row',alignItems:'center',justifyContent:'space-between'},activeBadge:{flexDirection:'row',alignItems:'center',gap:7},liveDot:{width:8,height:8,borderRadius:4,backgroundColor:c.accent},activeBadgeText:{color:c.heroMuted,fontSize: 12,fontWeight: '800',letterSpacing:.5,textTransform:'uppercase'},nextBox:{gap:3},nextLabel:{...Type.caption,color:c.heroMuted,fontWeight:'700'},nextName:{...Type.bodyLarge,color:c.white,fontWeight:'800'},todayActions:{flexDirection:'row',gap:8,alignItems:'stretch'},heroSecondary:{minHeight:48,borderRadius:Radius.lg,borderWidth:1,borderColor:c.heroMuted,paddingHorizontal:16,alignItems:'center',justifyContent:'center'},heroSecondaryText:{color:c.white,fontWeight:'800',...Type.label},activeTitle:{color:c.white,fontSize:25,fontWeight: '800',letterSpacing:-.4},activeDescription:{color:c.heroMuted,fontSize:12,lineHeight:18},
+  activePanel:{backgroundColor:c.primaryStrong,borderRadius:24,overflow:'hidden',padding:18,gap:13},heroSkeleton:{backgroundColor:c.surface,borderWidth:1,borderColor:c.border,minHeight:196,justifyContent:'center'},activeHeader:{flexDirection:'row',alignItems:'center',justifyContent:'space-between'},activeBadge:{flexDirection:'row',alignItems:'center',gap:7},liveDot:{width:8,height:8,borderRadius:4,backgroundColor:c.accent},activeBadgeText:{color:c.heroMuted,fontSize: 12,fontWeight: '800',letterSpacing:.5,textTransform:'uppercase'},nextBox:{gap:3},nextLabel:{...Type.caption,color:c.heroMuted,fontWeight:'700'},nextName:{...Type.bodyLarge,color:c.white,fontWeight:'800'},todayActions:{flexDirection:'row',gap:8,alignItems:'stretch'},heroSecondary:{minHeight:48,borderRadius:Radius.lg,borderWidth:1,borderColor:c.heroMuted,paddingHorizontal:16,alignItems:'center',justifyContent:'center'},heroSecondaryText:{color:c.white,fontWeight:'800',...Type.label},activeTitle:{color:c.white,fontSize:25,fontWeight: '800',letterSpacing:-.4},activeDescription:{color:c.heroMuted,fontSize:12,lineHeight:18},
   stats:{flexDirection:'row',flexWrap:'wrap',gap:8},stat:{flexGrow:1,flexBasis:70,minWidth:0,backgroundColor:'rgba(255,255,255,.09)',borderRadius: 16,paddingVertical:10,paddingHorizontal:8,gap:3},statValue:{color:c.white,fontSize:17,fontWeight: '800'},statLabel:{color:c.heroMuted,fontSize: 12,fontWeight:'700'},activeValidity:{backgroundColor:c.surface,borderRadius: 12,paddingHorizontal:11,paddingVertical:8},activeDivisions:{gap:7},activeDivision:{flexDirection:'row',alignItems:'center',gap:9},activeLetter:{width:28,height:28,borderRadius: 12,backgroundColor:'rgba(255,255,255,.13)',alignItems:'center',justifyContent:'center'},activeLetterText:{color:c.white,fontSize: 12,fontWeight: '800'},activeDivisionName:{color:c.white,fontSize:12,fontWeight:'700',flex:1},activeDivisionCount:{color:c.heroMuted,fontSize: 12,fontWeight:'800'},activeAction:{backgroundColor:c.white,minHeight:48,borderRadius: 16,paddingHorizontal:14,paddingVertical:13,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:8},activeActionText:{color:c.primaryStrong,fontWeight: '800',fontSize:13},
   noActive:{backgroundColor:c.warningSoft,borderRadius: 20,padding:13,flexDirection:'row',alignItems:'center',gap:11},noActiveIcon:{width:40,height:40,borderRadius: 16,backgroundColor:c.surface,alignItems:'center',justifyContent:'center'},noActiveTitle:{color:c.text,fontWeight: '800',fontSize:14},
   empty:{backgroundColor:c.surface,borderWidth:1,borderColor:c.border,borderRadius: 24,padding:24,gap:9,alignItems:'center'},emptyIcon:{width:58,height:58,borderRadius:20,backgroundColor:c.primarySoft,alignItems:'center',justifyContent:'center'},emptyTitle:{fontSize:18,fontWeight: '800',color:c.text},

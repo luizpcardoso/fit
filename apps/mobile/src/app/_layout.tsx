@@ -39,11 +39,11 @@ function Navigation() {
   }, [loading, ready, userId]);
   if (loading || !ready) return <View style={[styles.loading, { backgroundColor: colors.background }]}><ActivityIndicator size="large" color={colors.link} /></View>;
   return <View style={styles.navigation}>
-    <Stack screenOptions={{ headerShown: false }}>
+    <Stack screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
       <Stack.Protected guard={!!user}>
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="workout-create" />
-          <Stack.Screen name="workout-run" />
+          <Stack.Screen name="workout-run" options={{ animation: 'slide_from_bottom', gestureEnabled: false }} />
           <Stack.Screen name="workout-detail" />
           <Stack.Screen name="session-edit" />
           <Stack.Screen name="profile-details" />
@@ -61,7 +61,7 @@ function Navigation() {
           <Stack.Screen name="social-groups" />
           <Stack.Screen name="social-settings" />
           <Stack.Screen name="group-detail" />
-          <Stack.Screen name="group-post" />
+          <Stack.Screen name="group-post" options={{ animation: 'slide_from_bottom' }} />
           <Stack.Screen name="group-manage" />
           <Stack.Screen name="group-notifications" />
         </Stack.Protected>

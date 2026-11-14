@@ -1,6 +1,6 @@
 # Versionamento do aplicativo
 
-A versão pública segue `MAIOR.INSTALAÇÃO.OTA`, com duas casas nos dois últimos grupos. A versão atual é `1.07.14`.
+A versão pública segue `MAIOR.INSTALAÇÃO.OTA`, com duas casas nos dois últimos grupos. A versão atual é `1.08.00`.
 
 - Mudança compatível com atualização automática: incrementar o último grupo, por exemplo `1.07.09`.
 - Mudança que exige reinstalação: incrementar o grupo de instalação e zerar o último, por exemplo `1.08.00`; incrementar também `android.versionCode`.
@@ -207,3 +207,14 @@ Downloads integrais de `orami-1.0.7-android.apk` e do alias `/downloads/fit.apk`
 - Atualização automática assinada `83568fe6-2302-49f9-96c5-1f7ce061fdbe`, para runtime `a126f4cba79af52c114ce47cde695bad7d968e2e` do instalador 1.07.13. Manifesto ativado atomicamente após enviar assets; assinatura, SHA-256 do bundle público e versão 1.07.14 conferidos. Manifestos de outros runtimes preservados.
 - Typecheck dos workspaces, lint mobile, suíte padrão, teste de consistência de versões e E2E da Home com API real/MySQL local isolado aprovados. Banco temporário removido e serviços de teste encerrados. Nenhum aparelho Android físico conectado para homologação.
 - API, contratos e site já coincidiam com produção; nenhuma migração ou reinicialização foi necessária. Backup privado dos fontes e metadados anteriores em `deploy/backups/release-10714-20261113`, no servidor, e `~/.local/share/fit/deployment-backups/release-10714-20261113`, localmente.
+
+
+### Versão 1.08.00 — 14/11/2026
+
+- Fontes da `main` no commit `bcb94dc`, com atualização dos metadados de release. Inclui tela acesa e retorno tátil no treino, controles e fichas revisados, transições, reações e notificações agrupadas, semana do grupo com adesão individual ao placar e entrada por código sujeita à aprovação. Números de conquistas dependem da permissão do grupo e da escolha da pessoa.
+- O novo módulo nativo `expo-keep-awake` exige instalação do APK; o ciclo de instalação passa de 07 para 08. Não distribuir este bundle por OTA aos runtimes anteriores.
+- APK público `orami-1.8.0-android.apk`, versão técnica `1.8.0`, pública `1.08.00`, `versionCode` 16, 108881644 bytes e SHA-256 `924334fba72e64295085d829d35bbc09c55e3580b8498b41720b26e265ebc952`. Runtime embutido e resolvido: `c554649282e9ad3f8ad0b5527e5a11264342372e`. Assinatura comparada com a 1.07.14 e preservada; versão, API HTTPS de produção e módulo de tela acesa conferidos no bundle.
+- API/site recompilados e API saudável. Migrações `052-reaction-notification-type`, `053-group-ranking-opt-in` e `054-activity-stats-and-join-links` aplicadas. Antes da ativação, foram validadas duas execuções do migrador em uma cópia isolada de produção: contagens das 57 tabelas existentes preservadas, novas preferências de compartilhamento e placar desligadas.
+- Typecheck dos workspaces, lint mobile, suíte padrão, quatro integrações MySQL da comunidade e dois E2E de download aprovados. APK release compilado e assinatura validada. Nenhum aparelho Android físico conectado para homologação.
+- Manifesto de download ativado por renomeação atômica após conferir tamanho e hash no servidor; alias `/downloads/fit.apk` e checksums atualizados. Os downloads públicos integrais do APK versionado e do alias reproduziram tamanho/SHA-256 locais; os dois botões do site mostram a 1.08.00 e apontam ao novo APK. Home, portal e `/health` respondem 200; grupos sem sessão e login inválido respondem 401.
+- Backup privado do banco, mídia, fontes e metadados anteriores em `deploy/backups/release-10800-20261114`, no servidor, e `~/.local/share/fit/deployment-backups/release-10800-20261114`, localmente. Imagem anterior da API preservada como `fit-server-api:before-10800-20261114`. APKs e manifestos OTA anteriores mantidos. Contêiner MySQL temporário de validação removido.

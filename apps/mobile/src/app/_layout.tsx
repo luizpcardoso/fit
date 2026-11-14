@@ -63,6 +63,7 @@ function Navigation() {
           <Stack.Screen name="group-detail" />
           <Stack.Screen name="group-post" options={{ animation: 'slide_from_bottom' }} />
           <Stack.Screen name="group-manage" />
+          <Stack.Screen name="group-join" />
           <Stack.Screen name="group-notifications" />
         </Stack.Protected>
         <Stack.Protected guard={!user}>

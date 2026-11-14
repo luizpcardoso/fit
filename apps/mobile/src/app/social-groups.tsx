@@ -207,6 +207,7 @@ export default function SocialGroups() {
           <Text style={s.heading}>Seus grupos</Text>
           {groups.length ? <Text style={s.count}>{groups.length}</Text> : null}
         </View>
+        <Pressable accessibilityRole="button" accessibilityLabel="Entrar com código" onPress={() => router.push('/group-join')} style={{ minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, borderRadius: 16, borderWidth: 1, borderColor: c.border, backgroundColor: c.surface }}><MaterialCommunityIcons name="key-variant" size={20} color={c.link}/><Text style={{ flex: 1, color: c.text, fontWeight: '700' }}>Entrar com código</Text><MaterialCommunityIcons name="chevron-right" size={20} color={c.link}/></Pressable>
         {loading && !groups.length ? (
           <ActivityIndicator color={c.link} size="large" style={s.loading} />
         ) : null}

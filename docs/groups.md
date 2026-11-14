@@ -79,6 +79,9 @@ Membros podem denunciar publicações ou comentários visíveis por assédio, co
 - `PUT /groups/:groupId/posts/:postId/reaction`: criar, trocar ou retirar reação.
 - `GET /groups/:groupId/posts/:postId/reactions`: quem reagiu à publicação.
 - `GET /groups/:groupId/week?date=AAAA-MM-DD`: resumo e placar da semana do grupo.
+- `GET/POST/DELETE /groups/:groupId/invite-link`: situação, criação e desativação do código do grupo.
+- `GET/POST /groups/join/:code`: prévia do grupo e pedido de entrada por código.
+- `GET /groups/:groupId/join-requests` e `PATCH /groups/:groupId/join-requests/:requestId`: pedidos pendentes e decisão.
 - `PUT /groups/:groupId/participation`: adesão individual ao placar.
 - `GET/POST /groups/:groupId/posts/:postId/comments`: comentários.
 - `GET/PATCH /groups/notifications`: notificações internas.
@@ -193,3 +196,23 @@ No cabeçalho do feed do grupo, “Semana” abre a folha “Semana do grupo” 
 - `PUT /groups/:groupId/participation` aceita só `{ showInRanking }` (corpo estrito), deriva a pessoa da sessão e não altera as preferências de compartilhamento automático da mesma linha. `GET /groups/:groupId/week` exige membro ativo (404 caso contrário) e data `AAAA-MM-DD` (400 caso contrário).
 
 Teste: `RUN_DB_TESTS=1 node --import tsx --test apps/api/test/group-week.integration.test.ts` (banco temporário `fit_group_week_test_*`): 401, não membro, data inválida, corpo inválido ou com campos extras, placar vazio sem adesão, contagem por semana e status, pessoas ocultadas, saída do placar e atividades compartilhadas. O E2E `social-feed.spec.ts` abre a folha e adere ao placar.
+
+## Entrada por código, com aprovação
+
+Decisão do produto: além do convite por @usuário, a administração (proprietário e administradores) pode gerar **um código por grupo**, válido por 7 dias; quem usa o código **pede** para entrar e só entra quando a administração aprova. Ninguém entra direto.
+
+- Código de 10 caracteres sem letras e números ambíguos. O servidor guarda apenas o SHA-256 (`group_invite_links.code_hash`); o código só é devolvido na criação e a tela avisa que não será exibido de novo. Gerar outro desativa o anterior; “Desativar código” encerra sem substituir. Pedidos já enviados continuam aguardando.
+- Com o código, a pessoa autenticada vê somente nome do grupo e número de membros (`GET /groups/join/:code`) — nunca imagem, descrição, membros ou publicações — e sua situação (`available`, `pending`, `member`). Código inválido, vencido, desativado ou de grupo inativo responde 404.
+- `POST /groups/join/:code` cria o pedido (409 se já é membro ou já pediu; no máximo 50 pedidos pendentes por grupo; 10 tentativas por minuto) e avisa a administração (`join_request`, “Pedido para entrar”). Pedir não concede acesso algum.
+- A administração lista e decide em Gerenciar grupo → “Convite por código” (`components/group-join-admin.tsx`). Aprovar ativa a pessoa como membro pela mesma rotina do convite aceito (data de entrada nova, todas as escolhas de compartilhamento desligadas, publicação de entrada conforme o grupo); recusar não dá acesso. Em ambos, quem pediu é avisado. Moderadores e membros recebem 403; quem não é do grupo, 404.
+- No app: Comunidade → Meus grupos → “Entrar com código” (`app/group-join.tsx`), que também abre por `fit://group-join?code=…`. O compartilhamento envia o código e esse link; não existe página web de convite, então em conversas que não abrem o esquema do app a pessoa digita o código.
+
+## Números na conquista, por escolha
+
+Decisão do produto: a publicação de conquista de treino ou cardio pode mostrar **duração, exercícios e séries** quando as duas condições valem: a administração ligou “Permitir números nas conquistas” (`groups.allow_activity_stats`, desligado por padrão) **e** a própria pessoa ligou “Mostrar números do treino” naquele grupo (`group_share_preferences.share_activity_stats`, desligado por padrão). Cargas, nomes de exercícios e ficha nunca entram.
+
+- Os números são um retrato gravado na publicação (`group_posts.activity_stats`) no momento em que ela é criada, automática ou manualmente; desligar depois não reescreve publicações antigas nem as apaga. Treino sem execução guiada mostra só a quantidade de exercícios; cardio mostra só a duração.
+- `PUT /groups/:groupId/participation` aceita `showInRanking` e/ou `shareActivityStats` e altera apenas o que foi enviado. `PATCH /groups/:groupId` aceita `allowActivityStats` (administração). `GET /groups/:groupId` devolve `allowActivityStats` e `participation`. Voltar a entrar num grupo zera as duas escolhas.
+- O card mostra os números em selos abaixo do texto.
+
+A migration `054-activity-stats-and-join-links` cria as colunas e tabelas acima e acrescenta `join_request` ao enum de notificações; aplique antes de subir a API. Teste: `RUN_DB_TESTS=1 node --import tsx --test apps/api/test/group-join.integration.test.ts` (banco temporário `fit_group_join_test_*`) cobre papéis, 401/403/404/400, hash do código, prévia mínima, pedido sem acesso, aprovação, recusa, substituição, desativação, vencimento e as duas permissões dos números. E2E: `group-join.spec.ts` (`FIT_SOCIAL_ISOLATED=1`).

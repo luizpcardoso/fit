@@ -68,6 +68,13 @@ const formatTime = (value: string) => {
   return `${formatRelativeDay(localDate(date))}, ${time}`;
 };
 
+/** "45 min", "6 exercícios", "18 séries": only the numbers the author chose to show. */
+const activityStatsLabel = (stats: NonNullable<GroupPost["activityStats"]>) => [
+  stats.durationMinutes != null ? `${stats.durationMinutes} min` : null,
+  stats.exercises != null ? `${stats.exercises} ${stats.exercises === 1 ? "exercício" : "exercícios"}` : null,
+  stats.sets != null ? `${stats.sets} ${stats.sets === 1 ? "série" : "séries"}` : null,
+].filter((item): item is string => Boolean(item));
+
 const postKindLabel = (kind: GroupPost["kind"]) =>
   kind === "event" ? "Conquista" : kind === "announcement" ? "Aviso" : null;
 
@@ -414,6 +421,9 @@ export default function SocialFeedScreen({ groupId: id }: { groupId?: string }) 
                 {post.text}
               </Text>
             ) : null}
+            {post.activityStats ? <View style={s.statsRow} accessible accessibilityLabel={activityStatsLabel(post.activityStats).join(', ')}>
+              {activityStatsLabel(post.activityStats).map(item => <View key={item} style={s.statChip}><Text style={s.statChipText}>{item}</Text></View>)}
+            </View> : null}
             {post.photoUrl ? (
               <View style={s.postPhotoWrap}>
                 <PostPhoto groupId={post.groupId} postId={post.id} aspectRatio={post.photoAspectRatio} />
@@ -1114,6 +1124,9 @@ const styles = (c: AppPalette) =>
       paddingBottom: 15,
     },
     eventText: { fontSize: 15, fontWeight: "800" },
+    statsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 16, paddingBottom: 14 },
+    statChip: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: Radius.pill, backgroundColor: c.primarySoft },
+    statChipText: { ...Type.caption, fontWeight: '800', color: c.link },
     postPhotoWrap: {
       position: "relative",
       backgroundColor: c.surfaceSoft,

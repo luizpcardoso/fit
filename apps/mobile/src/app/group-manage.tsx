@@ -27,6 +27,7 @@ import { useAuth } from "@/auth/auth-context";
 import { CardShadow, Radius, Scrim, Type, type AppPalette } from "@/constants/theme";
 import { useAppTheme } from "@/theme/theme-provider";
 import { confirmAction, showDialog, showToast } from "@/components/app-dialog";
+import { GroupJoinAdmin } from "@/components/group-join-admin";
 import { ScreenHeader } from "@/components/screen-header";
 import { formatRelativeDay, localDate } from "@/utils/dates";
 import { groupErrorMessage, groupRoleDescriptions, groupRoleLabels, reportReasonLabel } from "@/utils/groups";
@@ -134,7 +135,19 @@ export default function GroupManage() {
       setMessage(groupErrorMessage(failure, { conflict: "Esse tipo de atividade não está habilitado no grupo." }));
     }
   };
-  const saveGroup = async (input: { postingMode?: "admins_only" | "all_members"; commentsEnabled?: boolean }) => {
+  const saveParticipation = async (input: { showInRanking?: boolean; shareActivityStats?: boolean }) => {
+    if (!id) return;
+    setMessage("");
+    setGroup((value) => (value ? { ...value, participation: { showInRanking: Boolean(value.participation?.showInRanking), shareActivityStats: Boolean(value.participation?.shareActivityStats), ...input } } : value));
+    try {
+      await api.updateGroupParticipation(id, input);
+      showToast("Suas preferências foram atualizadas.");
+    } catch (failure) {
+      await load();
+      setMessage(groupErrorMessage(failure));
+    }
+  };
+  const saveGroup = async (input: { postingMode?: "admins_only" | "all_members"; commentsEnabled?: boolean; allowActivityStats?: boolean }) => {
     if (!id) return;
     setMessage("");
     try {
@@ -392,7 +405,25 @@ export default function GroupManage() {
                   colors={c}
                 />
               ))}
+              <Setting
+                title="Mostrar números do treino"
+                description={group.allowActivityStats ? "Duração, exercícios e séries nas suas conquistas. Cargas e fichas nunca aparecem" : "Desativado pelo grupo"}
+                icon="chart-box-outline"
+                value={Boolean(group.participation?.shareActivityStats)}
+                disabled={!group.allowActivityStats}
+                onChange={(value) => void saveParticipation({ shareActivityStats: value })}
+                colors={c}
+              />
+              <Setting
+                title="Participar do placar"
+                description="Mostra ao grupo quantos treinos você concluiu na semana"
+                icon="trophy-outline"
+                value={Boolean(group.participation?.showInRanking)}
+                onChange={(value) => void saveParticipation({ showInRanking: value })}
+                colors={c}
+              />
             </Section>
+            {admin ? <GroupJoinAdmin groupId={group.id} groupName={group.name} /> : null}
             {admin ? (
               <Section
                 title="Convidar alguém"
@@ -484,6 +515,14 @@ export default function GroupManage() {
                   icon="comment-multiple-outline"
                   value={group.commentsEnabled}
                   onChange={(value) => void saveGroup({ commentsEnabled: value })}
+                  colors={c}
+                />
+                <Setting
+                  title="Permitir números nas conquistas"
+                  description="Cada pessoa ainda escolhe se mostra duração, exercícios e séries"
+                  icon="chart-box-outline"
+                  value={Boolean(group.allowActivityStats)}
+                  onChange={(value) => void saveGroup({ allowActivityStats: value })}
                   colors={c}
                 />
               </Section>

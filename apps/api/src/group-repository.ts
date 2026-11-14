@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { QueryTypes, type Sequelize, type Transaction } from "sequelize";
 import sharp from "sharp";
 import {saveMedia,readMedia,removeMedia} from './media-storage.js';
@@ -13,6 +13,10 @@ import type {
   GroupEventType,
   GroupInvite,
   GroupMember,
+  GroupActivityStats,
+  GroupInviteLink,
+  GroupJoinPreview,
+  GroupJoinRequest,
   GroupNotification,
   GroupParticipation,
   GroupWeekSummary,
@@ -179,7 +183,7 @@ export class GroupRepository {
     const m = await this.membership(userId, groupId);
     if (!m) return null;
     const [g] = await this.db.query<any>(
-      `SELECT g.id,g.name,g.description,g.avatar_url avatarUrl,g.avatar_path avatarPath,g.cover_path coverPath,g.updated_at updatedAt,g.posting_mode postingMode,g.comments_enabled commentsEnabled,g.active,g.created_at createdAt,(SELECT COUNT(*) FROM group_members x WHERE x.group_id=g.id AND x.status='active') memberCount,(SELECT COUNT(*) FROM group_posts p WHERE p.group_id=g.id AND p.deleted_at IS NULL AND p.created_at>=(SELECT joined_at FROM group_members WHERE group_id=g.id AND user_id=? AND status='active') AND p.created_at>COALESCE((SELECT last_seen_at FROM group_members WHERE group_id=g.id AND user_id=?),(SELECT joined_at FROM group_members WHERE group_id=g.id AND user_id=? AND status='active'))) unseenCount FROM \`groups\` g WHERE g.id=?`,
+      `SELECT g.id,g.name,g.description,g.avatar_url avatarUrl,g.avatar_path avatarPath,g.cover_path coverPath,g.updated_at updatedAt,g.posting_mode postingMode,g.comments_enabled commentsEnabled,g.allow_activity_stats allowActivityStats,g.active,g.created_at createdAt,(SELECT COUNT(*) FROM group_members x WHERE x.group_id=g.id AND x.status='active') memberCount,(SELECT COUNT(*) FROM group_posts p WHERE p.group_id=g.id AND p.deleted_at IS NULL AND p.created_at>=(SELECT joined_at FROM group_members WHERE group_id=g.id AND user_id=? AND status='active') AND p.created_at>COALESCE((SELECT last_seen_at FROM group_members WHERE group_id=g.id AND user_id=?),(SELECT joined_at FROM group_members WHERE group_id=g.id AND user_id=? AND status='active'))) unseenCount FROM \`groups\` g WHERE g.id=?`,
       {
         replacements: [userId, userId, userId, groupId],
         type: QueryTypes.SELECT,
@@ -194,6 +198,10 @@ export class GroupRepository {
       "SELECT workout_completed,cardio_completed,weekly_goal,weekly_streak FROM group_share_preferences WHERE group_id=? AND user_id=?",
       { replacements: [groupId, userId], type: QueryTypes.SELECT },
     );
+    const [participation] = await this.db.query<any>(
+      "SELECT show_in_ranking showInRanking,share_activity_stats shareActivityStats FROM group_share_preferences WHERE group_id=? AND user_id=?",
+      { replacements: [groupId, userId], type: QueryTypes.SELECT },
+    );
     const { avatarPath, coverPath, ...group } = g;
     return {
       ...group,
@@ -202,6 +210,8 @@ export class GroupRepository {
       role: m.role,
       active: Boolean(g.active),
       commentsEnabled: Boolean(g.commentsEnabled),
+      allowActivityStats: Boolean(g.allowActivityStats),
+      participation: { showInRanking: Boolean(participation?.showInRanking), shareActivityStats: Boolean(participation?.shareActivityStats) },
       memberCount: Number(g.memberCount),
       unseenCount: Number(g.unseenCount),
       eventSettings: this.booleans(
@@ -236,6 +246,7 @@ export class GroupRepository {
       avatarUrl: "avatar_url",
       postingMode: "posting_mode",
       commentsEnabled: "comments_enabled",
+      allowActivityStats: "allow_activity_stats",
       active: "active",
     };
     for (const [key, column] of Object.entries(map))
@@ -328,13 +339,14 @@ export class GroupRepository {
     return "ok" as const;
   }
 
-  /** Stores only the ranking opt-in; the automatic-share switches of the same row are left as they are. */
+  /** Stores only the opt-ins that were sent; the automatic-share switches of the same row are left as they are. */
   async updateParticipation(userId: string, groupId: string, input: GroupParticipation) {
     const m = await this.membership(userId, groupId);
     if (!m) return "missing" as const;
+    const ranking = input.showInRanking, stats = input.shareActivityStats;
     await this.db.query(
-      "INSERT INTO group_share_preferences (group_id,user_id,show_in_ranking,updated_at) VALUES (?,?,?,UTC_TIMESTAMP(6)) ON DUPLICATE KEY UPDATE show_in_ranking=VALUES(show_in_ranking),updated_at=UTC_TIMESTAMP(6)",
-      { replacements: [groupId, userId, input.showInRanking], type: QueryTypes.INSERT },
+      `INSERT INTO group_share_preferences (group_id,user_id,show_in_ranking,share_activity_stats,updated_at) VALUES (?,?,?,?,UTC_TIMESTAMP(6)) ON DUPLICATE KEY UPDATE ${ranking === undefined ? "" : "show_in_ranking=VALUES(show_in_ranking),"}${stats === undefined ? "" : "share_activity_stats=VALUES(share_activity_stats),"}updated_at=UTC_TIMESTAMP(6)`,
+      { replacements: [groupId, userId, ranking ?? false, stats ?? false], type: QueryTypes.INSERT },
     );
     return "ok" as const;
   }
@@ -450,6 +462,141 @@ export class GroupRepository {
       expiresAt: iso(r.expiresAt),
     }));
   }
+  /** Makes the person an active member with a fresh entry date and every sharing choice off. */
+  private async activateMember(groupId: string, userId: string, t: Transaction) {
+    await this.db.query(
+      "INSERT INTO group_members (id,group_id,user_id,role,status,joined_at,left_at,last_seen_at,created_at,updated_at) VALUES (?,?,?,'member','active',UTC_TIMESTAMP(6),NULL,NULL,UTC_TIMESTAMP(6),UTC_TIMESTAMP(6)) ON DUPLICATE KEY UPDATE role='member',status='active',joined_at=UTC_TIMESTAMP(6),left_at=NULL,last_seen_at=NULL,updated_at=UTC_TIMESTAMP(6)",
+      {
+        replacements: [randomUUID(), groupId, userId],
+        type: QueryTypes.INSERT,
+        transaction: t,
+      },
+    );
+    await this.db.query(
+      "INSERT INTO group_share_preferences (group_id,user_id,workout_completed,cardio_completed,weekly_goal,weekly_streak,updated_at) VALUES (?,?,0,0,0,0,UTC_TIMESTAMP(6)) ON DUPLICATE KEY UPDATE workout_completed=0,cardio_completed=0,weekly_goal=0,weekly_streak=0,show_in_ranking=0,share_activity_stats=0,updated_at=UTC_TIMESTAMP(6)",
+      {
+        replacements: [groupId, userId],
+        type: QueryTypes.INSERT,
+        transaction: t,
+      },
+    );
+  }
+  private codeHash(code: string) { return createHash("sha256").update(code).digest("hex"); }
+  private async usableLink(code: string, t?: Transaction) {
+    const [link] = await this.db.query<{ id: string; groupId: string; name: string; memberCount: number }>(
+      "SELECT l.id,l.group_id groupId,g.name,(SELECT COUNT(*) FROM group_members x WHERE x.group_id=g.id AND x.status='active') memberCount FROM group_invite_links l JOIN `groups` g ON g.id=l.group_id AND g.active=1 WHERE l.code_hash=? AND l.revoked_at IS NULL AND l.expires_at>UTC_TIMESTAMP(6)",
+      { replacements: [this.codeHash(code)], type: QueryTypes.SELECT, transaction: t },
+    );
+    return link ?? null;
+  }
+  /** Whether the group has a usable code. The code itself is only returned when it is created. */
+  async inviteLink(userId: string, groupId: string): Promise<GroupInviteLink | "missing" | "forbidden"> {
+    const m = await this.membership(userId, groupId);
+    if (!m) return "missing";
+    if (!privileged(m.role)) return "forbidden";
+    const [link] = await this.db.query<{ expiresAt: Date }>(
+      "SELECT expires_at expiresAt FROM group_invite_links WHERE group_id=? AND revoked_at IS NULL AND expires_at>UTC_TIMESTAMP(6) ORDER BY created_at DESC LIMIT 1",
+      { replacements: [groupId], type: QueryTypes.SELECT },
+    );
+    return { active: Boolean(link), expiresAt: link ? iso(link.expiresAt) : null };
+  }
+  /** Creates a new code valid for 7 days and retires the previous one. Only the hash is stored. */
+  async createInviteLink(userId: string, groupId: string): Promise<GroupInviteLink | "missing" | "forbidden"> {
+    const m = await this.membership(userId, groupId);
+    if (!m) return "missing";
+    if (!privileged(m.role)) return "forbidden";
+    const [group] = await this.db.query<{ id: string }>("SELECT id FROM `groups` WHERE id=? AND active=1", { replacements: [groupId], type: QueryTypes.SELECT });
+    if (!group) return "missing";
+    const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    const code = Array.from(randomBytes(10), (byte) => alphabet[byte % alphabet.length]).join("");
+    const id = randomUUID();
+    await this.db.transaction(async (t) => {
+      await this.db.query("UPDATE group_invite_links SET revoked_at=UTC_TIMESTAMP(6) WHERE group_id=? AND revoked_at IS NULL", { replacements: [groupId], type: QueryTypes.UPDATE, transaction: t });
+      await this.db.query(
+        "INSERT INTO group_invite_links (id,group_id,code_hash,created_by_user_id,expires_at,created_at) VALUES (?,?,?,?,DATE_ADD(UTC_TIMESTAMP(6),INTERVAL 7 DAY),UTC_TIMESTAMP(6))",
+        { replacements: [id, groupId, this.codeHash(code), userId], type: QueryTypes.INSERT, transaction: t },
+      );
+    });
+    const [created] = await this.db.query<{ expiresAt: Date }>("SELECT expires_at expiresAt FROM group_invite_links WHERE id=?", { replacements: [id], type: QueryTypes.SELECT });
+    return { active: true, expiresAt: iso(created.expiresAt), code };
+  }
+  async revokeInviteLink(userId: string, groupId: string) {
+    const m = await this.membership(userId, groupId);
+    if (!m) return "missing" as const;
+    if (!privileged(m.role)) return "forbidden" as const;
+    await this.db.query("UPDATE group_invite_links SET revoked_at=UTC_TIMESTAMP(6) WHERE group_id=? AND revoked_at IS NULL", { replacements: [groupId], type: QueryTypes.UPDATE });
+    return "ok" as const;
+  }
+  /** What someone holding a code may know before asking: the group's name and size, and where they stand. */
+  async joinPreview(userId: string, code: string): Promise<GroupJoinPreview | null> {
+    const link = await this.usableLink(code);
+    if (!link) return null;
+    const member = await this.membership(userId, link.groupId);
+    const [pending] = member ? [] : await this.db.query<{ id: string }>(
+      "SELECT id FROM group_join_requests WHERE group_id=? AND user_id=? AND status='pending'",
+      { replacements: [link.groupId, userId], type: QueryTypes.SELECT },
+    );
+    return { group: { name: link.name, memberCount: Number(link.memberCount) }, status: member ? "member" : pending ? "pending" : "available" };
+  }
+  /** Asks to join; nobody enters a group by code without the administration's approval. */
+  async requestJoin(userId: string, code: string) {
+    return this.db.transaction(async (t) => {
+      const link = await this.usableLink(code, t);
+      if (!link) return "missing" as const;
+      await this.db.query("SELECT id FROM `groups` WHERE id=? FOR UPDATE", { replacements: [link.groupId], type: QueryTypes.SELECT, transaction: t });
+      if (await this.membership(userId, link.groupId, t)) return "conflict" as const;
+      const pending = await this.db.query<{ user_id: string }>(
+        "SELECT user_id FROM group_join_requests WHERE group_id=? AND status='pending'",
+        { replacements: [link.groupId], type: QueryTypes.SELECT, transaction: t },
+      );
+      if (pending.some((row) => row.user_id === userId) || pending.length >= 50) return "conflict" as const;
+      await this.db.query(
+        "INSERT INTO group_join_requests (id,group_id,user_id,link_id,status,created_at) VALUES (?,?,?,?,'pending',UTC_TIMESTAMP(6))",
+        { replacements: [randomUUID(), link.groupId, userId, link.id], type: QueryTypes.INSERT, transaction: t },
+      );
+      const requester = await this.user(userId, t);
+      const staff = await this.db.query<{ user_id: string }>(
+        "SELECT user_id FROM group_members WHERE group_id=? AND status='active' AND role IN ('owner','admin')",
+        { replacements: [link.groupId], type: QueryTypes.SELECT, transaction: t },
+      );
+      for (const person of staff)
+        await this.notify(person.user_id, "join_request", "Pedido para entrar", `${requester.displayName} pediu para entrar em ${link.name}.`.slice(0, 300), link.groupId, null, t);
+      return "ok" as const;
+    });
+  }
+  async joinRequests(userId: string, groupId: string): Promise<GroupJoinRequest[] | "missing" | "forbidden"> {
+    const m = await this.membership(userId, groupId);
+    if (!m) return "missing";
+    if (!privileged(m.role)) return "forbidden";
+    const rows = await this.db.query<any>(
+      "SELECT r.id,r.created_at createdAt,u.id userId,u.username,COALESCE(u.display_name,CONCAT(u.first_name,' ',u.last_name)) displayName,u.avatar_url avatarUrl FROM group_join_requests r JOIN users u ON u.id=r.user_id WHERE r.group_id=? AND r.status='pending' ORDER BY r.created_at,r.id LIMIT 50",
+      { replacements: [groupId], type: QueryTypes.SELECT },
+    );
+    return rows.map((r: any) => ({ id: r.id, createdAt: iso(r.createdAt), user: { id: r.userId, username: r.username, displayName: r.displayName, avatarUrl: r.avatarUrl } }));
+  }
+  async decideJoinRequest(actorId: string, groupId: string, requestId: string, decision: "approved" | "declined") {
+    const m = await this.membership(actorId, groupId);
+    if (!m) return "missing" as const;
+    if (!privileged(m.role)) return "forbidden" as const;
+    return this.db.transaction(async (t) => {
+      const [request] = await this.db.query<{ id: string; user_id: string; status: string; name: string }>(
+        "SELECT r.id,r.user_id,r.status,g.name FROM group_join_requests r JOIN `groups` g ON g.id=r.group_id AND g.active=1 WHERE r.id=? AND r.group_id=? FOR UPDATE",
+        { replacements: [requestId, groupId], type: QueryTypes.SELECT, transaction: t },
+      );
+      if (!request) return "missing" as const;
+      if (request.status !== "pending") return "conflict" as const;
+      await this.db.query(
+        "UPDATE group_join_requests SET status=?,decided_by_user_id=?,decided_at=UTC_TIMESTAMP(6) WHERE id=?",
+        { replacements: [decision, actorId, requestId], type: QueryTypes.UPDATE, transaction: t },
+      );
+      if (decision === "approved") {
+        await this.activateMember(groupId, request.user_id, t);
+        await this.createMemberJoined(groupId, request.user_id, requestId, t);
+      }
+      await this.notify(request.user_id, "join_request", decision === "approved" ? "Pedido aprovado" : "Pedido não aceito", (decision === "approved" ? `Você agora faz parte de ${request.name}.` : `Seu pedido para entrar em ${request.name} não foi aceito.`).slice(0, 300), decision === "approved" ? groupId : null, null, t);
+      return "ok" as const;
+    });
+  }
   async decideInvite(
     userId: string,
     inviteId: string,
@@ -479,22 +626,7 @@ export class GroupRepository {
         },
       );
       if (decision === "declined") return "ok" as const;
-      await this.db.query(
-        "INSERT INTO group_members (id,group_id,user_id,role,status,joined_at,left_at,last_seen_at,created_at,updated_at) VALUES (?,?,?,'member','active',UTC_TIMESTAMP(6),NULL,NULL,UTC_TIMESTAMP(6),UTC_TIMESTAMP(6)) ON DUPLICATE KEY UPDATE role='member',status='active',joined_at=UTC_TIMESTAMP(6),left_at=NULL,last_seen_at=NULL,updated_at=UTC_TIMESTAMP(6)",
-        {
-          replacements: [randomUUID(), invite.group_id, userId],
-          type: QueryTypes.INSERT,
-          transaction: t,
-        },
-      );
-      await this.db.query(
-        "INSERT INTO group_share_preferences (group_id,user_id,workout_completed,cardio_completed,weekly_goal,weekly_streak,updated_at) VALUES (?,?,0,0,0,0,UTC_TIMESTAMP(6)) ON DUPLICATE KEY UPDATE workout_completed=0,cardio_completed=0,weekly_goal=0,weekly_streak=0,updated_at=UTC_TIMESTAMP(6)",
-        {
-          replacements: [invite.group_id, userId],
-          type: QueryTypes.INSERT,
-          transaction: t,
-        },
-      );
+      await this.activateMember(invite.group_id, userId, t);
       await this.createMemberJoined(invite.group_id, userId, invite.id, t);
       return "ok" as const;
     });
@@ -632,7 +764,7 @@ export class GroupRepository {
       else{cursor = " AND p.created_at < ?";params.push(new Date(before));}
     }
     const rows = await this.db.query<any>(
-      `SELECT DATE_FORMAT(p.created_at,'%Y-%m-%d %H:%i:%s.%f') cursorTime,g.name groupName,g.active groupActive,viewer.role groupRole,p.id,p.group_id groupId,p.author_user_id,p.kind,p.event_type eventType,p.text,(p.photo_data IS NOT NULL OR p.photo_path IS NOT NULL) hasPhoto,p.photo_width photoWidth,p.photo_height photoHeight,p.comments_enabled commentsEnabled,p.created_at createdAt,p.updated_at updatedAt,u.id authorId,u.username,COALESCE(u.display_name,CONCAT(u.first_name,' ',u.last_name)) displayName,u.avatar_url avatarUrl,(SELECT COUNT(*) FROM group_comments c WHERE c.post_id=p.id AND c.deleted_at IS NULL) commentCount FROM group_posts p JOIN \`groups\` g ON g.id=p.group_id JOIN users u ON u.id=p.author_user_id JOIN group_members viewer ON viewer.group_id=p.group_id AND viewer.user_id=? AND viewer.status='active' WHERE NOT EXISTS (SELECT 1 FROM user_blocks b WHERE b.blocker_user_id=? AND b.blocked_user_id=p.author_user_id) ${groupId ? 'AND p.group_id=?' : 'AND g.active=1'} AND p.deleted_at IS NULL AND p.created_at>=viewer.joined_at${cursor} ORDER BY p.created_at DESC,p.id DESC LIMIT 31`,
+      `SELECT DATE_FORMAT(p.created_at,'%Y-%m-%d %H:%i:%s.%f') cursorTime,g.name groupName,g.active groupActive,viewer.role groupRole,p.id,p.group_id groupId,p.author_user_id,p.kind,p.event_type eventType,p.text,p.activity_stats activityStats,(p.photo_data IS NOT NULL OR p.photo_path IS NOT NULL) hasPhoto,p.photo_width photoWidth,p.photo_height photoHeight,p.comments_enabled commentsEnabled,p.created_at createdAt,p.updated_at updatedAt,u.id authorId,u.username,COALESCE(u.display_name,CONCAT(u.first_name,' ',u.last_name)) displayName,u.avatar_url avatarUrl,(SELECT COUNT(*) FROM group_comments c WHERE c.post_id=p.id AND c.deleted_at IS NULL) commentCount FROM group_posts p JOIN \`groups\` g ON g.id=p.group_id JOIN users u ON u.id=p.author_user_id JOIN group_members viewer ON viewer.group_id=p.group_id AND viewer.user_id=? AND viewer.status='active' WHERE NOT EXISTS (SELECT 1 FROM user_blocks b WHERE b.blocker_user_id=? AND b.blocked_user_id=p.author_user_id) ${groupId ? 'AND p.group_id=?' : 'AND g.active=1'} AND p.deleted_at IS NULL AND p.created_at>=viewer.joined_at${cursor} ORDER BY p.created_at DESC,p.id DESC LIMIT 31`,
       { replacements: params, type: QueryTypes.SELECT },
     );
     const visible = rows.slice(0, 30);
@@ -658,6 +790,7 @@ export class GroupRepository {
       text: r.text,
       photoUrl: r.hasPhoto ? `/groups/${r.groupId}/posts/${r.id}/photo` : null,
       photoAspectRatio: Number(r.photoWidth)>0&&Number(r.photoHeight)>0 ? Number(r.photoWidth)/Number(r.photoHeight) : null,
+      activityStats: r.activityStats ? (typeof r.activityStats === 'string' ? JSON.parse(r.activityStats) : r.activityStats) : null,
       commentsEnabled: Boolean(r.commentsEnabled),
       reactionCounts: reactions
         .filter((x: any) => x.postId === r.id)
@@ -1295,13 +1428,14 @@ export class GroupRepository {
       weekly_streak: "manteve sua sequência semanal!",
     };
     const rows = await this.db.query<any>(
-      `SELECT m.group_id groupId FROM group_members m JOIN \`groups\` g ON g.id=m.group_id JOIN group_event_settings s ON s.group_id=g.id JOIN group_share_preferences p ON p.group_id=g.id AND p.user_id=m.user_id WHERE m.user_id=? AND m.status='active' AND g.active=1 AND s.${eventType}=1 AND p.${eventType}=1`,
+      `SELECT m.group_id groupId,(g.allow_activity_stats=1 AND p.share_activity_stats=1) withStats FROM group_members m JOIN \`groups\` g ON g.id=m.group_id JOIN group_event_settings s ON s.group_id=g.id JOIN group_share_preferences p ON p.group_id=g.id AND p.user_id=m.user_id WHERE m.user_id=? AND m.status='active' AND g.active=1 AND s.${eventType}=1 AND p.${eventType}=1`,
       { replacements: [userId], type: QueryTypes.SELECT },
     );
     const user = await this.user(userId);
+    const stats = rows.some((row: any) => row.withStats) ? await this.activityStats(userId, sourceType, sourceId) : null;
     for (const row of rows) {
       await this.db.query(
-        `INSERT IGNORE INTO group_posts (id,group_id,author_user_id,kind,event_type,text,comments_enabled,source_type,source_id,created_at,updated_at) SELECT ?,?,?, 'event',?,?,comments_enabled,?,?,UTC_TIMESTAMP(6),UTC_TIMESTAMP(6) FROM \`groups\` WHERE id=?`,
+        `INSERT IGNORE INTO group_posts (id,group_id,author_user_id,kind,event_type,text,activity_stats,comments_enabled,source_type,source_id,created_at,updated_at) SELECT ?,?,?, 'event',?,?,?,comments_enabled,?,?,UTC_TIMESTAMP(6),UTC_TIMESTAMP(6) FROM \`groups\` WHERE id=?`,
         {
           replacements: [
             randomUUID(),
@@ -1309,6 +1443,7 @@ export class GroupRepository {
             userId,
             eventType,
             `${user.displayName} ${textMap[eventType]}`,
+            row.withStats && stats ? JSON.stringify(stats) : null,
             sourceType,
             sourceId,
             row.groupId,
@@ -1335,21 +1470,22 @@ export class GroupRepository {
       );
       if (!source) return 'missing' as const;
       const ids = [...new Set(groupIds)].sort();
-      const allowedGroups: { id: string; comments: boolean }[] = [];
+      const allowedGroups: { id: string; comments: boolean; withStats: boolean }[] = [];
       for (const groupId of ids) {
-        const [allowed] = await this.db.query<{ comments: boolean }>(
-          `SELECT g.comments_enabled comments FROM group_members m JOIN \`groups\` g ON g.id=m.group_id JOIN group_event_settings s ON s.group_id=g.id WHERE m.user_id=? AND m.group_id=? AND m.status='active' AND g.active=1 AND s.${eventType}=1 FOR UPDATE`,
+        const [allowed] = await this.db.query<{ comments: boolean; withStats: number }>(
+          `SELECT g.comments_enabled comments,(g.allow_activity_stats=1 AND COALESCE((SELECT sp.share_activity_stats FROM group_share_preferences sp WHERE sp.group_id=g.id AND sp.user_id=m.user_id),0)=1) withStats FROM group_members m JOIN \`groups\` g ON g.id=m.group_id JOIN group_event_settings s ON s.group_id=g.id WHERE m.user_id=? AND m.group_id=? AND m.status='active' AND g.active=1 AND s.${eventType}=1 FOR UPDATE`,
           { replacements: [userId, groupId], type: QueryTypes.SELECT, transaction },
         );
         if (!allowed) return 'forbidden' as const;
-        allowedGroups.push({ id: groupId, comments: Boolean(allowed.comments) });
+        allowedGroups.push({ id: groupId, comments: Boolean(allowed.comments), withStats: Boolean(Number(allowed.withStats)) });
       }
       const user = await this.user(userId, transaction);
+      const stats = allowedGroups.some(group => group.withStats) ? await this.activityStats(userId, sourceType, sourceId, transaction) : null;
       let created = 0;
       for (const group of allowedGroups) {
         const [, count] = await this.db.query(
-          "INSERT IGNORE INTO group_posts (id,group_id,author_user_id,kind,event_type,text,comments_enabled,source_type,source_id,created_at,updated_at) VALUES (?,?,?,'event',?,?,?,?,?,UTC_TIMESTAMP(6),UTC_TIMESTAMP(6))",
-          { replacements: [randomUUID(), group.id, userId, eventType, `${user.displayName} concluiu um ${sourceType === 'workout_session' ? 'treino' : 'cardio'} hoje!`, group.comments, sourceType, sourceId], type: QueryTypes.INSERT, transaction },
+          "INSERT IGNORE INTO group_posts (id,group_id,author_user_id,kind,event_type,text,activity_stats,comments_enabled,source_type,source_id,created_at,updated_at) VALUES (?,?,?,'event',?,?,?,?,?,?,UTC_TIMESTAMP(6),UTC_TIMESTAMP(6))",
+          { replacements: [randomUUID(), group.id, userId, eventType, `${user.displayName} concluiu um ${sourceType === 'workout_session' ? 'treino' : 'cardio'} hoje!`, group.withStats && stats ? JSON.stringify(stats) : null, group.comments, sourceType, sourceId], type: QueryTypes.INSERT, transaction },
         );
         if (Number(count) > 0) created++;
       }
@@ -1357,6 +1493,38 @@ export class GroupRepository {
     });
   }
 
+  /**
+   * Duration, exercises and sets of the person's own workout or cardio, for groups where they chose to show them.
+   * Never includes loads, exercise names or the plan.
+   */
+  private async activityStats(userId: string, sourceType: string, sourceId: string, t?: Transaction): Promise<GroupActivityStats | null> {
+    if (sourceType === "cardio_session") {
+      const [cardio] = await this.db.query<{ minutes: number | null }>(
+        "SELECT duration_minutes minutes FROM cardio_sessions WHERE id=? AND user_id=?",
+        { replacements: [sourceId, userId], type: QueryTypes.SELECT, transaction: t },
+      );
+      return cardio?.minutes != null ? { durationMinutes: Math.round(Number(cardio.minutes)), exercises: null, sets: null } : null;
+    }
+    if (sourceType !== "workout_session") return null;
+    const [session] = await this.db.query<{ ids: unknown }>(
+      "SELECT completed_exercise_ids ids FROM workout_sessions WHERE id=? AND user_id=?",
+      { replacements: [sourceId, userId], type: QueryTypes.SELECT, transaction: t },
+    );
+    if (!session) return null;
+    const [run] = await this.db.query<{ progress: unknown }>(
+      "SELECT progress FROM workout_runs WHERE history_session_id=? AND user_id=? LIMIT 1",
+      { replacements: [sourceId, userId], type: QueryTypes.SELECT, transaction: t },
+    );
+    const parse = (value: unknown) => typeof value === "string" ? JSON.parse(value) : value;
+    const progress = run ? parse(run.progress) as { startedAt?: number; finishedAt?: number | null; pausedMs?: number; exercises?: { completedSets?: number[] }[] } : null;
+    if (progress?.exercises) {
+      const sets = progress.exercises.reduce((total, exercise) => total + (exercise.completedSets?.length ?? 0), 0);
+      const elapsed = progress.startedAt && progress.finishedAt ? progress.finishedAt - progress.startedAt - (progress.pausedMs ?? 0) : null;
+      return { durationMinutes: elapsed != null && elapsed > 0 ? Math.max(1, Math.round(elapsed / 60_000)) : null, exercises: progress.exercises.filter(exercise => (exercise.completedSets?.length ?? 0) > 0).length, sets };
+    }
+    const ids = parse(session.ids);
+    return Array.isArray(ids) && ids.length ? { durationMinutes: null, exercises: ids.length, sets: null } : null;
+  }
   async detachActivity(userId: string, sourceType: string, sourceId: string) {
     await this.db.query(
       "UPDATE group_posts SET text=text WHERE author_user_id=? AND source_type=? AND source_id=?",

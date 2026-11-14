@@ -33,6 +33,7 @@ const icons: Record<
   invite: "account-plus-outline",
   comment: "comment-outline",
   reaction: "thumb-up-outline",
+  join_request: "account-question-outline",
   role_changed: "shield-account-outline",
   removed: "account-remove-outline",
   report_resolved: "flag-checkered",
@@ -70,6 +71,7 @@ export default function GroupNotifications() {
       }
       if (!item.readAt) await api.readGroupNotification(item.id);
       if (item.type === 'invite' || item.type === 'removed') router.dismissTo('/groups');
+      else if (item.type === 'join_request' && item.groupId && item.title === 'Pedido para entrar') router.replace({pathname:'/group-manage',params:{id:item.groupId,section:'members'}});
       else if (item.groupId) router.replace({pathname:'/group-detail',params:{id:item.groupId}});
       else await load();
     } catch { setError('Não foi possível abrir a notificação. Tente novamente.'); }

@@ -108,11 +108,16 @@ export const groupMediaSchema = z.strictObject({
 });
 export const updateGroupSchema = z.strictObject({
   name: z.string().trim().min(2).max(80).optional(), description: z.string().trim().max(500).nullable().optional(), avatarUrl: z.string().url().max(500).nullable().optional(),
-  postingMode: groupPostingModeSchema.optional(), commentsEnabled: z.boolean().optional(), active: z.boolean().optional(),
+  postingMode: groupPostingModeSchema.optional(), commentsEnabled: z.boolean().optional(), active: z.boolean().optional(), allowActivityStats: z.boolean().optional(),
 }).refine(value => Object.keys(value).length > 0, 'Informe ao menos um campo.');
 export const groupEventSettingsSchema = z.strictObject({ workout_completed: z.boolean(), cardio_completed: z.boolean(), weekly_goal: z.boolean(), weekly_streak: z.boolean(), member_joined: z.boolean() });
 /** Opt-in, per person and group, to appear in the group's weekly ranking. */
-export const groupParticipationSchema = z.strictObject({ showInRanking: z.boolean() });
+export const groupParticipationSchema = z.strictObject({ showInRanking: z.boolean().optional(), shareActivityStats: z.boolean().optional() }).refine(value => Object.keys(value).length > 0, 'Informe ao menos um campo.');
+/** Numbers a person chose to show on an achievement post; a snapshot taken when it was published. */
+export type GroupActivityStats = { durationMinutes:number|null;exercises:number|null;sets:number|null };
+/** Code typed or pasted by someone invited; letters and digits that are hard to confuse. */
+export const groupJoinCodeSchema = z.string().trim().toUpperCase().regex(/^[A-HJ-NP-Z2-9]{10}$/);
+export const groupJoinDecisionSchema = z.strictObject({ decision: z.enum(['approved', 'declined']) });
 export const groupWeekQuerySchema = z.strictObject({ date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine(value => !Number.isNaN(Date.parse(`${value}T00:00:00Z`)), 'Data inválida') });
 export const groupSharePreferencesSchema = z.strictObject({ workout_completed: z.boolean(), cardio_completed: z.boolean(), weekly_goal: z.boolean(), weekly_streak: z.boolean() });
 export const createGroupInviteSchema = z.strictObject({ username: socialUsernameSchema });
@@ -143,18 +148,22 @@ export type UpdateGroupPostInput = z.infer<typeof updateGroupPostSchema>;
 export type CreateGroupCommentInput = z.infer<typeof createGroupCommentSchema>;
 export type GroupUser = z.infer<typeof groupUserSchema>;
 export type GroupSummary = { id:string;name:string;description:string|null;avatarUrl:string|null;coverUrl?:string|null;role:GroupRole;memberCount:number;unseenCount:number;active:boolean;createdAt:string };
-export type GroupDetails = GroupSummary & { coverUrl:string|null;postingMode:'all_members'|'admins_only';commentsEnabled:boolean;eventSettings:GroupEventSettings;sharePreferences:GroupSharePreferences;joinedAt:string };
+export type GroupDetails = GroupSummary & { coverUrl:string|null;postingMode:'all_members'|'admins_only';commentsEnabled:boolean;eventSettings:GroupEventSettings;sharePreferences:GroupSharePreferences;joinedAt:string;allowActivityStats?:boolean;participation?:{showInRanking:boolean;shareActivityStats:boolean} };
 export type GroupMember = { user:GroupUser;role:GroupRole;joinedAt:string };
 export type GroupInvite = { id:string;group:{id:string;name:string;avatarUrl:string|null};invitedBy:GroupUser;status:'pending'|'accepted'|'declined'|'cancelled'|'expired';createdAt:string;expiresAt:string };
 export type GroupReactionCount = { reaction:GroupReaction;count:number;reactedByMe:boolean };
-export type GroupPost = { id:string;groupId:string;author:GroupUser;kind:'manual'|'event'|'announcement';eventType:GroupEventType|null;text:string|null;photoUrl:string|null;photoAspectRatio?:number|null;commentsEnabled:boolean;reactionCounts:GroupReactionCount[];commentCount:number;createdAt:string;updatedAt:string;edited:boolean };
+export type GroupPost = { id:string;groupId:string;author:GroupUser;kind:'manual'|'event'|'announcement';eventType:GroupEventType|null;text:string|null;photoUrl:string|null;photoAspectRatio?:number|null;activityStats?:GroupActivityStats|null;commentsEnabled:boolean;reactionCounts:GroupReactionCount[];commentCount:number;createdAt:string;updatedAt:string;edited:boolean };
 export type GroupComment = { id:string;postId:string;parentCommentId:string|null;reactionCounts:GroupReactionCount[];author:GroupUser;text:string;createdAt:string;updatedAt:string;edited:boolean;removed:boolean };
 export type GroupParticipation = z.infer<typeof groupParticipationSchema>;
+/** `code` only comes back at creation; afterwards the group only knows whether a code is active. */
+export type GroupInviteLink = { active:boolean;expiresAt:string|null;code?:string };
+export type GroupJoinPreview = { group:{name:string;memberCount:number};status:'available'|'member'|'pending' };
+export type GroupJoinRequest = { id:string;user:GroupUser;createdAt:string };
 /** The group's week (seg–dom): activity already shared in it, plus the count of workouts of members who opted into the ranking. */
 export type GroupWeekSummary = { weekStart:string;weekEnd:string;sharedActivities:number;activePeople:number;participating:boolean;ranking:{user:GroupUser;workouts:number}[] };
 /** Who reacted to a post, with the same public identity already shown for authors. */
 export type GroupPostReaction = { user:GroupUser;reaction:GroupReaction;reactedAt:string };
-export type GroupNotification = { id:string;type:'invite'|'comment'|'reaction'|'role_changed'|'removed'|'report_resolved';title:string;message:string;groupId:string|null;postId:string|null;readAt:string|null;createdAt:string };
+export type GroupNotification = { id:string;type:'invite'|'comment'|'reaction'|'join_request'|'role_changed'|'removed'|'report_resolved';title:string;message:string;groupId:string|null;postId:string|null;readAt:string|null;createdAt:string };
 export type GroupReport = { id:string;targetType:'post'|'comment';targetId:string;reason:GroupReportReason;details:string|null;status:'pending'|'dismissed'|'content_removed';reporter:GroupUser;createdAt:string;resolvedAt:string|null };
 export type GroupDashboard = { postsUnseen?:number;totalUnseen:number;pendingInvites:number;notificationsUnread:number };
 

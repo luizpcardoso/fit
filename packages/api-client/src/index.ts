@@ -123,6 +123,13 @@ export function createApiClient(options: ClientOptions) {
       return {uri:`${options.baseUrl}/groups/${groupId}/posts/${postId}/photo`,headers:{...transportHeaders,...(tokens?{authorization:`Bearer ${tokens.accessToken}`}:{})},cacheKey:`group-photo-${groupId}-${postId}`};
     },
     reactToGroupPost:(groupId:string,postId:string,reaction:GroupReaction|null)=>request<void>(`/groups/${groupId}/posts/${postId}/reaction`,{method:'PUT',body:JSON.stringify({reaction})}),
+    getGroupInviteLink:(groupId:string)=>request<import('@fit/contracts').GroupInviteLink>(`/groups/${groupId}/invite-link`),
+    createGroupInviteLink:(groupId:string)=>request<import('@fit/contracts').GroupInviteLink>(`/groups/${groupId}/invite-link`,{method:'POST'}),
+    revokeGroupInviteLink:(groupId:string)=>request<void>(`/groups/${groupId}/invite-link`,{method:'DELETE'}),
+    previewGroupJoin:(code:string)=>request<import('@fit/contracts').GroupJoinPreview>(`/groups/join/${encodeURIComponent(code)}`),
+    requestGroupJoin:(code:string)=>request<{ok:boolean}>(`/groups/join/${encodeURIComponent(code)}`,{method:'POST'}),
+    listGroupJoinRequests:(groupId:string)=>request<import('@fit/contracts').GroupJoinRequest[]>(`/groups/${groupId}/join-requests`),
+    decideGroupJoinRequest:(groupId:string,requestId:string,decision:'approved'|'declined')=>request<void>(`/groups/${groupId}/join-requests/${requestId}`,{method:'PATCH',body:JSON.stringify({decision})}),
     getGroupWeek:(groupId:string,date:string)=>request<import('@fit/contracts').GroupWeekSummary>(`/groups/${groupId}/week?date=${encodeURIComponent(date)}`),
     updateGroupParticipation:(groupId:string,input:import('@fit/contracts').GroupParticipation)=>request<void>(`/groups/${groupId}/participation`,{method:'PUT',body:JSON.stringify(input)}),
     listGroupPostReactions:(groupId:string,postId:string)=>request<import('@fit/contracts').GroupPostReaction[]>(`/groups/${groupId}/posts/${postId}/reactions`),

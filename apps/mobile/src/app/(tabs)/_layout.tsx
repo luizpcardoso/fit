@@ -1,5 +1,5 @@
 import { NavigationDock, type DockIcons } from '@/components/navigation-dock';
-import { router, Tabs, usePathname } from 'expo-router';
+import { router, Tabs, useGlobalSearchParams, usePathname } from 'expo-router';
 import { useEffect } from 'react';
 import { BackHandler, Platform } from 'react-native';
 
@@ -13,18 +13,22 @@ const icons: DockIcons = {
 
 function AndroidTabBackHandler() {
   const pathname = usePathname();
+  const { section } = useGlobalSearchParams<{ section?: string }>();
+  // Fichas, Histórico and Cardio are sections of the Fitness tab: back returns to its overview first.
+  const fitnessSection = pathname === '/workouts' && (section === 'plans' || section === 'training' || section === 'cardio');
 
   useEffect(() => {
     if (Platform.OS !== 'android') return;
 
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
       if (!mainTabPaths.has(pathname)) return false;
+      if (fitnessSection) { router.setParams({ section: 'overview' }); return true; }
       router.replace('/');
       return true;
     });
 
     return () => subscription.remove();
-  }, [pathname]);
+  }, [pathname, fitnessSection]);
 
   return null;
 }

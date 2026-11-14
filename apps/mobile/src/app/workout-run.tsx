@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ComponentRef, type ReactNode } from 'react';
-import { AppState, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, Vibration, View } from 'react-native';
+import { AccessibilityInfo, Animated, AppState, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, Vibration, View } from 'react-native';
+import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -19,6 +20,7 @@ import MaterialCommunityIcons from '@/components/icon';
 import { formatDecimalInput, formatDecimalValue } from '@/utils/input-format';
 import { formatMeasure } from '@/utils/numbers';
 import { localDate } from '@/utils/dates';
+import { tapFeedback } from '@/utils/haptics';
 
 type ExerciseCompletionUndo = { runId: string; exerciseId: string; completedSets: number[]; skipped: boolean; performed?: PerformedSet[] };
 type Panel = 'exercises' | 'exercise' | 'image' | 'options' | 'instructions' | null;
@@ -40,6 +42,16 @@ function useNow(active = true) {
   }, [active]);
   return now;
 }
+function useReduceMotion() {
+  const [reduce, setReduce] = useState(false);
+  useEffect(() => {
+    let active = true;
+    void AccessibilityInfo.isReduceMotionEnabled().then(value => { if (active) setReduce(value); }).catch(() => {});
+    const subscription = AccessibilityInfo.addEventListener('reduceMotionChanged', setReduce);
+    return () => { active = false; subscription.remove(); };
+  }, []);
+  return reduce;
+}
 
 export default function WorkoutRunScreen() {
   const { colors: c } = useAppTheme(), s = styles(c), session = useWorkoutRun(), { api } = useAuth();
@@ -49,7 +61,12 @@ export default function WorkoutRunScreen() {
   const [previous, setPrevious] = useState<{ divisionId: string; values: WorkoutRunPrevious } | null>(null);
   const [loadDrafts, setLoadDrafts] = useState<Record<string, string>>({});
   const strip = useRef<ComponentRef<typeof ScrollView>>(null);
-  const run = session.run, p = run?.progress, open = Boolean(p && isWorkoutRunOpen(p));
+  // The screen shows each tap at once; the device write and the notification follow in the provider's queue.
+  const [optimistic, setOptimistic] = useState<{ runId: string; progress: WorkoutRunProgress } | null>(null);
+  const pendingUpdates = useRef(0);
+  const reduceMotion = useReduceMotion();
+  const [cardOpacity] = useState(() => new Animated.Value(1));
+  const run = session.run, p = run ? (optimistic?.runId === run.id ? optimistic.progress : run.progress) : undefined, open = Boolean(p && isWorkoutRunOpen(p));
   const result = Boolean(run && !open && (finishedHere === run.id || session.dirty));
   // Offer posting right after a workout finished on this screen; the result card can reopen it.
   const sharePrompted = useRef<string | null>(null);
@@ -99,10 +116,18 @@ export default function WorkoutRunScreen() {
     setBusy(true); setError('');
     try { await work(); } catch (cause) { setError(cause instanceof Error ? cause.message : 'Não foi possível salvar. Tente novamente.'); } finally { setBusy(false); }
   };
-  const update = (change: (value: WorkoutRunProgress) => WorkoutRunProgress) => { if (busy) return; setCompletionUndo(null); void act(() => session.update(change)); };
+  const update = (change: (value: WorkoutRunProgress) => WorkoutRunProgress) => {
+    if (busy || !run) return;
+    const runId = run.id, saved = run.progress;
+    setCompletionUndo(null); setError('');
+    setOptimistic(current => ({ runId, progress: change(current?.runId === runId ? current.progress : saved) }));
+    pendingUpdates.current += 1;
+    session.update(change).catch((cause: unknown) => setError(cause instanceof Error ? cause.message : 'Não foi possível salvar. Tente novamente.')).finally(() => { pendingUpdates.current -= 1; if (!pendingUpdates.current) setOptimistic(null); });
+  };
   const toggleSet = (set: number) => {
     if (!run || !exercise) return;
     const values = valuesOf(exercise, set);
+    if (!item?.completedSets.includes(set)) tapFeedback();
     clearLoadDraft(exercise);
     update(value => toggleWorkoutRunSet(value, run.exercises, set, values, Date.now()));
   };
@@ -148,6 +173,20 @@ export default function WorkoutRunScreen() {
 
   const currentIndex = p?.currentIndex ?? 0;
   useEffect(() => { strip.current?.scrollTo({ x: Math.max(0, (currentIndex - 1) * 68), animated: true }); }, [currentIndex]);
+  // Changing exercise fades the card in instead of swapping it abruptly.
+  const shownExerciseId = exercise?.id, firstExercise = useRef(true);
+  useEffect(() => {
+    if (firstExercise.current) { firstExercise.current = false; return; }
+    if (reduceMotion || !shownExerciseId) return;
+    cardOpacity.setValue(.35);
+    Animated.timing(cardOpacity, { toValue: 1, duration: 180, useNativeDriver: true }).start();
+  }, [shownExerciseId, reduceMotion, cardOpacity]);
+  // Keeps the screen on while training, so the rest countdown stays visible without touching the phone.
+  useEffect(() => {
+    if (!open || !running) return;
+    void activateKeepAwakeAsync('workout-run').catch(() => {});
+    return () => { void deactivateKeepAwake('workout-run').catch(() => {}); };
+  }, [open, running]);
 
   if (!open && !result && !session.conflict) return <WorkoutStart {...params}/>;
   const nextSet = exercise && item ? Array.from({ length: exercise.sets }, (_, index) => index).find(index => !item.completedSets.includes(index)) : undefined;
@@ -180,7 +219,7 @@ export default function WorkoutRunScreen() {
               <Text style={[s.chipIndex, current && { color: c.link }]}>{i + 1}</Text>
             </Pressable>; })}
         </ScrollView>
-        <View style={s.exerciseCard} testID="workout-exercise-card">
+        <Animated.View style={[s.exerciseCard, { opacity: cardOpacity }]} testID="workout-exercise-card">
           <ExerciseThumbnail key={exercise.id} name={exercise.name} uri={exercise.imageUrl} fill onPreview={() => setPanel('image')}/>
           <View style={s.exerciseHeader}>
             <View style={s.flex}>
@@ -191,10 +230,7 @@ export default function WorkoutRunScreen() {
           </View>
           {item.skipped ? <View style={s.skipped}><Text style={[s.caption, s.flex]}>Exercício pulado por enquanto. Marque uma série para voltar a fazê-lo.</Text></View> : null}
           <View style={s.bubbles}>
-            {Array.from({ length: exercise.sets }, (_, set) => { const checked = item.completedSets.includes(set), isNext = set === nextSet && running;
-              return <Pressable key={set} accessibilityRole="checkbox" aria-checked={checked} aria-disabled={disabled || !running} accessibilityLabel={`Série ${set + 1} ${checked ? 'concluída' : 'pendente'}`} disabled={disabled || !running} onPress={() => toggleSet(set)} style={[s.bubble, isNext && s.bubbleNext, checked && s.bubbleDone, (disabled || !running) && !checked && s.disabled]}>
-                {checked ? <MaterialCommunityIcons name="check" size={24} color={c.onPrimary}/> : <Text style={[s.bubbleText, isNext && { color: c.link }]}>{set + 1}</Text>}
-              </Pressable>; })}
+            {Array.from({ length: exercise.sets }, (_, set) => <SetBubble key={`${exercise.id}:${set}`} set={set} checked={item.completedSets.includes(set)} next={set === nextSet && running} blocked={disabled || !running} reduceMotion={reduceMotion} onPress={() => toggleSet(set)} c={c}/>)}
           </View>
           <View style={s.loadRow}>
             <Text style={[s.heading, s.flex]}>Carga <Text style={s.caption}>{previousFor(exercise.id, 0)?.loadKg != null ? `· última vez ${formatMeasure(previousFor(exercise.id, 0)!.loadKg!, 'kg', 2)}` : '· opcional'}</Text></Text>
@@ -203,7 +239,7 @@ export default function WorkoutRunScreen() {
           </View>
           <Text accessibilityLiveRegion="polite" accessibilityLabel={`${item.completedSets.length} de ${exercise.sets} séries concluídas`} style={[s.caption, s.reserved]}>{p.status === 'paused' ? 'Treino pausado. Retome para marcar séries.' : nextSet === undefined ? 'Exercício concluído.' : `${item.completedSets.length} de ${exercise.sets} séries · toque numa série para marcar ou desmarcar.`}</Text>
           {exercise.notes ? <Pressable accessibilityRole="button" accessibilityLabel="Ver orientações do exercício" onPress={() => setPanel('instructions')} style={s.instructions}><MaterialCommunityIcons name="information-outline" size={20} color={c.link}/><Text numberOfLines={2} style={[s.caption, s.flex]}>{exercise.notes}</Text><MaterialCommunityIcons name="chevron-right" size={20} color={c.link}/></Pressable> : null}
-        </View>
+        </Animated.View>
         {upcoming ? <Text style={s.upcoming}>A seguir: <Text style={s.upcomingName}>{upcoming.name}</Text> · {upcoming.sets} × {repsLabel(upcoming.reps)}{upcoming.load != null ? ` · ${formatMeasure(upcoming.load, 'kg', 2)}` : ''}</Text> : <Text style={s.upcoming}>Este é o último exercício do treino.</Text>}
       </> : null}
       {run && p && result ? <WorkoutResult run={run} progress={p} dirty={session.dirty} busy={busy} onShare={() => setSharing('manual')} onDone={() => { setFinishedHere(null); void act(async () => { await session.dismiss(); router.dismissTo('/'); }); }} onAnother={() => { setFinishedHere(null); void act(session.dismiss); }} onHistory={() => router.dismissTo({ pathname: '/workouts', params: { section: 'training' } })}/> : null}
@@ -212,9 +248,9 @@ export default function WorkoutRunScreen() {
     {open && p && run && exercise && item ? <View style={s.footer}>
       <RestBar progress={p} restSeconds={exercise.restSeconds ?? 60} disabled={disabled} onChange={update} c={c}/>
       <View style={s.footerRow}>
-        {running ? <Pressable accessibilityRole="button" accessibilityLabel="Pausar treino" disabled={disabled} onPress={() => update(value => toggleWorkoutRunPause(value, Date.now()))} style={[s.pauseButton, disabled && s.disabled]}><MaterialCommunityIcons name="pause" size={24} color={c.link}/></Pressable> : null}
-        {running ? <Pressable testID="complete-exercise-button" accessibilityRole="button" accessibilityLabel={primaryLabel} aria-disabled={disabled} disabled={disabled} onPress={primaryAction} style={[s.primaryButton, s.flex, disabled && s.disabled]}><MaterialCommunityIcons name={nextSet !== undefined ? 'check' : last ? 'flag-checkered' : 'arrow-right'} size={22} color={c.onPrimary}/><Text numberOfLines={1} style={s.primaryText}>{primaryLabel}</Text></Pressable>
-          : <Pressable testID="complete-exercise-button" accessibilityRole="button" accessibilityLabel="Retomar treino" disabled={disabled} onPress={() => update(value => toggleWorkoutRunPause(value, Date.now()))} style={[s.primaryButton, s.flex, disabled && s.disabled]}><MaterialCommunityIcons name="play" size={22} color={c.onPrimary}/><Text style={s.primaryText}>Retomar treino</Text></Pressable>}
+        {running ? <Pressable accessibilityRole="button" accessibilityLabel="Pausar treino" disabled={disabled} onPress={() => update(value => toggleWorkoutRunPause(value, Date.now()))} style={({ pressed }) => [s.pauseButton, disabled && s.disabled, pressed && s.pressed]}><MaterialCommunityIcons name="pause" size={24} color={c.link}/></Pressable> : null}
+        {running ? <Pressable testID="complete-exercise-button" accessibilityRole="button" accessibilityLabel={primaryLabel} aria-disabled={disabled} disabled={disabled} onPress={primaryAction} style={({ pressed }) => [s.primaryButton, s.flex, disabled && s.disabled, pressed && s.pressed]}><MaterialCommunityIcons name={nextSet !== undefined ? 'check' : last ? 'flag-checkered' : 'arrow-right'} size={22} color={c.onPrimary}/><Text numberOfLines={1} style={s.primaryText}>{primaryLabel}</Text></Pressable>
+          : <Pressable testID="complete-exercise-button" accessibilityRole="button" accessibilityLabel="Retomar treino" disabled={disabled} onPress={() => update(value => toggleWorkoutRunPause(value, Date.now()))} style={({ pressed }) => [s.primaryButton, s.flex, disabled && s.disabled, pressed && s.pressed]}><MaterialCommunityIcons name="play" size={22} color={c.onPrimary}/><Text style={s.primaryText}>Retomar treino</Text></Pressable>}
       </View>
     </View> : null}
     <Sheet visible={panel !== null} onClose={() => setPanel(null)} title={panel === 'exercises' ? 'Exercícios do treino' : panel === 'exercise' ? exercise?.name ?? '' : panel === 'options' ? 'Opções do treino' : panel === 'instructions' ? exercise?.name ?? '' : ''} c={c}>
@@ -235,6 +271,23 @@ export default function WorkoutRunScreen() {
       {panel === 'instructions' && exercise ? <><Text style={s.muted}>{exercise.sets} séries × {repsLabel(exercise.reps)} repetições{exercise.load != null ? ` · ${formatMeasure(exercise.load, 'kg', 2)}` : ''}</Text><Text style={s.muted}>Descanso previsto: {exercise.restSeconds ?? 60} segundos</Text><Text style={s.body}>{exercise.notes || 'Sem orientações adicionais na ficha.'}</Text></> : null}
     </Sheet>
   </SafeAreaView>;
+}
+
+/** One set: the tap answers at once (press state, tick and a short pop when checked). */
+function SetBubble({ set, checked, next, blocked, reduceMotion, onPress, c }: { set: number; checked: boolean; next: boolean; blocked: boolean; reduceMotion: boolean; onPress(): void; c: AppPalette }) {
+  const s = styles(c), [scale] = useState(() => new Animated.Value(1)), was = useRef(checked);
+  useEffect(() => {
+    if (was.current === checked) return;
+    was.current = checked;
+    if (!checked || reduceMotion) return;
+    scale.setValue(.8);
+    Animated.spring(scale, { toValue: 1, speed: 28, bounciness: 12, useNativeDriver: true }).start();
+  }, [checked, reduceMotion, scale]);
+  return <Animated.View style={{ transform: [{ scale }] }}>
+    <Pressable accessibilityRole="checkbox" aria-checked={checked} aria-disabled={blocked} accessibilityLabel={`Série ${set + 1} ${checked ? 'concluída' : 'pendente'}`} disabled={blocked} onPress={onPress} style={({ pressed }) => [s.bubble, next && s.bubbleNext, checked && s.bubbleDone, blocked && !checked && s.disabled, pressed && s.pressed]}>
+      {checked ? <MaterialCommunityIcons name="check" size={24} color={c.onPrimary}/> : <Text style={[s.bubbleText, next && { color: c.link }]}>{set + 1}</Text>}
+    </Pressable>
+  </Animated.View>;
 }
 
 /** Workout name, live time and exercise progress, pinned under the header. */
@@ -321,7 +374,7 @@ const styles = (c: AppPalette) => StyleSheet.create({
   title: { ...Type.title, fontWeight: '800', color: c.text }, heading: { ...Type.body, fontWeight: '800', color: c.text }, body: { ...Type.body, color: c.text }, muted: { ...Type.body, color: c.textMuted }, caption: { ...Type.caption, color: c.textMuted },
   columnLabel: { ...Type.caption, letterSpacing: .6, fontWeight: '800', color: c.textMuted }, link: { ...Type.body, fontWeight: '800', color: c.link, textAlign: 'center' },
   button: { minHeight: 48, borderRadius: Radius.md, padding: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: c.surfaceSoft }, textButton: { minHeight: 44, paddingHorizontal: 8, justifyContent: 'center' },
-  disabled: { opacity: .45 }, card: { padding: 18, borderWidth: 1, borderColor: c.border, borderRadius: Radius.xl, backgroundColor: c.surface, gap: 12 },
+  disabled: { opacity: .45 }, pressed: { opacity: .75 }, card: { padding: 18, borderWidth: 1, borderColor: c.border, borderRadius: Radius.xl, backgroundColor: c.surface, gap: 12 },
   headerAction: { minHeight: 44, paddingHorizontal: 10, borderRadius: Radius.md, justifyContent: 'center', backgroundColor: c.surfaceSoft }, iconButton: { width: 44, height: 44, borderRadius: Radius.md, alignItems: 'center', justifyContent: 'center', backgroundColor: c.surfaceSoft },
   sessionBar: { backgroundColor: c.background, paddingHorizontal: 16, paddingVertical: 8, gap: 6, borderBottomWidth: 1, borderBottomColor: c.border },
   sessionRow: { flexDirection: 'row', alignItems: 'center', gap: 10, maxWidth: 648, width: '100%', alignSelf: 'center' },

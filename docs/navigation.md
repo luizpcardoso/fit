@@ -8,7 +8,7 @@ A dock participa do layout e reserva sua altura fora da área rolável das abas,
 
 Social não é uma aba. O feed único dos grupos fica em `/groups`, na pilha raiz, e é aberto pela entrada identificada como Comunidade no cabeçalho do Início, que exibe o contador de posts não lidos, e pelo card Comunidade. A tela tem "‹ Início" no topo. O avatar do Início abre o menu da conta. O antigo botão de menu ("hambúrguer") foi removido.
 
-O botão Voltar do Android, quando usado em qualquer destino da dock, retorna primeiro para o Início. Somente quando o Início já está aberto um novo Voltar pode encerrar o aplicativo. Telas de detalhe, formulários e outros fluxos empilhados preservam a navegação para a tela anterior.
+O botão Voltar do Android, quando usado em qualquer destino da dock, retorna primeiro para o Início. Somente quando o Início já está aberto um novo Voltar pode encerrar o aplicativo. Em Fitness, Fichas, Histórico e Cardio são seções da própria aba: o Voltar retorna antes à visão geral de Fitness. Telas de detalhe, formulários e outros fluxos empilhados preservam a navegação para a tela anterior.
 
 Telas abertas fora das abas usam o cabeçalho padrão `ScreenHeader` (`apps/mobile/src/components/screen-header.tsx`): à esquerda, Voltar com o nome do destino (por exemplo, "Fichas" ou "Saúde"); à direita, ações da tela e um atalho para o Início. O antigo botão flutuante foi removido porque cobria o conteúdo do topo. Telas com dados ainda não salvos registram `useUnsavedChanges`; Voltar e Início pedem confirmação somente quando há algo a perder.
 

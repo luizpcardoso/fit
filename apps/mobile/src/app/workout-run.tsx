@@ -49,7 +49,7 @@ function useNow(active = true) {
 export default function WorkoutRunScreen() {
   const { colors: c } = useAppTheme(), s = styles(c), session = useWorkoutRun(), { api } = useAuth();
   const params = useLocalSearchParams<{ planId?: string; divisionId?: string; suggestedDivisionId?: string }>();
-  const [panel, setPanel] = useState<Panel>(null), [busy, setBusy] = useState(false), [error, setError] = useState(''), [finishedHere, setFinishedHere] = useState<string | null>(null), [sharing, setSharing] = useState<false | 'auto' | 'manual'>(false);
+  const [panel, setPanel] = useState<Panel>(null), [busy, setBusy] = useState(false), [error, setError] = useState(''), [finishedHere, setFinishedHere] = useState<string | null>(null), [sharing, setSharing] = useState(false);
   const [completionUndo, setCompletionUndo] = useState<ExerciseCompletionUndo | null>(null);
   // The sheet keeps showing its last content while it slides out.
   const [lastPanel, setLastPanel] = useState<Panel>(null);
@@ -65,14 +65,7 @@ export default function WorkoutRunScreen() {
   const [cardOpacity] = useState(() => new Animated.Value(1));
   const run = session.run, p = run ? (optimistic?.runId === run.id ? optimistic.progress : run.progress) : undefined, open = Boolean(p && isWorkoutRunOpen(p));
   const result = Boolean(run && !open && (finishedHere === run.id || session.dirty));
-  // Offer posting right after a workout finished on this screen; the result card can reopen it.
-  const sharePrompted = useRef<string | null>(null);
   const historySessionId = run?.historySessionId ?? null;
-  useEffect(() => {
-    if (!result || !run || finishedHere !== run.id || !historySessionId || sharePrompted.current === historySessionId) return;
-    sharePrompted.current = historySessionId;
-    setSharing('auto');
-  }, [result, run, finishedHere, historySessionId]);
   const exercise = run?.exercises[p?.currentIndex ?? 0], item = p?.exercises.find(x => x.id === exercise?.id);
   const done = run?.exercises.filter(e => p?.exercises.find(x => x.id === e.id)?.completedSets.length === e.sets).length ?? 0;
   const performed = p?.exercises.filter(e => e.completedSets.length > 0).length ?? 0;
@@ -90,6 +83,8 @@ export default function WorkoutRunScreen() {
     return () => { active = false; };
   }, [api, divisionId]);
 
+  // Volume of the last time this division was done, from the values fetched before finishing (0 when unknown).
+  const previousVolume = previous?.divisionId === divisionId ? Object.values(previous?.values ?? {}).reduce((sum, sets) => sum + sets.reduce((total, entry) => total + (entry.loadKg ?? 0) * (entry.reps ?? 0), 0), 0) : 0;
   const previousFor = (exerciseId: string, set: number) => { const list = previous?.divisionId === divisionId ? previous?.values[exerciseId] : undefined; return list?.find(entry => entry.set === set) ?? list?.[list.length - 1] ?? null; };
   const prefill = (target: WorkoutExercise, set: number): SetValues => {
     const last = previousFor(target.id, set);
@@ -164,7 +159,7 @@ export default function WorkoutRunScreen() {
     const missing = run.exercises.filter(e => !p.exercises.find(x => x.id === e.id)?.completedSets.length).map(e => e.name);
     const missingText = missing.length ? ` Sem séries: ${missing.slice(0, 3).join(', ')}${missing.length > 3 ? ` e mais ${missing.length - 3}` : ''}.` : '';
     if (!await confirmAction({ title: discard ? 'Descartar treino?' : done === run.exercises.length ? 'Finalizar treino completo?' : 'Finalizar treino parcial?', message: discard ? 'A sessão será encerrada sem contar para sua meta.' : `${doneSets} de ${totalSets} séries feitas em ${performed} de ${run.exercises.length} exercícios.${missingText} O cronômetro para e as séries feitas ficam no histórico.`, confirmLabel: discard ? 'Descartar treino' : 'Finalizar treino', cancelLabel: 'Continuar treinando', destructive: discard })) return;
-    setFinishedHere(run.id); setPanel(null);
+    setFinishedHere(run.id); setPanel(null); if (!discard) tapFeedback(40);
     await act(() => session.update(value => ({ ...value, status: discard ? 'discarded' : 'completed', finishedAt: Date.now(), pausedMs: value.pausedMs + (value.pausedAt !== null ? Math.max(0, Date.now() - value.pausedAt) : 0), pausedAt: null, restEndsAt: null, restRemainingMs: null })));
   };
 
@@ -239,8 +234,8 @@ export default function WorkoutRunScreen() {
         </Animated.View>
         {upcoming ? <Text style={s.upcoming}>A seguir: <Text style={s.upcomingName}>{upcoming.name}</Text> · {upcoming.sets} × {repsLabel(upcoming.reps)}{upcoming.load != null ? ` · ${formatMeasure(upcoming.load, 'kg', 2)}` : ''}</Text> : <Text style={s.upcoming}>Este é o último exercício do treino.</Text>}
       </> : null}
-      {run && p && result ? <WorkoutResult run={run} progress={p} dirty={session.dirty} busy={busy} onShare={() => setSharing('manual')} onDone={() => { setFinishedHere(null); void act(async () => { await session.dismiss(); router.dismissTo('/'); }); }} onAnother={() => { setFinishedHere(null); void act(session.dismiss); }} onHistory={() => router.dismissTo({ pathname: '/workouts', params: { section: 'training' } })}/> : null}
-      {run ? <ShareActivityModal auto={sharing === 'auto'} activity={sharing && run.historySessionId ? { eventType: 'workout_completed', sourceType: 'workout_session', sourceId: run.historySessionId } : null} onClose={() => setSharing(false)}/> : null}
+      {run && p && result ? <WorkoutResult run={run} progress={p} dirty={session.dirty} busy={busy} previousVolume={finishedHere === run.id ? previousVolume : 0} reduceMotion={reduceMotion} onShare={() => setSharing(true)} onDone={() => { if (session.dirty) { router.dismissTo('/'); return; } setFinishedHere(null); void act(async () => { await session.dismiss(); router.dismissTo('/'); }); }} onAnother={() => { setFinishedHere(null); void act(session.dismiss); }} onHistory={() => router.dismissTo({ pathname: '/workouts', params: { section: 'training' } })}/> : null}
+      {run ? <ShareActivityModal activity={sharing && historySessionId ? { eventType: 'workout_completed', sourceType: 'workout_session', sourceId: historySessionId } : null} onClose={() => setSharing(false)}/> : null}
     </ScrollView>
     {open && p && run && exercise && item ? <View style={s.footer}>
       <RestBar progress={p} restSeconds={exercise.restSeconds ?? 60} disabled={disabled} onChange={update} c={c}/>
@@ -329,28 +324,43 @@ function RestBar({ progress: p, restSeconds, disabled, onChange, c }: { progress
 }
 
 /** End-of-workout summary: what was done, what was left, and what it meant for the week. */
-function WorkoutResult({ run, progress: p, dirty, busy, onShare, onDone, onAnother, onHistory }: { run: NonNullable<ReturnType<typeof useWorkoutRun>['run']>; progress: WorkoutRunProgress; dirty: boolean; busy: boolean; onShare(): void; onDone(): void; onAnother(): void; onHistory(): void }) {
+function WorkoutResult({ run, progress: p, dirty, busy, previousVolume, reduceMotion, onShare, onDone, onAnother, onHistory }: { run: NonNullable<ReturnType<typeof useWorkoutRun>['run']>; progress: WorkoutRunProgress; dirty: boolean; busy: boolean; previousVolume: number; reduceMotion: boolean; onShare(): void; onDone(): void; onAnother(): void; onHistory(): void }) {
   const { colors: c } = useAppTheme(), s = styles(c), { api } = useAuth();
   const [goal, setGoal] = useState<WorkoutGoalSummary | null>(null);
   useEffect(() => { if (dirty || p.status !== 'completed') return; let active = true; api.getWorkoutGoal(localDate()).then(value => { if (active) setGoal(value); }, () => {}); return () => { active = false; }; }, [api, dirty, p.status]);
+  // The result arrives as a moment of its own: the card rises and the badge pops.
+  const [enter] = useState(() => new Animated.Value(reduceMotion ? 1 : 0)), [badge] = useState(() => new Animated.Value(reduceMotion ? 1 : .4));
+  useEffect(() => {
+    if (reduceMotion) return;
+    Animated.parallel([
+      Animated.timing(enter, { toValue: 1, duration: 320, useNativeDriver: true }),
+      Animated.spring(badge, { toValue: 1, speed: 10, bounciness: 14, delay: 120, useNativeDriver: true }),
+    ]).start();
+  }, [enter, badge, reduceMotion]);
   const state = (e: WorkoutExercise) => p.exercises.find(x => x.id === e.id)!;
   const complete = run.exercises.filter(e => state(e).completedSets.length === e.sets);
   const partial = run.exercises.filter(e => state(e).completedSets.length > 0 && state(e).completedSets.length < e.sets);
   const skipped = run.exercises.filter(e => !state(e).completedSets.length);
   const doneSets = p.exercises.reduce((sum, e) => sum + e.completedSets.length, 0), volume = workoutRunVolume(p);
-  const discarded = p.status === 'discarded';
+  const discarded = p.status === 'discarded', full = complete.length === run.exercises.length;
+  const difference = volume > 0 && previousVolume > 0 ? Math.round(volume - previousVolume) : null;
   const stat = (value: string, label: string) => <View style={s.stat}><Text style={s.statValue}>{value}</Text><Text style={s.caption}>{label}</Text></View>;
   const group = (title: string, items: WorkoutExercise[], icon: 'check-circle' | 'circle-half-full' | 'circle-outline') => items.length ? <View style={s.resultGroup}><Text style={s.columnLabel}>{title}</Text>{items.map(e => <View key={e.id} style={s.resultRow}><MaterialCommunityIcons name={icon} size={18} color={icon === 'circle-outline' ? c.textMuted : c.success}/><Text style={[s.body, s.flex]}>{e.name}</Text><Text style={s.caption}>{state(e).completedSets.length}/{e.sets}</Text></View>)}</View> : null;
-  return <View style={s.resultCard}>
-    <View style={s.resultHeader}><MaterialCommunityIcons name={discarded ? 'close-circle-outline' : complete.length === run.exercises.length ? 'trophy-outline' : 'flag-checkered'} size={32} color={discarded ? c.textMuted : c.accent}/><View style={s.flex}><Text accessibilityRole="header" style={s.title}>{discarded ? 'Treino descartado' : complete.length === run.exercises.length ? 'Treino completo!' : 'Treino finalizado'}</Text><Text style={s.muted}>Treino {run.divisionLabel} · {run.divisionName}</Text></View></View>
-    {!discarded ? <View style={s.stats}>{stat(formatWorkoutTime(workoutRunElapsed(p, p.finishedAt ?? p.startedAt)), 'duração')}{stat(`${doneSets}`, doneSets === 1 ? 'série' : 'séries')}{stat(`${complete.length}/${run.exercises.length}`, 'exercícios completos')}{volume > 0 ? stat(formatMeasure(volume, 'kg', 0), 'volume') : null}</View> : <Text style={s.muted}>Este treino não conta para sua meta.</Text>}
+  return <Animated.View style={[s.resultCard, { opacity: enter, transform: [{ translateY: enter.interpolate({ inputRange: [0, 1], outputRange: [18, 0] }) }] }]}>
+    <View style={s.resultHero}>
+      <Animated.View style={[s.resultBadge, discarded && { backgroundColor: c.surfaceSoft }, { transform: [{ scale: badge }] }]}><MaterialCommunityIcons name={discarded ? 'close-circle-outline' : full ? 'trophy' : 'flag-checkered'} size={36} color={discarded ? c.textMuted : c.onPrimary}/></Animated.View>
+      <Text accessibilityRole="header" style={s.resultTitle}>{discarded ? 'Treino descartado' : full ? 'Treino completo!' : 'Treino finalizado'}</Text>
+      <Text style={[s.muted, s.centered]}>Treino {run.divisionLabel} · {run.divisionName}</Text>
+    </View>
+    {!discarded ? <View style={s.stats}>{stat(formatWorkoutTime(workoutRunElapsed(p, p.finishedAt ?? p.startedAt)), 'duração')}{stat(`${doneSets}`, doneSets === 1 ? 'série' : 'séries')}{stat(`${complete.length}/${run.exercises.length}`, 'exercícios completos')}{volume > 0 ? stat(formatMeasure(volume, 'kg', 0), 'volume') : null}</View> : <Text style={[s.muted, s.centered]}>Este treino não conta para sua meta.</Text>}
+    {!discarded && difference !== null ? <View style={s.goalBox}><MaterialCommunityIcons name={difference > 0 ? 'trending-up' : difference < 0 ? 'trending-down' : 'trending-neutral'} size={20} color={c.link}/><Text style={[s.body, s.flex]}>{difference === 0 ? 'Mesmo volume do último treino.' : <><Text style={s.heading}>{formatMeasure(Math.abs(difference), 'kg', 0)}</Text> {difference > 0 ? 'a mais' : 'a menos'} que no último treino.</>}</Text></View> : null}
     {!discarded && goal?.configured ? <View style={s.goalBox}><MaterialCommunityIcons name="calendar-check-outline" size={20} color={c.link}/><Text style={[s.body, s.flex]}>Meta da semana: <Text style={s.heading}>{goal.completed} de {goal.weeklyTarget}</Text>{goal.remaining ? ` · faltam ${goal.remaining}` : ' · concluída'}</Text></View> : null}
-    {dirty ? <Text style={s.caption}>Resultado salvo neste celular. O histórico e a meta atualizam quando a conexão voltar.</Text> : null}
+    {dirty ? <Text style={s.caption}>Resultado salvo neste celular. O histórico e a meta atualizam quando a conexão voltar; você pode sair desta tela.</Text> : null}
     {!discarded ? <>{group('Completos', complete, 'check-circle')}{group('Parciais', partial, 'circle-half-full')}{group('Não feitos', skipped, 'circle-outline')}</> : null}
-    <Pressable accessibilityRole="button" disabled={busy || dirty} onPress={onDone} style={[s.primaryButton, (busy || dirty) && s.disabled]}><Text style={s.primaryText}>Concluir</Text></Pressable>
-    {run.historySessionId ? <Pressable accessibilityRole="button" onPress={onShare} style={s.button}><Text style={s.link}>Postar nos grupos</Text></Pressable> : null}
+    <Pressable accessibilityRole="button" disabled={busy} onPress={onDone} style={[s.primaryButton, busy && s.disabled]}><Text style={s.primaryText}>{dirty ? 'Sair e sincronizar depois' : 'Concluir'}</Text></Pressable>
+    {run.historySessionId ? <Pressable accessibilityRole="button" onPress={onShare} style={s.shareButton}><MaterialCommunityIcons name="account-group-outline" size={20} color={c.link}/><Text style={s.link}>Postar nos grupos</Text></Pressable> : null}
     <View style={s.resultLinks}><Pressable accessibilityRole="button" onPress={onHistory} style={s.textButton}><Text style={s.link}>Ver histórico</Text></Pressable><Pressable accessibilityRole="button" disabled={busy || dirty} onPress={onAnother} style={[s.textButton, (busy || dirty) && s.disabled]}><Text style={s.link}>Iniciar outro treino</Text></Pressable></View>
-  </View>;
+  </Animated.View>;
 }
 
 function Sheet({ visible, title, onClose, children }: { visible: boolean; title: string; onClose(): void; children: ReactNode }) {
@@ -406,7 +416,7 @@ const styles = (c: AppPalette) => StyleSheet.create({
   sheetAction: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: Radius.lg, backgroundColor: c.surfaceSoft }, sheetActionDanger: { backgroundColor: c.dangerSoft },
   exerciseOption: { minHeight: 64, padding: 12, borderRadius: Radius.lg, backgroundColor: c.surfaceSoft, flexDirection: 'row', gap: 12, alignItems: 'center', borderWidth: 1, borderColor: 'transparent' }, exerciseOptionCurrent: { borderColor: c.primary },
   syncBox: { gap: 6, padding: 12, borderRadius: Radius.lg, borderWidth: 1, borderColor: c.border },
-  resultCard: { padding: 18, borderWidth: 1, borderColor: c.border, borderRadius: Radius.xl, backgroundColor: c.surface, gap: 14 }, resultHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  resultCard: { padding: 18, borderWidth: 1, borderColor: c.border, borderRadius: Radius.xl, backgroundColor: c.surface, gap: 14 }, resultHero: { alignItems: 'center', gap: 6, paddingVertical: 6 }, resultBadge: { width: 76, height: 76, borderRadius: 38, alignItems: 'center', justifyContent: 'center', backgroundColor: c.accent, marginBottom: 6 }, resultTitle: { ...Type.headline, fontWeight: '800', color: c.text, textAlign: 'center' }, centered: { textAlign: 'center' }, shareButton: { minHeight: 52, borderRadius: Radius.lg, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: c.primarySoft },
   stats: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 }, stat: { flexGrow: 1, flexBasis: 120, padding: 12, borderRadius: Radius.lg, backgroundColor: c.surfaceSoft, gap: 2 }, statValue: { ...Type.title, fontWeight: '800', color: c.text, fontVariant: ['tabular-nums'] },
   goalBox: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12, borderRadius: Radius.lg, backgroundColor: c.primarySoft },
   resultGroup: { gap: 6 }, resultRow: { flexDirection: 'row', alignItems: 'center', gap: 8 }, resultLinks: { flexDirection: 'row', justifyContent: 'center', flexWrap: 'wrap', gap: 8 },

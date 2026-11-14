@@ -38,6 +38,8 @@ test('postagem abre ao finalizar com todos os grupos marcados, permite escolher 
   await page.getByTestId('complete-exercise-button').click();
   await page.getByRole('button',{name:'Finalizar treino agora',exact:true}).click();
   await page.getByRole('button',{name:'Finalizar treino',exact:true}).last().click();
+  // O resultado aparece primeiro; postar é uma escolha feita a partir dele.
+  await page.getByRole('button',{name:'Postar nos grupos',exact:true}).click();
   await expect(page.getByText('Postar nos seus grupos?')).toBeVisible();
   await expect(page.getByRole('button',{name:'Postar em todos os grupos (2)',exact:true})).toBeEnabled();
   await expect(page.getByRole('button',{name:'Não postar',exact:true})).toBeVisible();

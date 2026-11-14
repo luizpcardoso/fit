@@ -14,7 +14,8 @@ import MaterialCommunityIcons from '@/components/icon';
 import type { CardioActivity, CardioIntensity, CardioSession, CardioSessionInput } from '@fit/contracts';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { ActivityIndicator, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Modal, StyleSheet, Text, View } from 'react-native';
+import { Pressable } from '@/components/pressable';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ShareActivityModal } from '@/components/share-activity-modal';
 

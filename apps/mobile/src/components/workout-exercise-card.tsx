@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+import { Pressable } from '@/components/pressable';
 import MaterialCommunityIcons from '@/components/icon';
 import type { WorkoutExerciseInput } from '@fit/contracts';
 import type { AppPalette } from '@/constants/theme';

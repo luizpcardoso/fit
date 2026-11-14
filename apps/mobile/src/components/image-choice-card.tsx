@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
-import { Pressable, Text, View, useWindowDimensions } from 'react-native';
+import { Text, View, useWindowDimensions } from 'react-native';
+import { Pressable } from '@/components/pressable';
 import { useAppTheme } from '@/theme/theme-provider';
 
 /** Equal image and caption space keeps all options aligned, including long names. */

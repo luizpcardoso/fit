@@ -12,6 +12,7 @@ Expo/React Native + expo-router; rotas em `src/app`, alias `@/*` → `src/*`. An
 
 - `useAppTheme().colors`/`AppPalette`; tokens `Type`, `Radius`, `Scrim` em `constants/theme.ts`. Sem cores fixas nem edição de `palette.generated.ts`. Tema Claro/Escuro/Sistema local ao aparelho, independente da conta.
 - Conteúdo sobre primária: `onPrimary`; campos: `fieldBorder`; interruptores: `controlTrackOff`/`controlThumb`. Fonte mínima 12; toque mínimo 44×44.
+- Botões: `Pressable` de `@/components/pressable` (mesmo uso do nativo, com estado pressionado embutido). Folhas inferiores: `BottomSheet` de `components/bottom-sheet.tsx` (fundo com fade, folha deslizante, arrastar para fechar); não monte `Modal` + overlay à mão para isso.
 - Diálogos: `showDialog`/`confirmAction`/`showToast` de `components/app-dialog.tsx`; `Alert.alert` não funciona na web. Confirmações com verbo + objeto.
 - Pilha: `ScreenHeader` com volta nomeada + Início; em telas que rolam, `FixedScreenHeader` mantém o cabeçalho fora da rolagem e ações de salvar/iniciar ficam num rodapé fixo; alterações pendentes usam `useUnsavedChanges` (inclui voltar Android). Para voltar à aba, `router.dismissTo('/rota')`; `replace` duplica abas.
 - Datas visíveis via `utils/dates.ts`, nunca ISO. Fundo de modal como irmão absoluteFill da folha, evitando botões aninhados.

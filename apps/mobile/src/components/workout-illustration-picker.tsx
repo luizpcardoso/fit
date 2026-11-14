@@ -1,6 +1,7 @@
 import { ImageChoiceCard } from './image-choice-card';
 import { useState } from 'react';
-import { Keyboard, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Keyboard, Modal, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable } from '@/components/pressable';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { WorkoutIllustrationId } from '@fit/contracts';
 import { getWorkoutIllustration, workoutIllustrations } from '@/constants/workout-illustrations';

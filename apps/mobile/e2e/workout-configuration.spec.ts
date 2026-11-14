@@ -191,6 +191,8 @@ for (const theme of ['light', 'dark']) test(`ficha integrada e balanço vazio: $
     expect(withLibrary).toHaveLength(2);
     expect(withLibrary.some((plan: {name: string}) => plan.name === suggestions[0].name)).toBe(true);
     await page.getByRole('button',{name:'Ir para o início',exact:true}).click();
+    // O balanço é um dos painéis de “Seu acompanhamento”; só o painel selecionado fica acessível.
+    await page.getByRole('tab',{name:'Balanço',exact:true}).click();
     const empty = page.getByText('Registre ao menos uma refeição para começar a calcular seu balanço calórico.',{exact:true});
     await expect(empty).toBeVisible();
     await page.route(/\/nutrition\/summary\?/, route => route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({code:'UNAVAILABLE',message:'Falha de teste'})}));

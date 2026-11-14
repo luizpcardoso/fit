@@ -7,7 +7,8 @@ import type { WorkoutExercise, WorkoutSession, WorkoutRun } from '@fit/contracts
 import { ApiClientError } from '@fit/api-client';
 import { router,useLocalSearchParams } from 'expo-router';
 import { useCallback,useEffect,useState } from 'react';
-import { ActivityIndicator,Pressable,StyleSheet,Text,View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { Pressable } from '@/components/pressable';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialCommunityIcons from '@/components/icon';
 import { useAuth } from '@/auth/auth-context';

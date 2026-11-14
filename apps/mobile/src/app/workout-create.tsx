@@ -9,7 +9,8 @@ import { workoutCovers, type WorkoutCoverId, createWorkoutPlanSchema, updateWork
 import { ApiClientError } from '@fit/api-client';
 import { router, useLocalSearchParams, usePreventRemove } from 'expo-router';
 import { useCallback, useEffect, useRef, useState, type ComponentRef } from 'react';
-import { ActivityIndicator, FlatList, Keyboard, LayoutAnimation, Modal, Pressable, ScrollView as PlainScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, Keyboard, LayoutAnimation, Modal, ScrollView as PlainScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable } from '@/components/pressable';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ValidityPicker } from '@/components/validity-picker';
 import { useAuth } from '@/auth/auth-context';

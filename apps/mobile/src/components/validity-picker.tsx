@@ -3,7 +3,8 @@ import { useAppTheme } from '@/theme/theme-provider';
 import { formatIntegerInput } from '@/utils/input-format';
 import type { AppPalette } from '@/constants/theme';
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+import { Pressable } from '@/components/pressable';
 
 type Props = { days: string; onChange: (days: string) => void; allowUnlimited?: boolean; disabled?: boolean; revealCustomInput?: boolean };
 export function ValidityPicker({ days, onChange, allowUnlimited = false, disabled = false, revealCustomInput = false }: Props) {

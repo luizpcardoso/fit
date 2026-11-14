@@ -1,7 +1,8 @@
 import MaterialCommunityIcons from '@/components/icon';
 import type { WorkoutGoalInput, WorkoutGoalSummary, WorkoutPlan } from '@fit/contracts';
 import { useMemo, useState } from 'react';
-import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Modal, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable } from '@/components/pressable';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAppTheme } from '@/theme/theme-provider';
 import { Scrim, type AppPalette } from '@/constants/theme';

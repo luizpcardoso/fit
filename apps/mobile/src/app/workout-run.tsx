@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ComponentRef, type ReactNode } from 'react';
-import { Animated, AppState, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, Vibration, View } from 'react-native';
+import { Animated, AppState, ScrollView, StyleSheet, Text, TextInput, Vibration, View } from 'react-native';
+import { Pressable } from '@/components/pressable';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
@@ -12,10 +13,11 @@ import { ExerciseThumbnail } from '@/components/exercise-thumbnail';
 import { formatWorkoutTime } from '@/components/workout-timers';
 import { WorkoutNotificationPreference } from '@/components/workout-notification-preference';
 import { useAppTheme } from '@/theme/theme-provider';
-import { Type, Radius, Scrim, type AppPalette } from '@/constants/theme';
+import { Type, Radius, type AppPalette } from '@/constants/theme';
 import { FixedScreenHeader } from '@/components/screen-header';
 import { confirmAction } from '@/components/app-dialog';
 import { ShareActivityModal } from '@/components/share-activity-modal';
+import { BottomSheet } from '@/components/bottom-sheet';
 import MaterialCommunityIcons from '@/components/icon';
 import { formatDecimalInput, formatDecimalValue } from '@/utils/input-format';
 import { formatMeasure } from '@/utils/numbers';
@@ -49,6 +51,10 @@ export default function WorkoutRunScreen() {
   const params = useLocalSearchParams<{ planId?: string; divisionId?: string; suggestedDivisionId?: string }>();
   const [panel, setPanel] = useState<Panel>(null), [busy, setBusy] = useState(false), [error, setError] = useState(''), [finishedHere, setFinishedHere] = useState<string | null>(null), [sharing, setSharing] = useState<false | 'auto' | 'manual'>(false);
   const [completionUndo, setCompletionUndo] = useState<ExerciseCompletionUndo | null>(null);
+  // The sheet keeps showing its last content while it slides out.
+  const [lastPanel, setLastPanel] = useState<Panel>(null);
+  if (panel && panel !== lastPanel) setLastPanel(panel);
+  const view = panel ?? lastPanel;
   const [previous, setPrevious] = useState<{ divisionId: string; values: WorkoutRunPrevious } | null>(null);
   const [loadDrafts, setLoadDrafts] = useState<Record<string, string>>({});
   const strip = useRef<ComponentRef<typeof ScrollView>>(null);
@@ -244,22 +250,22 @@ export default function WorkoutRunScreen() {
           : <Pressable testID="complete-exercise-button" accessibilityRole="button" accessibilityLabel="Retomar treino" disabled={disabled} onPress={() => update(value => toggleWorkoutRunPause(value, Date.now()))} style={({ pressed }) => [s.primaryButton, s.flex, disabled && s.disabled, pressed && s.pressed]}><MaterialCommunityIcons name="play" size={22} color={c.onPrimary}/><Text style={s.primaryText}>Retomar treino</Text></Pressable>}
       </View>
     </View> : null}
-    <Sheet visible={panel !== null} onClose={() => setPanel(null)} title={panel === 'exercises' ? 'Exercícios do treino' : panel === 'exercise' ? exercise?.name ?? '' : panel === 'options' ? 'Opções do treino' : panel === 'instructions' ? exercise?.name ?? '' : ''} c={c}>
-      {panel === 'image' && exercise?.imageUrl ? <Image source={{ uri: exercise.imageUrl }} contentFit="contain" style={{ width: '100%', aspectRatio: 3 / 2, maxHeight: 420, backgroundColor: c.white, borderRadius: 16 }}/> : null}
-      {panel === 'exercises' && run && p ? run.exercises.map((e, i) => { const state = p.exercises.find(x => x.id === e.id)!; return <Pressable key={e.id} accessibilityRole="button" accessibilityLabel={`${i + 1}. ${e.name}`} aria-selected={i === p.currentIndex} disabled={disabled} onPress={() => { update(value => ({ ...value, currentIndex: i })); setPanel(null); }} style={[s.exerciseOption, i === p.currentIndex && s.exerciseOptionCurrent]}><View style={s.flex}><Text style={s.heading}>{i + 1}. {e.name}</Text><Text style={s.muted}>{state.skipped ? 'Pulado por enquanto' : `${state.completedSets.length} de ${e.sets} séries`}</Text></View><MaterialCommunityIcons name={state.completedSets.length === e.sets ? 'check-circle' : 'chevron-right'} size={22} color={c.link}/></Pressable>; }) : null}
-      {panel === 'exercise' && exercise && item && p ? <>
+    <Sheet visible={panel !== null} onClose={() => setPanel(null)} title={view === 'exercises' ? 'Exercícios do treino' : view === 'exercise' ? exercise?.name ?? '' : view === 'options' ? 'Opções do treino' : view === 'instructions' ? exercise?.name ?? '' : ''}>
+      {view === 'image' && exercise?.imageUrl ? <Image source={{ uri: exercise.imageUrl }} contentFit="contain" style={{ width: '100%', aspectRatio: 3 / 2, maxHeight: 420, backgroundColor: c.white, borderRadius: 16 }}/> : null}
+      {view === 'exercises' && run && p ? run.exercises.map((e, i) => { const state = p.exercises.find(x => x.id === e.id)!; return <Pressable key={e.id} accessibilityRole="button" accessibilityLabel={`${i + 1}. ${e.name}`} aria-selected={i === p.currentIndex} disabled={disabled} onPress={() => { update(value => ({ ...value, currentIndex: i })); setPanel(null); }} style={[s.exerciseOption, i === p.currentIndex && s.exerciseOptionCurrent]}><View style={s.flex}><Text style={s.heading}>{i + 1}. {e.name}</Text><Text style={s.muted}>{state.skipped ? 'Pulado por enquanto' : `${state.completedSets.length} de ${e.sets} séries`}</Text></View><MaterialCommunityIcons name={state.completedSets.length === e.sets ? 'check-circle' : 'chevron-right'} size={22} color={c.link}/></Pressable>; }) : null}
+      {view === 'exercise' && exercise && item && p ? <>
         {item.completedSets.length < exercise.sets ? <SheetAction icon="check-all" label="Concluir todas as séries" detail="Marca as séries que faltam neste exercício." disabled={disabled || !running} onPress={completeExercise} c={c}/> : null}
         {canUndoCompletion ? <SheetAction icon="undo-variant" label="Desfazer conclusão do exercício" detail="Volta às séries que estavam marcadas antes." disabled={disabled} onPress={undoCompletedExercise} c={c}/> : null}
         <SheetAction icon="timer-outline" label={`Iniciar descanso de ${exercise.restSeconds || 60} s`} disabled={disabled || !running} onPress={() => { setPanel(null); update(value => ({ ...value, restEndsAt: Date.now() + (exercise.restSeconds || 60) * 1000, restRemainingMs: null })); }} c={c}/>
         {!item.completedSets.length ? <SheetAction icon={item.skipped ? 'play-circle-outline' : 'skip-next-circle-outline'} label={item.skipped ? 'Voltar a fazer este exercício' : 'Pular por enquanto'} detail={item.skipped ? undefined : 'Você pode voltar a ele pela lista de exercícios.'} disabled={disabled || !running} onPress={() => { setPanel(null); update(value => ({ ...value, exercises: value.exercises.map(e => e.id === exercise.id ? { ...e, skipped: !e.skipped } : e) })); }} c={c}/> : null}
         {exercise.notes ? <SheetAction icon="information-outline" label="Ver orientações" onPress={() => setPanel('instructions')} c={c}/> : null}
       </> : null}
-      {panel === 'options' ? <>
+      {view === 'options' ? <>
         <WorkoutNotificationPreference/>
         <View style={s.syncBox}><Text style={s.heading}>Salvamento</Text><Text style={s.muted}>{problem || syncLabel}</Text><Text style={s.caption}>Cada série é salva neste celular na hora. O envio para a conta acontece em blocos, ao sair e ao finalizar.</Text><Pressable accessibilityRole="button" disabled={busy || session.saving} onPress={() => { void act(session.sync); }} style={s.button}><Text style={s.link}>Sincronizar agora</Text></Pressable></View>
         <SheetAction icon="delete-outline" label="Descartar treino" detail="Encerra sem contar para a meta." destructive disabled={disabled} onPress={() => { void finish(true); }} c={c}/>
       </> : null}
-      {panel === 'instructions' && exercise ? <><Text style={s.muted}>{exercise.sets} séries × {repsLabel(exercise.reps)} repetições{exercise.load != null ? ` · ${formatMeasure(exercise.load, 'kg', 2)}` : ''}</Text><Text style={s.muted}>Descanso previsto: {exercise.restSeconds ?? 60} segundos</Text><Text style={s.body}>{exercise.notes || 'Sem orientações adicionais na ficha.'}</Text></> : null}
+      {view === 'instructions' && exercise ? <><Text style={s.muted}>{exercise.sets} séries × {repsLabel(exercise.reps)} repetições{exercise.load != null ? ` · ${formatMeasure(exercise.load, 'kg', 2)}` : ''}</Text><Text style={s.muted}>Descanso previsto: {exercise.restSeconds ?? 60} segundos</Text><Text style={s.body}>{exercise.notes || 'Sem orientações adicionais na ficha.'}</Text></> : null}
     </Sheet>
   </SafeAreaView>;
 }
@@ -347,13 +353,8 @@ function WorkoutResult({ run, progress: p, dirty, busy, onShare, onDone, onAnoth
   </View>;
 }
 
-function Sheet({ visible, title, onClose, children, c }: { visible: boolean; title: string; onClose(): void; children: ReactNode; c: AppPalette }) {
-  const s = styles(c);
-  return <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}><View style={s.overlay}><Pressable accessibilityRole="button" accessibilityLabel="Fechar painel" onPress={onClose} style={StyleSheet.absoluteFill}/><SafeAreaView edges={['bottom']} style={s.sheet}>
-    <View style={s.handle}/>
-    <View style={s.sheetHeader}><Text accessibilityRole="header" numberOfLines={2} style={[s.title, s.flex]}>{title}</Text><Pressable accessibilityRole="button" accessibilityLabel="Fechar" onPress={onClose} style={s.iconButton}><MaterialCommunityIcons name="close" size={22} color={c.link}/></Pressable></View>
-    <ScrollView contentContainerStyle={s.sheetContent}>{children}</ScrollView>
-  </SafeAreaView></View></Modal>;
+function Sheet({ visible, title, onClose, children }: { visible: boolean; title: string; onClose(): void; children: ReactNode }) {
+  return <BottomSheet visible={visible} title={title} onClose={onClose}>{children}</BottomSheet>;
 }
 function SheetAction({ icon, label, detail, onPress, disabled, destructive, c }: { icon: keyof typeof MaterialCommunityIcons.glyphMap; label: string; detail?: string; onPress(): void; disabled?: boolean; destructive?: boolean; c: AppPalette }) {
   const s = styles(c), color = destructive ? c.danger : c.link;
@@ -402,10 +403,6 @@ const styles = (c: AppPalette) => StyleSheet.create({
   restContent: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 6 },
   restLabel: { ...Type.caption, fontWeight: '800', color: c.heroMuted, letterSpacing: .4 }, restTime: { ...Type.title, fontWeight: '800', color: c.onPrimary, fontVariant: ['tabular-nums'] },
   restButton: { minWidth: 52, minHeight: 44, paddingHorizontal: 8, borderRadius: Radius.md, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,.16)' }, restButtonText: { ...Type.label, fontWeight: '800', color: c.onPrimary },
-  overlay: { flex: 1, backgroundColor: Scrim, justifyContent: 'flex-end' },
-  sheet: { maxHeight: '88%', borderTopLeftRadius: Radius.xxl, borderTopRightRadius: Radius.xxl, backgroundColor: c.surface, maxWidth: 680, width: '100%', alignSelf: 'center' },
-  handle: { width: 40, height: 4, borderRadius: 2, backgroundColor: c.border, alignSelf: 'center', marginTop: 8 },
-  sheetHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 18, paddingTop: 10 }, sheetContent: { padding: 18, paddingTop: 12, gap: 10 },
   sheetAction: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: Radius.lg, backgroundColor: c.surfaceSoft }, sheetActionDanger: { backgroundColor: c.dangerSoft },
   exerciseOption: { minHeight: 64, padding: 12, borderRadius: Radius.lg, backgroundColor: c.surfaceSoft, flexDirection: 'row', gap: 12, alignItems: 'center', borderWidth: 1, borderColor: 'transparent' }, exerciseOptionCurrent: { borderColor: c.primary },
   syncBox: { gap: 6, padding: 12, borderRadius: Radius.lg, borderWidth: 1, borderColor: c.border },

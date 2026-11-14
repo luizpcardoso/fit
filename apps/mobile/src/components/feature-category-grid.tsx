@@ -2,7 +2,8 @@ import { CardShadow, type AppPalette } from '@/constants/theme';
 import { useAppTheme } from '@/theme/theme-provider';
 import MaterialCommunityIcons from '@/components/icon';
 import { SceneBackdrop, type SceneName } from '@/components/scene';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+import { Pressable } from '@/components/pressable';
 
 type IconName = keyof typeof MaterialCommunityIcons.glyphMap;
 /** Com `scene`, a ilustração cobre o cartão e o texto fica branco na base; o ícone vale para cartões sem cena. */

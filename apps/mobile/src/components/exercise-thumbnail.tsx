@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
+import { Pressable } from '@/components/pressable';
 import { Image } from 'expo-image';
 import MaterialCommunityIcons from '@/components/icon';
 import { useAppTheme } from '@/theme/theme-provider';

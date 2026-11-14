@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
+import { Pressable } from '@/components/pressable';
 import { FormInput } from './form-input';
 import { useAppTheme } from '@/theme/theme-provider';
 

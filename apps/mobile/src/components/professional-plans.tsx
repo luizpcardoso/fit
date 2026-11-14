@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
 import { useFocusEffect } from "expo-router";
-import { ActivityIndicator, Pressable, Text, View } from "react-native";
+import { ActivityIndicator, Text, View } from 'react-native';
+import { Pressable } from '@/components/pressable';
 import type { PortalAssignment, PortalContentInput } from "@fit/contracts";
 import { dietMealOptions } from "@fit/contracts";
 import { useAuth } from "@/auth/auth-context";

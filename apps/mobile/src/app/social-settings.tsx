@@ -16,8 +16,8 @@ export default function SocialSettings() {
   const load=useCallback(async()=>{setError('');try{setGroups(await api.listGroups());}catch(failure){setError(groupErrorMessage(failure));}finally{setLoading(false);}},[api]);
   useFocusEffect(useCallback(()=>{void load();},[load]));
   return <SafeAreaView style={s.safe}><FormScrollView contentContainerStyle={s.content}>
-    <ScreenHeader backLabel="Social"/>
-    <Text accessibilityRole="header" style={s.title}>Configurações do Social</Text>
+    <ScreenHeader backLabel="Comunidade"/>
+    <Text accessibilityRole="header" style={s.title}>Configurações da Comunidade</Text>
     <Text style={s.description}>Você escolhe o que compartilha e com quem.</Text>
     <View style={s.notice}><MaterialCommunityIcons name="shield-lock-outline" size={24} color={c.link}/><Text style={s.noticeText}>Seu feed é privado. Só aparecem publicações dos seus grupos, feitas após sua entrada mais recente.</Text></View>
     <Pressable accessibilityRole="button" onPress={()=>router.push('/social-groups')} style={s.row}><MaterialCommunityIcons name="account-group-outline" size={24} color={c.link}/><View style={s.flex}><Text style={s.label}>Meus grupos e convites</Text><Text style={s.description}>Criar, participar e gerenciar seus espaços</Text></View><MaterialCommunityIcons name="chevron-right" size={22} color={c.textMuted}/></Pressable>

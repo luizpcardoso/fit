@@ -23,7 +23,6 @@ import {
   Image,
   FlatList,
   Modal,
-  Pressable,
   RefreshControl,
   StyleSheet,
   Text,
@@ -43,6 +42,9 @@ import {GroupMediaImage} from '@/components/group-media-image';
 import {SocialAvatar} from '@/components/social-avatar';
 import { formatRelativeDay, localDate } from '@/utils/dates';
 import { PostReactionsSheet } from '@/components/post-reactions-sheet';
+import { SkeletonCard, SkeletonGroup } from '@/components/skeleton';
+import { Pressable } from '@/components/pressable';
+import { BottomSheet } from '@/components/bottom-sheet';
 import { ReactionControl, myReaction, reactions, withMyReaction } from '@/components/reaction-control';
 
 const eventIcons: Record<string, keyof typeof MaterialCommunityIcons.glyphMap> =
@@ -53,10 +55,14 @@ const eventIcons: Record<string, keyof typeof MaterialCommunityIcons.glyphMap> =
     weekly_streak: "fire",
     member_joined: "account-plus",
   };
-/** Timestamps from the API are instants; show the local day ("Hoje", "Ontem", "sex., 30 de out.") plus the time. */
+/** Recent posts read as elapsed time ("há 5 min", "há 2 h"); older ones show the local day plus the time. */
 const formatTime = (value: string) => {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
+  const minutes = Math.floor((Date.now() - date.getTime()) / 60_000);
+  if (minutes >= 0 && minutes < 1) return "agora";
+  if (minutes >= 0 && minutes < 60) return `há ${minutes} min`;
+  if (minutes >= 0 && minutes < 6 * 60) return `há ${Math.floor(minutes / 60)} h`;
   const time = date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
   return `${formatRelativeDay(localDate(date))}, ${time}`;
 };
@@ -139,6 +145,10 @@ export default function SocialFeedScreen({ groupId: id }: { groupId?: string }) 
   };
   const [commentsPost, setCommentsPost] = useState<SocialPost | null>(null);
   const [actionPost, setActionPost] = useState<SocialPost | null>(null);
+  // Keeps the sheet content while it slides out.
+  const [lastAction, setLastAction] = useState<SocialPost | null>(null);
+  if (actionPost && actionPost !== lastAction) setLastAction(actionPost);
+  const shownAction = actionPost ?? lastAction;
   const postsRef = useRef<SocialPost[]>([]);
   useEffect(() => { postsRef.current = posts; }, [posts]);
   // 'merge' refreshes the newest page and keeps the older pages already on screen, so coming back to the feed does not lose the reading position.
@@ -312,20 +322,20 @@ export default function SocialFeedScreen({ groupId: id }: { groupId?: string }) 
     <SafeAreaView style={s.safe} edges={["top"]}>
       {unified ? <View style={s.socialHeader}>
         <ScreenHeader backLabel="Início" showHome={false}/>
-        <View style={s.socialHeading}><View style={s.flex}><Text accessibilityRole="header" style={s.socialTitle}>Social</Text><Text style={s.headerMeta}>Conexões que fazem bem</Text></View>
-          <Pressable accessibilityRole="button" accessibilityLabel="Notificações do Social" onPress={()=>router.push('/group-notifications')} style={s.headerIcon}><MaterialCommunityIcons name="bell-outline" size={24} color={c.text}/></Pressable>
-          <Pressable accessibilityRole="button" accessibilityLabel="Configurações do Social" onPress={()=>router.push('/social-settings')} style={s.headerIcon}><MaterialCommunityIcons name="tune-variant" size={24} color={c.text}/></Pressable>
+        <View style={s.socialHeading}><Text accessibilityRole="header" style={[s.socialTitle, s.flex]}>Comunidade</Text>
+          <Pressable accessibilityRole="button" accessibilityLabel="Meus grupos" onPress={()=>router.push('/social-groups')} style={s.headerIcon}><MaterialCommunityIcons name="account-group-outline" size={24} color={c.text}/></Pressable>
+          <Pressable accessibilityRole="button" accessibilityLabel="Notificações da Comunidade" onPress={()=>router.push('/group-notifications')} style={s.headerIcon}><MaterialCommunityIcons name="bell-outline" size={24} color={c.text}/></Pressable>
+          <Pressable accessibilityRole="button" accessibilityLabel="Configurações da Comunidade" onPress={()=>router.push('/social-settings')} style={s.headerIcon}><MaterialCommunityIcons name="tune-variant" size={24} color={c.text}/></Pressable>
         </View>
-        <View style={s.socialNavigation}><View style={s.feedPill}><MaterialCommunityIcons name="newspaper-variant-outline" size={18} color={c.link}/><Text style={s.link}>Seu feed</Text></View><Pressable accessibilityRole="button" onPress={()=>router.push('/social-groups')} style={s.navPill}><MaterialCommunityIcons name="account-group-outline" size={19} color={c.text}/><Text style={s.navText}>Meus grupos</Text></Pressable></View>
       </View> : (<View style={s.topBar}>
         {group?.coverUrl ? <GroupMediaImage url={group.coverUrl} kind="cover" style={s.headerCover} fallback={<View style={s.headerCoverFallback}/>} /> : null}
-        <ScreenHeader backLabel="Social" onBack={() => router.canGoBack() ? router.back() : router.replace('/groups')} right={group ? <Pressable accessibilityRole="button" accessibilityLabel="Configurações do grupo" hitSlop={4} onPress={() => router.push({pathname:'/group-manage',params:{id:group.id,section:'feed'}})} style={s.headerIcon}><MaterialCommunityIcons name="tune-variant" size={22} color={c.link}/></Pressable> : null}/>
+        <ScreenHeader backLabel="Comunidade" onBack={() => router.canGoBack() ? router.back() : router.replace('/groups')} right={group ? <Pressable accessibilityRole="button" accessibilityLabel="Configurações do grupo" hitSlop={4} onPress={() => router.push({pathname:'/group-manage',params:{id:group.id,section:'feed'}})} style={s.headerIcon}><MaterialCommunityIcons name="tune-variant" size={22} color={c.link}/></Pressable> : null}/>
         <View style={s.groupIdentity}>{group ? <GroupMediaImage url={group.avatarUrl} kind="avatar" style={s.headerAvatar} fallback={<Text style={s.headerAvatarText}>{group.name.slice(0,2).toUpperCase()}</Text>}/> : null}<View style={s.flex}><Text numberOfLines={1} accessibilityRole="header" style={s.title}>{group?.name || 'Grupo'}</Text><Text style={s.headerMeta}>{group ? `${group.memberCount} ${group.memberCount === 1 ? 'membro' : 'membros'} · Mais recentes${group.active ? '' : ' · Grupo inativo'}` : 'Carregando…'}</Text></View></View>
       </View>)}
       <View style={{ flex: 1 }}>
       <FlatList
         ref={feed}
-        accessibilityLabel={unified ? "Feed do Social" : "Feed do grupo"}
+        accessibilityLabel={unified ? "Feed da Comunidade" : "Feed do grupo"}
         style={{ flex: 1 }}
         onScroll={onFeedScroll}
         onScrollBeginDrag={() => { scrollingToTop.current = false; }}
@@ -351,12 +361,11 @@ export default function SocialFeedScreen({ groupId: id }: { groupId?: string }) 
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={<View style={{gap:14}}>{unified ? <View style={s.feedIntro}>
           <Pressable accessibilityRole="button" accessibilityLabel="Criar publicação" onPress={()=>router.push('/group-post')} style={s.composerPrompt}><View style={s.userAvatar}><Text style={s.userInitial}>{(user?.displayName||user?.firstName||'V').slice(0,1).toUpperCase()}</Text></View><Text style={s.promptText}>O que você quer compartilhar?</Text><MaterialCommunityIcons name="image-plus-outline" size={24} color={c.link}/></Pressable>
-          <View style={s.feedCaption}><Text style={s.navText}>Publicações dos seus grupos</Text><Text style={s.time}>Mais recentes</Text></View>
         </View> : null}{error ? <View style={s.error}>
           <Text accessibilityRole="alert" style={s.errorText}>{error}</Text>
           <Pressable accessibilityRole="button" onPress={() => void load()} style={{ minHeight: 44, justifyContent: 'center' }}><Text style={s.link}>Tentar novamente</Text></Pressable>
         </View> : null}</View>}
-        ListEmptyComponent={loading ? <ActivityIndicator accessibilityLabel="Carregando publicações" color={c.link} size="large" style={s.loading}/> : !error ? <View style={s.empty}>
+        ListEmptyComponent={loading ? <SkeletonGroup label="Carregando publicações" style={{ gap: 12 }}><SkeletonCard lines={3} action/><SkeletonCard lines={2} action/><SkeletonCard lines={3}/></SkeletonGroup> : !error ? <View style={s.empty}>
           <MaterialCommunityIcons name="post-outline" size={30} color={c.link}/>
           {unified ? <SceneThumb scene="thumbGroups" size={88}/> : null}
           <Text style={s.emptyTitle}>{unified ? "Aqui começam suas conexões" : "O feed está tranquilo"}</Text>
@@ -364,7 +373,6 @@ export default function SocialFeedScreen({ groupId: id }: { groupId?: string }) 
         {unified ? <Pressable accessibilityRole="button" onPress={()=>router.push('/social-groups')} style={s.feedPill}><Text style={s.link}>Explorar meus grupos e convites</Text></Pressable> : null}</View> : undefined}
         renderItem={({item:post}) => (
           <View key={post.id} testID={`feed-post-${post.id}`} style={[s.post, CardShadow]}>
-            {unified ? <Pressable accessibilityRole="button" accessibilityLabel={`Abrir grupo ${post.group.name}`} onPress={()=>router.push({pathname:'/group-detail',params:{id:post.groupId}})} style={s.groupRibbon}><MaterialCommunityIcons name="account-group" size={20} color={c.link}/><Text style={s.groupRibbonText}>{post.group.name}</Text><MaterialCommunityIcons name="lock-outline" size={14} color={c.textMuted}/><MaterialCommunityIcons name="chevron-right" size={18} color={c.link}/></Pressable> : null}
             <View style={s.postHeader}>
               {post.kind === "event" && !post.author.avatarUrl ? <View style={[s.userAvatar, s.eventAvatar]}>
                 <MaterialCommunityIcons name={eventIcons[post.eventType || ""] || "star-outline"} size={20} color={c.link} />
@@ -382,7 +390,10 @@ export default function SocialFeedScreen({ groupId: id }: { groupId?: string }) 
                     </View>
                   ) : null}
                 </View>
-                <Text style={s.time}>{formatTime(post.createdAt)}{post.edited ? " · editado" : ""}</Text>
+                <View style={s.metaRow}>
+                  {unified ? <Pressable accessibilityRole="button" accessibilityLabel={`Abrir grupo ${post.group.name}`} hitSlop={10} onPress={()=>router.push({pathname:'/group-detail',params:{id:post.groupId}})} style={s.groupLink}><MaterialCommunityIcons name="account-group" size={14} color={c.link}/><Text numberOfLines={1} style={s.groupLinkText}>{post.group.name}</Text></Pressable> : null}
+                  <Text style={s.time}>{unified ? "· " : ""}{formatTime(post.createdAt)}{post.edited ? " · editado" : ""}</Text>
+                </View>
               </View>
               <Pressable accessibilityRole="button"
                 accessibilityLabel={`Ações da publicação de ${post.author.displayName}`}
@@ -577,18 +588,9 @@ export default function SocialFeedScreen({ groupId: id }: { groupId?: string }) 
         onClose={() => setCommentsPost(null)}
         onChanged={async()=>{if(!commentsPost)return;const comments=await api.listGroupComments(commentsPost.groupId,commentsPost.id);setPosts(current=>current.map(post=>post.id===commentsPost.id?{...post,commentCount:comments.filter(comment=>!comment.removed).length}:post));}}
       />
-      <Modal
-        visible={Boolean(actionPost)}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setActionPost(null)}
-      >
-        <View style={s.actionOverlay}>
-          <Pressable accessibilityRole="button" accessibilityLabel="Fechar" style={StyleSheet.absoluteFill} onPress={() => setActionPost(null)} />
-          <View style={s.actionSheet}>
-            <Text accessibilityRole="header" style={s.actionTitle}>Publicação</Text>
-            {actionPost?.author.id === user?.id ||
-            ["owner", "admin", "moderator"].includes(actionPost?.group?.role ?? group?.role ?? "") ? (
+      <BottomSheet visible={Boolean(actionPost)} onClose={() => setActionPost(null)} title="Publicação" subtitle={shownAction ? `De ${shownAction.author.displayName}` : undefined} backdropLabel="Fechar ações da publicação">
+            {shownAction?.author.id === user?.id ||
+            ["owner", "admin", "moderator"].includes(shownAction?.group?.role ?? group?.role ?? "") ? (
               <Pressable accessibilityRole="button" onPress={() => void removePost()} style={s.actionRow}>
                 <MaterialCommunityIcons
                   name="trash-can-outline"
@@ -608,7 +610,7 @@ export default function SocialFeedScreen({ groupId: id }: { groupId?: string }) 
               />
               <Text style={s.actionText}>Denunciar publicação</Text>
             </Pressable>
-            {actionPost?.author.id !== user?.id ? (
+            {shownAction?.author.id !== user?.id ? (
               <Pressable accessibilityRole="button"
                 onPress={() => void hideAuthor()}
                 style={s.actionRow}
@@ -618,15 +620,10 @@ export default function SocialFeedScreen({ groupId: id }: { groupId?: string }) 
                   size={21}
                   color={c.text}
                 />
-                <Text style={s.actionText}>Ocultar publicações de {actionPost?.author.displayName}</Text>
+                <Text style={s.actionText}>Ocultar publicações de {shownAction?.author.displayName}</Text>
               </Pressable>
             ) : null}
-            <Pressable accessibilityRole="button" onPress={() => setActionPost(null)} style={[s.actionRow, s.actionCancel]}>
-              <Text style={[s.actionText, { color: c.link }]}>Cancelar</Text>
-            </Pressable>
-          </View>
-        </View>
-      </Modal>
+      </BottomSheet>
       <ReportContentSheet groupId={reportGroupId || id || ""} target={reportTarget} onClose={() => setReportTarget(null)} />
       <PostReactionsSheet key={`reactions-${reactionsPost?.postId ?? "closed"}`} target={reactionsPost} onClose={() => setReactionsPost(null)} />
     </SafeAreaView>
@@ -943,15 +940,15 @@ function CommentsModal({
 
 const styles = (c: AppPalette) =>
   StyleSheet.create({
-    socialHeader:{paddingHorizontal:20,paddingTop:4,paddingBottom:12,gap:16,backgroundColor:c.surface,borderBottomWidth:1,borderBottomColor:c.border},
+    socialHeader:{paddingHorizontal:20,paddingTop:4,paddingBottom:10,gap:6,backgroundColor:c.surface,borderBottomWidth:1,borderBottomColor:c.border},
     socialHeading:{flexDirection:'row',alignItems:'center',gap:8,maxWidth:720,width:'100%',alignSelf:'center'},
-    socialTitle:{fontSize:30,fontWeight:'800',letterSpacing:-1,color:c.text},
+    socialTitle:{...Type.headline,fontWeight:'800',letterSpacing:-.5,color:c.text},
     socialNavigation:{flexDirection:'row',gap:10,maxWidth:720,width:'100%',alignSelf:'center'},
     feedPill:{minHeight:44,borderRadius:24,paddingHorizontal:16,backgroundColor:c.primarySoft,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:7},
     navPill:{minHeight:44,paddingHorizontal:14,borderRadius:24,flexDirection:'row',alignItems:'center',gap:7,backgroundColor:c.surfaceSoft},
     navText:{fontSize:13,fontWeight:'700',color:c.text},
-    feedIntro:{gap:18,paddingBottom:12},
-    composerPrompt:{minHeight:76,padding:14,backgroundColor:c.surface,borderWidth:1,borderColor:c.border,borderRadius:20,flexDirection:'row',alignItems:'center',gap:12},
+    feedIntro:{paddingBottom:2},
+    composerPrompt:{minHeight:60,paddingHorizontal:12,paddingVertical:8,backgroundColor:c.surface,borderWidth:1,borderColor:c.border,borderRadius:20,flexDirection:'row',alignItems:'center',gap:12},
     promptText:{flex:1,fontSize:14,color:c.textMuted},
     feedCaption:{flexDirection:'row',justifyContent:'space-between',alignItems:'center',gap:8},
     groupRibbon:{flexDirection:'row',alignItems:'center',gap:8,backgroundColor:c.primarySoft,paddingHorizontal:16,paddingVertical:10,minHeight:44,borderBottomWidth:1,borderBottomColor:c.border},
@@ -1101,7 +1098,10 @@ const styles = (c: AppPalette) =>
       paddingVertical: 3,
     },
     postKindText: { color: c.link, fontSize: 12, fontWeight: "800" },
-    time: { color: c.textMuted, fontSize: 12, marginTop: 3 },
+    time: { color: c.textMuted, fontSize: 12 },
+    metaRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 3 },
+    groupLink: { flexDirection: 'row', alignItems: 'center', gap: 4, flexShrink: 1 },
+    groupLinkText: { color: c.link, fontSize: 12, fontWeight: '800', flexShrink: 1 },
     postText: {
       color: c.text,
       fontSize: 15,

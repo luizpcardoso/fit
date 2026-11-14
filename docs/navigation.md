@@ -58,7 +58,7 @@ Em Configurações → Tela inicial, ou pelo botão Ocultar do próprio card, a 
 
 Enquanto a meta semanal não é configurada, o card Fitness não mostra um alvo presumido (antes aparecia "0/3"). Ele convida a definir a meta e informa os treinos já realizados na semana. Sem ficha ativa, a ação principal passa de Treinar para Criar ficha.
 
-O botão Social do Início abre o feed único dos grupos; Meus grupos, convites e preferências ficam acessíveis a partir do feed. Detalhes em `docs/groups.md`.
+O botão Comunidade do Início abre o feed único dos grupos; Meus grupos, convites e preferências ficam acessíveis a partir do feed. Detalhes em `docs/groups.md`.
 
 Telas longas (execução e detalhes de treino, Alimentação, Mente, Corpo e medidas, Suplementos/Medicamentos, Perfil, Configurações e outras) usam `FixedScreenHeader`, que mantém voltar e Início visíveis durante a rolagem. Subseções de Fitness (Fichas, Histórico, Cardio) usam o mesmo voltar nomeado “‹ Fitness”, sem o botão Início porque já estão numa aba.
 

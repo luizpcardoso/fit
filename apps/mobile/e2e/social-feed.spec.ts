@@ -32,7 +32,7 @@ test('Social reúne grupos, preserva interações e oferece gestão e publicaç�
  await page.route(/^http:\/\/[^/]+:3333\//,async route=>{const url=new URL(route.request().url());if(failFeed&&url.pathname==='/social/feed'){await route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({code:'UNAVAILABLE',message:'Feed temporariamente indisponível.'})});return;}await route.fulfill({response:await route.fetch({url:apiURL+url.pathname+url.search})});});
  await page.addInitScript(account=>localStorage.setItem('fit.auth.tokens',JSON.stringify(account)),viewer);
  await page.goto('/groups');
- await expect(page.getByRole('heading',{name:'Social',exact:true})).toBeVisible({timeout:60000});
+ await expect(page.getByRole('heading',{name:'Comunidade',exact:true})).toBeVisible({timeout:60000});
  await expect(page.getByRole('alert')).toContainText('Feed temporariamente indisponível.');failFeed=false;await page.getByRole('button',{name:'Tentar novamente',exact:true}).click();
  for(const group of groups)await expect(page.getByRole('button',{name:`Abrir grupo ${group.name}`,exact:true}).first()).toBeVisible();
  const post = page.getByTestId(/^feed-post-/).first();
@@ -101,8 +101,8 @@ test('Social reúne grupos, preserva interações e oferece gestão e publicaç�
  await expect(page.getByText('Novos comentários estão desativados nesta publicação.',{exact:true})).toBeVisible();
  await expect(page.getByRole('textbox',{name:'Escrever comentário',exact:true})).toHaveCount(0);
  await page.getByRole('button',{name:'Fechar comentários',exact:true}).click();
- await page.getByRole('button',{name:'Configurações do Social',exact:true}).click();
- await expect(page.getByRole('heading',{name:'Configurações do Social',exact:true})).toBeVisible();
+ await page.getByRole('button',{name:'Configurações da Comunidade',exact:true}).click();
+ await expect(page.getByRole('heading',{name:'Configurações da Comunidade',exact:true})).toBeVisible();
  await expect(page.getByRole('button',{name:'Pessoas ocultadas',exact:false})).toBeVisible();
  await expect(page.getByRole('button',{name:`Preferências de ${groups[0].name}`,exact:true})).toBeVisible();
  await page.goBack();await page.getByRole('button',{name:'Meus grupos',exact:true}).click();
@@ -112,7 +112,7 @@ test('Social reúne grupos, preserva interações e oferece gestão e publicaç�
  await page.getByRole('checkbox',{name:groups[0].name,exact:true}).click();
  await page.getByRole('button',{name:'Publicar nos grupos selecionados',exact:true}).click();
  await expect(page.getByText('Primeira publicação no novo Social',{exact:true})).toBeVisible({timeout:15000});
- await page.getByRole('button',{name:'Configurações do Social',exact:true}).click();await page.getByRole('button',{name:`Preferências de ${groups[0].name}`,exact:true}).click();
+ await page.getByRole('button',{name:'Configurações da Comunidade',exact:true}).click();await page.getByRole('button',{name:`Preferências de ${groups[0].name}`,exact:true}).click();
  await expect(page.getByRole('heading',{name:'Configurações do feed',exact:true})).toBeVisible();
  await expect(page.getByRole('switch',{name:'Treino concluído',exact:true})).toBeVisible();
  expect(errors).toEqual([]);

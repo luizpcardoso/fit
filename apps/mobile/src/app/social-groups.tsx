@@ -126,7 +126,7 @@ export default function SocialGroups() {
         contentContainerStyle={s.content}
         showsVerticalScrollIndicator={false}
       >
-        <ScreenHeader backLabel="Social" onBack={() => router.dismissTo('/groups')} />
+        <ScreenHeader backLabel="Comunidade" onBack={() => router.dismissTo('/groups')} />
         <View style={s.header}>
           <View style={s.flex}>
             <Text accessibilityRole="header" style={s.title}>

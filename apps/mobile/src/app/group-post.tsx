@@ -11,7 +11,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { router, useFocusEffect } from "expo-router";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import type { GroupDetails } from "@fit/contracts";
 import { useAuth } from "@/auth/auth-context";
@@ -24,6 +24,7 @@ import { groupErrorMessage } from "@/utils/groups";
 export default function GroupPost() {
   const { api } = useAuth();
   const { colors: c } = useAppTheme();
+  const { groupId } = useLocalSearchParams<{ groupId?: string }>();
   const [groups, setGroups] = useState<GroupDetails[]>([]);
   const [selected, setSelected] = useState<string[]>([]);
   const [text, setText] = useState("");
@@ -38,22 +39,23 @@ export default function GroupPost() {
     try {
       const list = await api.listGroups();
       const details = await Promise.all(list.map((g) => api.getGroup(g.id)));
-      setGroups(
-        details.filter(
-          (g) =>
-            g.active &&
-            (g.postingMode === "all_members" ||
-              g.role === "owner" ||
-              g.role === "admin"),
-        ),
+      const allowed = details.filter(
+        (g) =>
+          g.active &&
+          (g.postingMode === "all_members" ||
+            g.role === "owner" ||
+            g.role === "admin"),
       );
+      setGroups(allowed);
+      // With a single possible destination (or one handed over by the group screen) there is nothing to choose.
+      setSelected(current => current.length ? current.filter(id => allowed.some(g => g.id === id)) : allowed.length === 1 ? [allowed[0].id] : allowed.some(g => g.id === groupId) ? [groupId!] : current);
       setLoadError("");
     } catch (failure) {
       setLoadError(groupErrorMessage(failure, { server: "Não foi possível carregar os grupos. Tente novamente." }));
     } finally {
       setLoading(false);
     }
-  }, [api]);
+  }, [api, groupId]);
   useFocusEffect(
     useCallback(() => {
       void load();
@@ -124,7 +126,7 @@ export default function GroupPost() {
           alignSelf: "center",
         }}
       >
-        <ScreenHeader backLabel="Social" onBack={back} />
+        <ScreenHeader backLabel="Comunidade" onBack={back} />
         <Text
           accessibilityRole="header"
           style={{ ...Type.headline, fontWeight: "800", color: c.text }}
@@ -182,18 +184,9 @@ export default function GroupPost() {
             <Text style={{ ...Type.body, color: c.link, fontWeight: "700" }}>Adicionar foto</Text>
           </Pressable>
         )}
-        <Text
-          style={{
-            color: photo ? c.warning : c.textMuted,
-            backgroundColor: photo ? c.warningSoft : c.surface,
-            padding: 14,
-            borderRadius: 12,
-          }}
-        >
-          {photo
-            ? "Publicação temporária: o post inteiro, incluindo texto, foto e comentários, expira em 48 horas. A imagem será excluída."
-            : "Posts somente de texto não expiram. Ao adicionar uma foto, o post inteiro passa a durar 48 horas."}
-        </Text>
+        {photo ? <Text style={{ color: c.warning, backgroundColor: c.warningSoft, padding: 14, borderRadius: 12 }}>
+          Publicação temporária: o post inteiro, incluindo texto, foto e comentários, expira em 48 horas. A imagem será excluída.
+        </Text> : null}
         <Text style={{ color: c.text, fontWeight: "800" }}>
           Publicar em ({selected.length})
         </Text>
@@ -211,7 +204,7 @@ export default function GroupPost() {
         {!loading && !groups.length && !loadError ? (
           <Text style={{ color: c.textMuted }}>
             Você ainda não participa de grupos que permitem publicar. Crie um
-            grupo ou aceite um convite em Social → Meus grupos.
+            grupo ou aceite um convite em Comunidade → Meus grupos.
           </Text>
         ) : null}
         {groups.map((g) => (

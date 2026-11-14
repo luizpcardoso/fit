@@ -168,3 +168,12 @@ O total de reações do card é um botão que abre a folha “Reações” (`com
 O autor recebe a notificação interna `reaction` (“Nova reação”) quando outra pessoa reage pela primeira vez à publicação. Trocar o emoji, retirar a reação e reagir à própria publicação não avisam. Existe no máximo um aviso não lido por publicação: novas reações atualizam o texto (“Ana e mais 2 pessoas reagiram à sua publicação.”) e a data do mesmo aviso. Depois de lido, outro aviso só é criado uma hora mais tarde, para que tirar e recolocar a reação não vire insistência. Não há aviso se o autor ocultou quem reagiu ou não é mais membro ativo. Reações em comentários não geram aviso. Não há notificação push nesta entrega; o aviso aparece em Notificações e no contador existente.
 
 A migration `052-reaction-notification-type` acrescenta `reaction` ao enum de `group_notifications.type`; aplique antes de subir a API. Versões anteriores do app listam o aviso com ícone genérico. Teste: `RUN_DB_TESTS=1 node --import tsx --test apps/api/test/post-reactions.integration.test.ts` cria e remove um banco `fit_reactions_test_*` e cobre 401, não membro, parâmetro inválido, entrada posterior, publicação removida, campos públicos, pessoas ocultadas, agrupamento e a regra de uma hora. O E2E `social-feed.spec.ts` abre a folha pelo total do card.
+
+## Feed mais leve (novembro de 2026)
+
+- O nome visível da área é **Comunidade** em todas as telas (antes alternava com “Social”); rotas e nomes de arquivo continuam `groups`/`social-*`.
+- Cabeçalho do feed geral em uma linha: voltar, título e os atalhos Meus grupos, Notificações e Configurações. Saíram o subtítulo, a falsa aba “Seu feed” e a legenda “Publicações dos seus grupos”.
+- Cada card mostra o grupo na linha do autor (“grupo · há 5 min”), tocável para abrir o feed do grupo, no lugar da faixa colorida no topo do card.
+- Horários recentes aparecem como tempo decorrido (“agora”, “há 12 min”, “há 3 h”, até seis horas); depois, dia e hora como antes.
+- A primeira carga usa esqueletos de card. As ações da publicação e a lista de reações usam a folha inferior compartilhada (`components/bottom-sheet.tsx`).
+- Nova publicação (`group-post.tsx`): com um único grupo possível ele já vem marcado; `?groupId=` pré-seleciona um destino; o aviso de 48 horas só aparece quando há foto. O editor em folha dentro do grupo foi mantido, com o rascunho em memória descrito acima; os dois editores continuam existindo.
